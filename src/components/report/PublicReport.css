@@ -1,0 +1,284 @@
+.public-report {
+  min-height: 100vh;
+  background: #0a0a0f;
+  color: #f1f5f9;
+}
+
+.report-loading, .report-error {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a0f;
+  color: #f1f5f9;
+  gap: 16px;
+}
+.report-error p:first-child { font-size: 3rem; }
+.report-error h2 { font-size: 1.3rem; }
+.report-error p:last-child { color: #9ca3af; }
+.report-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(139, 92, 246, 0.2);
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Header */
+.pr-header {
+  background: linear-gradient(135deg, #1a0533 0%, #2d1b69 50%, #1a0533 100%);
+  padding: 60px 40px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.pr-header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%);
+}
+.pr-logo { font-size: 3rem; margin-bottom: 12px; position: relative; }
+.pr-header h1 {
+  font-size: 1.6rem;
+  font-weight: 300;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #e8d5ff;
+  margin-bottom: 28px;
+  position: relative;
+}
+.pr-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: left;
+  position: relative;
+}
+.pr-meta-item {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.pr-meta-label {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 4px;
+}
+.pr-meta-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #f0d78c;
+}
+
+/* Sections */
+.pr-section {
+  padding: 40px;
+  max-width: 800px;
+  margin: 0 auto;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.pr-section:last-of-type { border-bottom: none; }
+.pr-section-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.pr-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #6b21a8, #8b5cf6);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.pr-section-header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #a78bfa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.pr-intro {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  font-style: italic;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  border-left: 3px solid #8b5cf6;
+  background: rgba(139, 92, 246, 0.05);
+  border-radius: 0 8px 8px 0;
+}
+
+/* Assessment grid */
+.pr-assessment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.pr-assessment-card {
+  border-radius: 10px;
+  padding: 16px 20px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.pr-assessment-card.balanced {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.2);
+}
+.pr-assessment-card.imbalanced {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+.pr-assessment-label { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
+.pr-assessment-status { font-size: 0.82rem; color: #9ca3af; }
+.pr-assessment-notes { font-size: 0.78rem; color: #6b7280; margin-top: 6px; }
+
+/* Chakra grid */
+.pr-chakra-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pr-chakra-card {
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  border-left: 4px solid #8b5cf6;
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+.pr-chakra-name { font-weight: 600; color: #a78bfa; font-size: 0.9rem; margin-bottom: 4px; }
+.pr-chakra-desc { font-size: 0.8rem; color: #6b7280; margin-bottom: 8px; }
+.pr-chakra-status { font-size: 0.85rem; color: #d1d5db; }
+.pr-chakra-notes { font-size: 0.78rem; color: #6b7280; margin-top: 6px; font-style: italic; }
+
+/* Aura */
+.pr-aura-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.pr-aura-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+}
+.pr-aura-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; }
+
+/* Life areas */
+.pr-life-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.pr-life-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+}
+.pr-life-name { font-size: 0.85rem; font-weight: 500; }
+.pr-life-score {
+  font-size: 0.8rem;
+  background: linear-gradient(135deg, #6b21a8, #8b5cf6);
+  color: white;
+  padding: 3px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+/* Emotions */
+.pr-emotions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pr-emotion-tag {
+  background: rgba(139, 92, 246, 0.12);
+  color: #a78bfa;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+/* Lists */
+.pr-list {
+  list-style: none;
+  padding: 0;
+}
+.pr-list li, .pr-list-item {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 0.88rem;
+}
+.pr-list li:last-child, .pr-list-item:last-child { border-bottom: none; }
+.pr-list li::before { content: '•'; color: #8b5cf6; margin-right: 10px; font-weight: bold; }
+.pr-notes { font-size: 0.8rem; color: #6b7280; margin-top: 4px; }
+
+/* Treatment */
+.pr-treatment {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.pr-treatment-item h4 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a78bfa;
+  margin-bottom: 6px;
+}
+.pr-treatment-item p {
+  font-size: 0.88rem;
+  color: #d1d5db;
+  line-height: 1.6;
+}
+
+/* Footer */
+.pr-footer {
+  padding: 32px 40px;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.pr-footer-line {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #8b5cf6, transparent);
+  margin-bottom: 16px;
+}
+.pr-footer p {
+  font-size: 0.75rem;
+  color: #6b7280;
+  letter-spacing: 1px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .pr-header { padding: 40px 24px; }
+  .pr-section { padding: 28px 24px; }
+  .pr-meta { grid-template-columns: 1fr; }
+  .pr-assessment-grid, .pr-aura-grid, .pr-life-grid { grid-template-columns: 1fr; }
+}

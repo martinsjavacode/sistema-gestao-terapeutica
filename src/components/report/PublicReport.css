@@ -1,190 +1,303 @@
+/* ========================================================
+   PUBLIC REPORT — Tema Místico Moderno
+   ======================================================== */
+
 .public-report {
   min-height: 100vh;
-  background: #0a0a0f;
-  color: #f1f5f9;
+  background: #06060b;
+  color: #e2e8f0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.7;
 }
 
+/* Loading & Error */
 .report-loading, .report-error {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #0a0a0f;
-  color: #f1f5f9;
+  background: #06060b;
+  color: #e2e8f0;
   gap: 16px;
 }
 .report-error p:first-child { font-size: 3rem; }
-.report-error h2 { font-size: 1.3rem; }
-.report-error p:last-child { color: #9ca3af; }
+.report-error h2 { font-size: 1.3rem; color: #c4b5fd; }
+.report-error p:last-child { color: #6b7280; }
 .report-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(139, 92, 246, 0.2);
-  border-top-color: #8b5cf6;
+  border: 3px solid rgba(196, 181, 253, 0.15);
+  border-top-color: #c4b5fd;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Header */
+/* ========== Header ========== */
 .pr-header {
-  background: linear-gradient(135deg, #1a0533 0%, #2d1b69 50%, #1a0533 100%);
-  padding: 60px 40px;
-  text-align: center;
   position: relative;
+  padding: 80px 40px 60px;
+  text-align: center;
   overflow: hidden;
+  background: radial-gradient(ellipse at 50% 0%, rgba(124, 58, 237, 0.12) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 50%, rgba(212, 168, 83, 0.06) 0%, transparent 50%),
+              #06060b;
 }
 .pr-header::before {
   content: '';
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L30 60M0 30L60 30' stroke='rgba(255,255,255,0.015)' stroke-width='1'/%3E%3C/svg%3E");
+  pointer-events: none;
 }
-.pr-logo { font-size: 3rem; margin-bottom: 12px; position: relative; }
+.pr-logo {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+  position: relative;
+  filter: drop-shadow(0 0 20px rgba(196, 181, 253, 0.4));
+}
 .pr-header h1 {
-  font-size: 1.6rem;
+  font-size: 1.1rem;
   font-weight: 300;
-  letter-spacing: 3px;
+  letter-spacing: 6px;
   text-transform: uppercase;
-  color: #e8d5ff;
-  margin-bottom: 28px;
+  color: #c4b5fd;
+  margin-bottom: 36px;
   position: relative;
 }
 .pr-meta {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  max-width: 600px;
+  display: flex;
+  justify-content: center;
+  gap: 1px;
+  max-width: 640px;
   margin: 0 auto;
-  text-align: left;
   position: relative;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 .pr-meta-item {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px;
-  padding: 12px 16px;
+  flex: 1;
+  padding: 16px 20px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.02);
+}
+.pr-meta-item + .pr-meta-item {
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
 }
 .pr-meta-label {
   display: block;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: rgba(255,255,255,0.5);
-  margin-bottom: 4px;
+  letter-spacing: 2px;
+  color: #6b7280;
+  margin-bottom: 6px;
 }
 .pr-meta-value {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 500;
   color: #f0d78c;
 }
 
-/* Sections */
+/* ========== Sections ========== */
 .pr-section {
-  padding: 40px;
-  max-width: 800px;
+  padding: 48px 40px;
+  max-width: 780px;
   margin: 0 auto;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  position: relative;
 }
-.pr-section:last-of-type { border-bottom: none; }
+.pr-section + .pr-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(196, 181, 253, 0.3), transparent);
+}
 .pr-section-header {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 24px;
+  gap: 16px;
+  margin-bottom: 28px;
 }
 .pr-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #6b21a8, #8b5cf6);
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(196, 181, 253, 0.08));
+  border: 1px solid rgba(196, 181, 253, 0.2);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  color: #c4b5fd;
   flex-shrink: 0;
+  text-shadow: 0 0 12px rgba(196, 181, 253, 0.4);
+  line-height: 1;
+  text-align: center;
 }
 .pr-section-header h2 {
-  font-size: 1.1rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: #a78bfa;
+  color: #c4b5fd;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 .pr-intro {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: #9ca3af;
-  font-style: italic;
-  margin-bottom: 20px;
-  padding: 12px 16px;
-  border-left: 3px solid #8b5cf6;
-  background: rgba(139, 92, 246, 0.05);
-  border-radius: 0 8px 8px 0;
+  line-height: 1.8;
+  margin-bottom: 24px;
+  padding: 14px 18px;
+  border-left: 2px solid rgba(196, 181, 253, 0.3);
+  background: rgba(124, 58, 237, 0.03);
+  border-radius: 0 10px 10px 0;
 }
 
-/* Assessment grid */
+/* ========== Assessment ========== */
 .pr-assessment-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 .pr-assessment-card {
-  border-radius: 10px;
-  padding: 16px 20px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 18px 22px;
+  backdrop-filter: blur(10px);
 }
 .pr-assessment-card.balanced {
-  background: rgba(34, 197, 94, 0.08);
-  border-color: rgba(34, 197, 94, 0.2);
+  background: rgba(34, 197, 94, 0.06);
+  border: 1px solid rgba(34, 197, 94, 0.15);
 }
 .pr-assessment-card.imbalanced {
-  background: rgba(239, 68, 68, 0.08);
-  border-color: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.15);
 }
-.pr-assessment-label { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
-.pr-assessment-status { font-size: 0.82rem; color: #9ca3af; }
-.pr-assessment-notes { font-size: 0.78rem; color: #6b7280; margin-top: 6px; }
+.pr-assessment-label { font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: #e2e8f0; }
+.pr-assessment-status { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pr-assessment-notes { font-size: 0.75rem; color: #6b7280; margin-top: 10px; font-style: italic; }
 
-/* Chakra grid */
+/* ========== Chakras ========== */
 .pr-chakra-grid {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 .pr-chakra-card {
-  background: rgba(139, 92, 246, 0.05);
-  border: 1px solid rgba(139, 92, 246, 0.15);
-  border-left: 4px solid #8b5cf6;
-  border-radius: 10px;
-  padding: 16px 20px;
+  background: rgba(124, 58, 237, 0.04);
+  border: 1px solid rgba(124, 58, 237, 0.1);
+  border-radius: 12px;
+  padding: 18px 22px;
 }
-.pr-chakra-name { font-weight: 600; color: #a78bfa; font-size: 0.9rem; margin-bottom: 4px; }
-.pr-chakra-desc { font-size: 0.8rem; color: #6b7280; margin-bottom: 8px; }
-.pr-chakra-status { font-size: 0.85rem; color: #d1d5db; }
-.pr-chakra-notes { font-size: 0.78rem; color: #6b7280; margin-top: 6px; font-style: italic; }
+.pr-chakra-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.pr-chakra-name { font-weight: 600; color: #c4b5fd; font-size: 0.9rem; }
+.pr-chakra-pct { font-size: 0.8rem; font-weight: 600; color: #e2e8f0; }
+.pr-chakra-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.pr-chakra-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.5s ease;
+}
+.pr-chakra-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 0.78rem;
+  color: #9ca3af;
+  margin-bottom: 10px;
+}
+.pr-highlight {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #e2e8f0;
+}
+.pr-chakra-desc { font-size: 0.78rem; color: #6b7280; line-height: 1.6; }
+.pr-chakra-notes { font-size: 0.75rem; color: #9ca3af; margin-top: 8px; font-style: italic; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.04); }
 
-/* Aura */
+/* ========== Badges ========== */
+.pr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.pr-badge-ok {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #4ade80;
+}
+.pr-badge-warn {
+  background: rgba(251, 146, 60, 0.1);
+  border: 1px solid rgba(251, 146, 60, 0.25);
+  color: #fb923c;
+}
+.pr-badge-high {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+.pr-badge-low {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+}
+.pr-badge-neutral {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #9ca3af;
+}
+
+/* ========== Aura ========== */
 .pr-aura-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 .pr-aura-item {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 12px 16px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 8px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
 }
-.pr-aura-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; }
+.pr-aura-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #6b7280;
+}
+.pr-aura-desc {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-style: italic;
+  margin-top: 2px;
+}
 
-/* Life areas */
+/* ========== Life Areas ========== */
 .pr-life-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -194,91 +307,188 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 8px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
 }
-.pr-life-name { font-size: 0.85rem; font-weight: 500; }
+.pr-life-name { font-size: 0.85rem; font-weight: 500; color: #e2e8f0; }
 .pr-life-score {
-  font-size: 0.8rem;
-  background: linear-gradient(135deg, #6b21a8, #8b5cf6);
-  color: white;
-  padding: 3px 12px;
-  border-radius: 12px;
+  font-size: 0.78rem;
+  background: rgba(124, 58, 237, 0.15);
+  color: #c4b5fd;
+  padding: 4px 14px;
+  border-radius: 20px;
   font-weight: 600;
+  border: 1px solid rgba(124, 58, 237, 0.25);
 }
 
-/* Emotions */
+/* ========== Emotions / Frequencies ========== */
 .pr-emotions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 .pr-emotion-tag {
-  background: rgba(139, 92, 246, 0.12);
-  color: #a78bfa;
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: 0.82rem;
+  background: rgba(124, 58, 237, 0.08);
+  color: #c4b5fd;
+  padding: 8px 18px;
+  border-radius: 24px;
+  font-size: 0.8rem;
   font-weight: 500;
+  border: 1px solid rgba(124, 58, 237, 0.15);
 }
 
-/* Lists */
+/* ========== Lists ========== */
 .pr-list {
   list-style: none;
   padding: 0;
 }
 .pr-list li, .pr-list-item {
-  padding: 12px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  font-size: 0.88rem;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 0.85rem;
+  color: #d1d5db;
 }
 .pr-list li:last-child, .pr-list-item:last-child { border-bottom: none; }
-.pr-list li::before { content: '•'; color: #8b5cf6; margin-right: 10px; font-weight: bold; }
-.pr-notes { font-size: 0.8rem; color: #6b7280; margin-top: 4px; }
+.pr-list li::before { content: '◆'; color: #c4b5fd; margin-right: 12px; font-size: 0.6rem; vertical-align: middle; }
+.pr-notes { font-size: 0.78rem; color: #6b7280; margin-top: 6px; font-style: italic; }
 
-/* Treatment */
+/* ========== Treatment ========== */
 .pr-treatment {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+}
+.pr-treatment-item {
+  padding: 18px 22px;
+  background: rgba(212, 168, 83, 0.04);
+  border: 1px solid rgba(212, 168, 83, 0.1);
+  border-radius: 12px;
 }
 .pr-treatment-item h4 {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #a78bfa;
-  margin-bottom: 6px;
+  letter-spacing: 1.5px;
+  color: #f0d78c;
+  margin-bottom: 8px;
 }
 .pr-treatment-item p {
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   color: #d1d5db;
-  line-height: 1.6;
+  line-height: 1.8;
+  white-space: pre-wrap;
 }
 
-/* Footer */
+/* ========== YouTube ========== */
+.pr-youtube {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.pr-youtube-iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+.pr-youtube-link {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 28px;
+  background: rgba(124, 58, 237, 0.06);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  border-radius: 14px;
+  color: #c4b5fd;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.25s;
+}
+.pr-youtube-link:hover {
+  background: rgba(124, 58, 237, 0.12);
+  border-color: rgba(124, 58, 237, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(124, 58, 237, 0.15);
+}
+.pr-youtube-play {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #7c3aed, #a78bfa);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+}
+
+/* ========== Footer ========== */
 .pr-footer {
-  padding: 32px 40px;
+  padding: 48px 40px;
   text-align: center;
-  max-width: 800px;
+  max-width: 780px;
   margin: 0 auto;
 }
 .pr-footer-line {
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #8b5cf6, transparent);
-  margin-bottom: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(196, 181, 253, 0.2), rgba(212, 168, 83, 0.2), transparent);
+  margin-bottom: 20px;
 }
 .pr-footer p {
-  font-size: 0.75rem;
-  color: #6b7280;
-  letter-spacing: 1px;
+  font-size: 0.7rem;
+  color: #4b5563;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
-/* Responsive */
-@media (max-width: 600px) {
-  .pr-header { padding: 40px 24px; }
-  .pr-section { padding: 28px 24px; }
-  .pr-meta { grid-template-columns: 1fr; }
+/* ========== Responsive ========== */
+@media (max-width: 768px) {
+  .pr-header { padding: 50px 24px 40px; }
+  .pr-header h1 { font-size: 1rem; letter-spacing: 4px; }
+  .pr-section { padding: 36px 24px; }
   .pr-assessment-grid, .pr-aura-grid, .pr-life-grid { grid-template-columns: 1fr; }
+  .pr-chakra-desc { font-size: 0.82rem; }
+  .pr-chakra-status { font-size: 0.85rem; }
+  .pr-treatment-item p { font-size: 0.88rem; }
+}
+
+@media (max-width: 480px) {
+  .public-report { font-size: 15px; }
+  .pr-header { padding: 40px 16px 32px; }
+  .pr-header h1 { font-size: 0.85rem; letter-spacing: 3px; margin-bottom: 24px; }
+  .pr-logo { font-size: 2rem; }
+  .pr-meta { flex-direction: column; gap: 0; border-radius: 10px; }
+  .pr-meta-item + .pr-meta-item { border-left: none; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+  .pr-meta-item { padding: 12px 16px; }
+  .pr-meta-value { font-size: 0.9rem; }
+  .pr-section { padding: 28px 16px; }
+  .pr-section-header { gap: 12px; margin-bottom: 20px; }
+  .pr-section-header h2 { font-size: 0.78rem; letter-spacing: 1.5px; }
+  .pr-icon { width: 38px; height: 38px; font-size: 1.1rem; border-radius: 10px; }
+  .pr-intro { font-size: 0.85rem; padding: 12px 14px; }
+  .pr-assessment-label { font-size: 0.92rem; }
+  .pr-assessment-status { font-size: 0.84rem; }
+  .pr-chakra-name { font-size: 0.92rem; }
+  .pr-chakra-desc { font-size: 0.84rem; line-height: 1.7; }
+  .pr-chakra-status { font-size: 0.88rem; }
+  .pr-chakra-notes { font-size: 0.82rem; }
+  .pr-aura-item { padding: 14px 16px; }
+  .pr-aura-desc { font-size: 0.8rem; }
+  .pr-life-item { padding: 12px 14px; }
+  .pr-life-name { font-size: 0.88rem; }
+  .pr-life-score { font-size: 0.8rem; }
+  .pr-list li, .pr-list-item { font-size: 0.88rem; padding: 12px 0; }
+  .pr-treatment-item { padding: 14px 16px; }
+  .pr-treatment-item p { font-size: 0.88rem; line-height: 1.8; }
+  .pr-footer { padding: 32px 16px; }
 }

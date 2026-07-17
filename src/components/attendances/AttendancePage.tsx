@@ -10,6 +10,7 @@ import { toast } from '../../lib/toast'
 import { Plus, Trash2, FileText, Search } from 'lucide-react'
 import type { TherapyType } from '../../types/database'
 import { THERAPY_LABELS } from '../../types/database'
+import { ACTIVE_THERAPIES } from '../../config/therapy-sections'
 import AttendanceDetail from './AttendanceDetail'
 
 export default function AttendancePage() {
@@ -110,6 +111,7 @@ export default function AttendancePage() {
             <div className="attendance-row-left">
               <span className="attendance-row-date">
                 {new Date(a.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                {a.time && <span style={{ marginLeft: 'var(--space-2)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{a.time.slice(0, 5)}</span>}
               </span>
               <div className="attendance-row-info">
                 <span className="attendance-row-name">{a.clients?.name ?? '—'}</span>
@@ -145,7 +147,7 @@ export default function AttendancePage() {
                 label="Tipo de terapia"
                 value={newTherapy}
                 onChange={v => setNewTherapy(v as TherapyType)}
-                options={Object.entries(THERAPY_LABELS).map(([k, v]) => ({ value: k, label: v }))}
+                options={ACTIVE_THERAPIES.map(k => ({ value: k, label: THERAPY_LABELS[k] }))}
               />
             </div>
             <label className="form-label" style={{ marginTop: 'var(--space-4)' }}>

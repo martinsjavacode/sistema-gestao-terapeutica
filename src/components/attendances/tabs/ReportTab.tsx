@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchAttendance, fetchEnergyAssessments, fetchChakras, fetchAuraField, fetchLifeAreas, fetchEmotions, fetchLimitingBeliefs, fetchBlockages, fetchEnergyDivorces, fetchTreatment } from '../../../services/attendances'
+import { fetchAttendance, fetchEnergyAssessments, fetchChakras, fetchAuraField, fetchLifeAreas, fetchEmotions, fetchLimitingBeliefs, fetchBlockages, fetchEnergyDivorces, fetchTreatment, updateAttendance } from '../../../services/attendances'
 import { toast } from '../../../lib/toast'
 import Button from '../../ui/Button'
 import { FileText, Link2 } from 'lucide-react'
@@ -95,7 +95,9 @@ export default function ReportTab({ attendanceId }: { attendanceId: string }) {
 
   const hasData = assessments.length > 0 || chakras.length > 0 || (aura && (aura.state || aura.predominant_color)) || lifeAreas.length > 0 || emotions.length > 0 || beliefs.length > 0 || blockages.length > 0 || divorces.length > 0 || (treatment && (treatment.techniques || treatment.recommendations))
 
-  const copyLink = () => {
+  const copyLink = async () => {
+    // Salvar report_content para que o link público funcione
+    await updateAttendance(attendanceId, { report_content: 'published' })
     const url = `${window.location.origin}/sistema-gestao-terapeutica/report/${attendanceId}`
     navigator.clipboard.writeText(url).then(() => toast('Link copiado!')).catch(() => toast('Erro ao copiar', 'error'))
   }
@@ -149,12 +151,24 @@ export default function ReportTab({ attendanceId }: { attendanceId: string }) {
 
     // Campo Áurico
     if (aura && (aura.state || aura.predominant_color)) {
+      const sizeDesc: Record<string, string> = { expandido: 'Energia irradiante, extroversão, estado elevado de consciência', regular: 'Equilíbrio energético, estado saudável e estável', encolhido: 'Retraimento, medo, proteção excessiva, baixa vitalidade' }
+      const protDesc: Record<string, string> = { aberta: 'Vulnerável a energias externas, sem filtro energético', media: 'Proteção parcial, permeável a influências', fechada: 'Bem protegida, impermeável a interferências externas' }
+      const colorDesc: Record<string, string> = { vermelho: 'Vitalidade, paixão, força física, enraizamento', laranja: 'Criatividade, emoções, sexualidade, prazer', amarelo: 'Intelecto, poder pessoal, otimismo, clareza mental', verde: 'Cura, equilíbrio, amor, compaixão, renovação', azul: 'Comunicação, paz, verdade, serenidade, expressão', indigo: 'Intuição, percepção extrassensorial, sabedoria interior', violeta: 'Espiritualidade, transmutação, conexão divina', cinza: 'Bloqueio, estagnação, cansaço, energia densa', preto: 'Doença, negatividade acumulada, dor, entidades' }
+
       let items = ''
-      if (aura.state) items += `<div class="aura-item"><span class="aura-label">Estado</span><span>${aura.state}${aura.state_percentage ? ` (${aura.state_percentage}%)` : ''}</span></div>`
-      if (aura.size) items += `<div class="aura-item"><span class="aura-label">Tamanho</span><span>${aura.size}${aura.size_percentage ? ` (${aura.size_percentage}%)` : ''}</span></div>`
-      if (aura.predominant_color) items += `<div class="aura-item"><span class="aura-label">Cor predominante</span><span>${aura.predominant_color}</span></div>`
-      if (aura.excess_color) items += `<div class="aura-item"><span class="aura-label">Cor em excesso</span><span>${aura.excess_color}${aura.excess_color_percentage ? ` (${aura.excess_color_percentage}%)` : ''}</span></div>`
-      if (aura.missing_color) items += `<div class="aura-item"><span class="aura-label">Cor em falta</span><span>${aura.missing_color}${aura.missing_color_percentage ? ` (${aura.missing_color_percentage}%)` : ''}</span></div>`
+      if (aura.size) items += `<div class="aura-item"><span class="aura-label">Tamanho</span><span>${aura.size}${aura.size_percentage ? ` (${aura.size_percentage}%)` : ''}</span>${sizeDesc[aura.size] ? `<span class="aura-desc">${sizeDesc[aura.size]}</span>` : ''}</div>`
+      if (aura.state) items += `<div class="aura-item"><span class="aura-label">Proteção</span><span>${aura.state}${aura.state_percentage ? ` (${aura.state_percentage}%)` : ''}</span>${protDesc[aura.state] ? `<span class="aura-desc">${protDesc[aura.state]}</span>` : ''}</div>`
+      if (aura.predominant_color) items += `<div class="aura-item"><span class="aura-label">Cor predominante</span><span>${aura.predominant_color}</span>${colorDesc[aura.predominant_color] ? `<span class="aura-desc">${colorDesc[aura.predominant_color]}</span>` : ''}</div>`
+      if (aura.excess_color) {
+        const colors = aura.excess_color.split(',')
+        const descs = colors.map(c => `${c.trim()}${colorDesc[c.trim()] ? ` — ${colorDesc[c.trim()]}` : ''}`).join(', ')
+        items += `<div class="aura-item"><span class="aura-label">Cor em excesso</span><span>${descs}</span></div>`
+      }
+      if (aura.missing_color) {
+        const colors = aura.missing_color.split(',')
+        const descs = colors.map(c => `${c.trim()}${colorDesc[c.trim()] ? ` — ${colorDesc[c.trim()]}` : ''}`).join(', ')
+        items += `<div class="aura-item"><span class="aura-label">Cor em falta</span><span>${descs}</span></div>`
+      }
       bodyHtml += `<div class="section"><div class="section-header"><span class="section-icon">✨</span><h2>CAMPO ÁURICO</h2></div><div class="aura-grid">${items}</div>${aura.notes ? `<p class="notes">${aura.notes}</p>` : ''}</div>`
     }
 
@@ -220,6 +234,11 @@ export default function ReportTab({ attendanceId }: { attendanceId: string }) {
       if (treatment.recommendations) items += `<div class="treat-item"><h4>Recomendações</h4><p>${treatment.recommendations}</p></div>`
       if (treatment.exercises) items += `<div class="treat-item"><h4>Exercícios</h4><p>${treatment.exercises}</p></div>`
       bodyHtml += `<div class="section"><div class="section-header"><span class="section-icon">💎</span><h2>TRATAMENTO</h2></div>${items}</div>`
+    }
+
+    // YouTube
+    if (attendance?.youtube_url) {
+      bodyHtml += `<div class="section"><div class="section-header"><span class="section-icon">🎬</span><h2>VÍDEO DA SESSÃO</h2></div><p><a href="${attendance.youtube_url}" target="_blank" style="color: #8b5cf6; text-decoration: underline;">${attendance.youtube_url}</a></p></div>`
     }
 
     // Footer
@@ -299,6 +318,7 @@ const PDF_STYLES = `
   .aura-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .aura-item { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; background: #f9f9fb; border: 1px solid #eee; border-radius: 8px; }
   .aura-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #999; }
+  .aura-desc { font-size: 0.75rem; color: #666; font-style: italic; }
   .life-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .life-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #f9f9fb; border-radius: 6px; border: 1px solid #eee; }
   .life-name { font-size: 0.85rem; font-weight: 500; }

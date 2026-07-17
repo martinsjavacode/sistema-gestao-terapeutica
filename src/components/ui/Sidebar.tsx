@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { signOut, getSession } from '../../services/auth'
-import { LayoutDashboard, Users, ClipboardList, Settings, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Users, ClipboardList, Calendar, Settings, LogOut, Menu, X } from 'lucide-react'
 
 interface Props {
   can: (resource: string, action: string) => boolean
@@ -11,6 +11,7 @@ const pageTitles: Record<string, string> = {
   '/': 'Dashboard',
   '/clients': 'Clientes',
   '/attendances': 'Atendimentos',
+  '/schedule': 'Agenda',
   '/settings': 'Configurações',
 }
 
@@ -46,8 +47,9 @@ export default function Sidebar({ can }: Props) {
         <nav className="sidebar-nav">
           <span className="sidebar-group">Principal</span>
           {link('/', <><LayoutDashboard size={16} /> Dashboard</>)}
-          {can('clients', 'read') && link('/clients', <><Users size={16} /> Clientes</>)}
+          {can('attendances', 'read') && link('/schedule', <><Calendar size={16} /> Agenda</>)}
           {can('attendances', 'read') && link('/attendances', <><ClipboardList size={16} /> Atendimentos</>)}
+          {can('clients', 'read') && link('/clients', <><Users size={16} /> Clientes</>)}
 
           <span className="sidebar-group">Sistema</span>
           {can('settings', 'read') && link('/settings', <><Settings size={16} /> Configurações</>)}

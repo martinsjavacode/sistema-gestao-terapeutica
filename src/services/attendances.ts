@@ -8,7 +8,7 @@ import type {
 // ========== Attendances ==========
 
 export async function fetchAttendances(clientId?: string) {
-  let q = supabase.from('attendances').select('*, clients(name)').order('date', { ascending: false })
+  let q = supabase.from('attendances').select('*, clients(name)').order('date', { ascending: true }).order('time', { ascending: true })
   if (clientId) q = q.eq('client_id', clientId)
   const { data, error } = await q
   return { data: (data ?? []) as (Attendance & { clients: { name: string } })[], error }

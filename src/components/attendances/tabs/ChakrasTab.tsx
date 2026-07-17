@@ -7,8 +7,16 @@ import type { ChakraName, ChakraState, ChakraActivity } from '../../../types/dat
 import Select from '../../ui/Select'
 import SaveStatus from '../../ui/SaveStatus'
 
-const STATES: ChakraState[] = ['equilibrado', 'hiperativo', 'hipoativo', 'bloqueado']
-const ACTIVITIES: ChakraActivity[] = ['normal', 'acelerada', 'lenta', 'parada']
+const STATES: { value: ChakraState; label: string }[] = [
+  { value: 'equilibrado', label: 'Equilibrado' },
+  { value: 'desequilibrio', label: 'Desequilíbrio' },
+]
+
+const ACTIVITIES: { value: ChakraActivity; label: string }[] = [
+  { value: 'hipoativo', label: 'Hipoativo' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'hiperativo', label: 'Hiperativo' },
+]
 
 export default function ChakrasTab({ attendanceId }: { attendanceId: string }) {
   const qc = useQueryClient()
@@ -67,13 +75,13 @@ function ChakraCard({ name, initial, onSave }: { name: ChakraName; initial?: { s
           label="Estado"
           value={state}
           onChange={v => { setState(v as ChakraState); change() }}
-          options={STATES.map(s => ({ value: s, label: s }))}
+          options={STATES}
         />
         <Select
           label="Atividade"
           value={activity}
           onChange={v => { setActivity(v as ChakraActivity); change() }}
-          options={ACTIVITIES.map(a => ({ value: a, label: a }))}
+          options={ACTIVITIES}
         />
         <label className="form-label">
           %

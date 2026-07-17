@@ -24,7 +24,7 @@ export default function Dashboard() {
 
   const thisMonth = new Date().toISOString().slice(0, 7)
   const monthAttendances = attendances.filter(a => a.date.startsWith(thisMonth))
-  const lastAttendance = attendances[0]
+  const lastAttendance = attendances[attendances.length - 1]
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
@@ -100,7 +100,7 @@ export default function Dashboard() {
             </button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            {attendances.slice(0, 5).map(a => (
+            {attendances.slice(-5).reverse().map(a => (
               <div
                 key={a.id}
                 className="card"

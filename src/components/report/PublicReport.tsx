@@ -52,6 +52,7 @@ interface ReportData {
     date: string
     therapy_type: TherapyType
     objective: string | null
+    youtube_url: string | null
     report_content: string | null
     client_name: string
   }
@@ -105,14 +106,16 @@ export default function PublicReport() {
       {/* Avaliação Energética */}
       {assessments.length > 0 && (
         <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">⚡</span><h2>Avaliação Energética</h2></div>
+          <div className="pr-section-header"><span className="pr-icon">◎</span><h2>Avaliação Energética</h2></div>
           <div className="pr-assessment-grid">
             {assessments.map(a => (
               <div key={a.field_type} className={`pr-assessment-card ${a.has_imbalance ? 'imbalanced' : 'balanced'}`}>
                 <div className="pr-assessment-label">{fieldLabels[a.field_type] ?? a.field_type}</div>
                 <div className="pr-assessment-status">
-                  {a.has_imbalance ? '⚠ Desequilíbrio' : '✓ Equilibrado'}
-                  {a.percentage ? ` (${a.percentage}%)` : ''}
+                  <span className={`pr-badge ${a.has_imbalance ? 'pr-badge-warn' : 'pr-badge-ok'}`}>
+                    {a.has_imbalance ? '● Desequilíbrio' : '● Equilibrado'}
+                  </span>
+                  {a.percentage !== null && <span className="pr-badge pr-badge-neutral">{a.percentage}%</span>}
                 </div>
                 {a.notes && <div className="pr-assessment-notes">{a.notes}</div>}
               </div>
@@ -124,17 +127,32 @@ export default function PublicReport() {
       {/* Chakras */}
       {chakras.length > 0 && (
         <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">🌈</span><h2>Chakras</h2></div>
+          <div className="pr-section-header"><span className="pr-icon">❂</span><h2>Chakras</h2></div>
           <p className="pr-intro">Os chakras são centros energéticos que regulam o fluxo de energia vital, cada um associado a aspectos físicos, emocionais e espirituais.</p>
           <div className="pr-chakra-grid">
-            {chakras.map(c => (
-              <div key={c.name} className="pr-chakra-card">
-                <div className="pr-chakra-name">{CHAKRA_LABELS[c.name]}</div>
-                <div className="pr-chakra-desc">{CHAKRA_DESCRIPTIONS[c.name]}</div>
-                <div className="pr-chakra-status">Estado: {c.state}{c.percentage ? ` (${c.percentage}%)` : ''} • Atividade: {c.activity}</div>
-                {c.notes && <div className="pr-chakra-notes">{c.notes}</div>}
-              </div>
-            ))}
+            {chakras.map(c => {
+              const barColor = c.state === 'desequilibrio'
+                ? (c.activity === 'hiperativo' ? '#f87171' : c.activity === 'hipoativo' ? '#38bdf8' : '#fb923c')
+                : '#4ade80'
+              const pct = c.percentage ?? 50
+              return (
+                <div key={c.name} className="pr-chakra-card">
+                  <div className="pr-chakra-bar-header">
+                    <span className="pr-chakra-name">{CHAKRA_LABELS[c.name]}</span>
+                    <span className="pr-chakra-pct">{pct}%</span>
+                  </div>
+                  <div className="pr-chakra-bar">
+                    <div className="pr-chakra-bar-fill" style={{ width: `${pct}%`, background: barColor }} />
+                  </div>
+                  <div className="pr-chakra-meta">
+                    <span className="pr-highlight">{c.state === 'equilibrado' ? 'Equilibrado' : 'Desequilíbrio'}</span>
+                    <span className="pr-highlight">{c.activity === 'normal' ? 'Normal' : c.activity === 'hiperativo' ? 'Hiperativo' : 'Hipoativo'}</span>
+                  </div>
+                  <div className="pr-chakra-desc">{CHAKRA_DESCRIPTIONS[c.name]}</div>
+                  {c.notes && <div className="pr-chakra-notes">{c.notes}</div>}
+                </div>
+              )
+            })}
           </div>
         </section>
       )}
@@ -142,14 +160,9 @@ export default function PublicReport() {
       {/* Campo Áurico */}
       {aura && (aura.state || aura.predominant_color) && (
         <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">✨</span><h2>Campo Áurico</h2></div>
-          <div className="pr-aura-grid">
-            {aura.state && <div className="pr-aura-item"><span className="pr-aura-label">Estado</span><span>{aura.state}{aura.state_percentage ? ` (${aura.state_percentage}%)` : ''}</span></div>}
-            {aura.size && <div className="pr-aura-item"><span className="pr-aura-label">Tamanho</span><span>{aura.size}{aura.size_percentage ? ` (${aura.size_percentage}%)` : ''}</span></div>}
-            {aura.predominant_color && <div className="pr-aura-item"><span className="pr-aura-label">Cor predominante</span><span>{aura.predominant_color}</span></div>}
-            {aura.excess_color && <div className="pr-aura-item"><span className="pr-aura-label">Cor em excesso</span><span>{aura.excess_color}{aura.excess_color_percentage ? ` (${aura.excess_color_percentage}%)` : ''}</span></div>}
-            {aura.missing_color && <div className="pr-aura-item"><span className="pr-aura-label">Cor em falta</span><span>{aura.missing_color}{aura.missing_color_percentage ? ` (${aura.missing_color_percentage}%)` : ''}</span></div>}
-          </div>
+          <div className="pr-section-header"><span className="pr-icon">◯</span><h2>Campo Áurico</h2></div>
+          <p className="pr-intro">O campo áurico é a camada de energia que envolve o corpo, refletindo o estado emocional, mental e espiritual. Suas cores e dimensões indicam padrões energéticos e áreas que precisam de atenção.</p>
+          <AuraSection aura={aura} />
           {aura.notes && <p className="pr-notes">{aura.notes}</p>}
         </section>
       )}
@@ -157,12 +170,12 @@ export default function PublicReport() {
       {/* Áreas da Vida */}
       {life_areas.length > 0 && (
         <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">🎯</span><h2>Áreas da Vida</h2></div>
+          <div className="pr-section-header"><span className="pr-icon">✦</span><h2>Áreas da Vida</h2></div>
           <div className="pr-life-grid">
             {life_areas.map(a => (
               <div key={a.area} className="pr-life-item">
                 <span className="pr-life-name">{LIFE_AREA_LABELS[a.area]}</span>
-                <span className="pr-life-score">{a.score !== null ? `${a.score}/10` : ''}{a.percentage !== null ? ` • ${a.percentage}%` : ''}</span>
+                {a.percentage !== null && <span className="pr-life-score">{a.percentage}%</span>}
               </div>
             ))}
           </div>
@@ -172,7 +185,7 @@ export default function PublicReport() {
       {/* Frequências (Hz) */}
       {emotions.length > 0 && (
         <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">🎵</span><h2>Frequências (Hz)</h2></div>
+          <div className="pr-section-header"><span className="pr-icon">∿</span><h2>Frequências (Hz)</h2></div>
           <p className="pr-intro">Baseado na Escala de Consciência de Dr. David R. Hawkins, cada frequência representa um nível de consciência e estado emocional associado.</p>
           <div className="pr-chakra-grid">
             {emotions.map((e, i) => {
@@ -191,7 +204,7 @@ export default function PublicReport() {
       {/* Crenças */}
       {beliefs.length > 0 && (
         <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">🔗</span><h2>Crenças Limitantes</h2></div>
+          <div className="pr-section-header"><span className="pr-icon">⟡</span><h2>Crenças Limitantes</h2></div>
           <ul className="pr-list">{beliefs.map((b, i) => <li key={i}>{b.description}</li>)}</ul>
         </section>
       )}
@@ -199,7 +212,7 @@ export default function PublicReport() {
       {/* Bloqueios */}
       {blockages.length > 0 && (
         <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">🚧</span><h2>Bloqueios</h2></div>
+          <div className="pr-section-header"><span className="pr-icon">△</span><h2>Bloqueios</h2></div>
           <div className="pr-list">
             {blockages.map((b, i) => (
               <div key={i} className="pr-list-item">
@@ -216,7 +229,7 @@ export default function PublicReport() {
       {/* Divórcios */}
       {divorces.length > 0 && (
         <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">✂️</span><h2>Divórcios Energéticos</h2></div>
+          <div className="pr-section-header"><span className="pr-icon">⫸</span><h2>Divórcios Energéticos</h2></div>
           <div className="pr-list">
             {divorces.map((d, i) => (
               <div key={i} className="pr-list-item">
@@ -233,7 +246,7 @@ export default function PublicReport() {
       {/* Tratamento */}
       {treatment && (treatment.techniques || treatment.recommendations) && (
         <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">💎</span><h2>Tratamento</h2></div>
+          <div className="pr-section-header"><span className="pr-icon">✧</span><h2>Tratamento</h2></div>
           <div className="pr-treatment">
             {treatment.techniques && <div className="pr-treatment-item"><h4>Técnicas</h4><p>{treatment.techniques}</p></div>}
             {treatment.charts && <div className="pr-treatment-item"><h4>Gráficos</h4><p>{treatment.charts}</p></div>}
@@ -244,10 +257,123 @@ export default function PublicReport() {
         </section>
       )}
 
+      {attendance.youtube_url && (
+        <section className="pr-section">
+          <div className="pr-section-header"><span className="pr-icon">▷</span><h2>Vídeo da Sessão</h2></div>
+          <YouTubeEmbed url={attendance.youtube_url} />
+        </section>
+      )}
+
       <footer className="pr-footer">
         <div className="pr-footer-line" />
         <p>Sistema de Gestão Terapêutica</p>
       </footer>
     </div>
+  )
+}
+
+// ========== Aura Section com descrições ==========
+
+const AURA_SIZE_DESC: Record<string, string> = {
+  expandido: 'Energia irradiante, extroversão, estado elevado de consciência',
+  regular: 'Equilíbrio energético, estado saudável e estável',
+  encolhido: 'Retraimento, medo, proteção excessiva, baixa vitalidade',
+}
+
+const AURA_PROT_DESC: Record<string, string> = {
+  aberta: 'Vulnerável a energias externas, sem filtro energético',
+  media: 'Proteção parcial, permeável a influências',
+  fechada: 'Bem protegida, impermeável a interferências externas',
+}
+
+const AURA_COLOR_DESC: Record<string, string> = {
+  vermelho: 'Vitalidade, paixão, força física, enraizamento',
+  laranja: 'Criatividade, emoções, sexualidade, prazer',
+  amarelo: 'Intelecto, poder pessoal, otimismo, clareza mental',
+  verde: 'Cura, equilíbrio, amor, compaixão, renovação',
+  azul: 'Comunicação, paz, verdade, serenidade, expressão',
+  indigo: 'Intuição, percepção extrassensorial, sabedoria interior',
+  violeta: 'Espiritualidade, transmutação, conexão divina',
+  cinza: 'Bloqueio, estagnação, cansaço, energia densa',
+  preto: 'Doença, negatividade acumulada, dor, entidades',
+}
+
+function AuraSection({ aura }: { aura: { state: string | null; size: string | null; predominant_color: string | null; excess_color: string | null; missing_color: string | null; state_percentage: number | null; size_percentage: number | null } }) {
+  const renderColors = (colorStr: string) => {
+    return colorStr.split(',').map(c => {
+      const color = c.trim()
+      const desc = AURA_COLOR_DESC[color]
+      return <span key={color}>{color}{desc ? ` — ${desc}` : ''}</span>
+    })
+  }
+
+  return (
+    <div className="pr-aura-grid">
+      {aura.size && (
+        <div className="pr-aura-item">
+          <span className="pr-aura-label">Tamanho</span>
+          <span>{aura.size}{aura.size_percentage ? ` (${aura.size_percentage}%)` : ''}</span>
+          {AURA_SIZE_DESC[aura.size] && <span className="pr-aura-desc">{AURA_SIZE_DESC[aura.size]}</span>}
+        </div>
+      )}
+      {aura.state && (
+        <div className="pr-aura-item">
+          <span className="pr-aura-label">Proteção</span>
+          <span>{aura.state}{aura.state_percentage ? ` (${aura.state_percentage}%)` : ''}</span>
+          {AURA_PROT_DESC[aura.state] && <span className="pr-aura-desc">{AURA_PROT_DESC[aura.state]}</span>}
+        </div>
+      )}
+      {aura.predominant_color && (
+        <div className="pr-aura-item">
+          <span className="pr-aura-label">Cor predominante</span>
+          <span>{aura.predominant_color}</span>
+          {AURA_COLOR_DESC[aura.predominant_color] && <span className="pr-aura-desc">{AURA_COLOR_DESC[aura.predominant_color]}</span>}
+        </div>
+      )}
+      {aura.excess_color && (
+        <div className="pr-aura-item">
+          <span className="pr-aura-label">Cor em excesso</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>{renderColors(aura.excess_color)}</div>
+        </div>
+      )}
+      {aura.missing_color && (
+        <div className="pr-aura-item">
+          <span className="pr-aura-label">Cor em falta</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>{renderColors(aura.missing_color)}</div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ========== YouTube Embed ==========
+
+function getYouTubeId(url: string): string | null {
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+  return match ? match[1] : null
+}
+
+function YouTubeEmbed({ url }: { url: string }) {
+  const videoId = getYouTubeId(url)
+
+  if (videoId) {
+    return (
+      <div className="pr-youtube">
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}`}
+          title="Vídeo da sessão"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="pr-youtube-iframe"
+        />
+      </div>
+    )
+  }
+
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="pr-youtube-link">
+      <span className="pr-youtube-play">▶</span>
+      <span>Assistir vídeo da sessão</span>
+    </a>
   )
 }

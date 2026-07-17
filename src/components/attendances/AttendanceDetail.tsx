@@ -1,11 +1,13 @@
-import { useState, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { fetchAttendance, fetchEnergyAssessments, fetchChakras, fetchAuraField, fetchLifeAreas, fetchEmotions, fetchLimitingBeliefs, fetchBlockages, fetchEnergyDivorces, fetchTreatment } from '../../services/attendances'
+import { fetchAttendance, updateAttendance, fetchEnergyAssessments, fetchChakras, fetchAuraField, fetchLifeAreas, fetchEmotions, fetchLimitingBeliefs, fetchBlockages, fetchEnergyDivorces, fetchTreatment } from '../../services/attendances'
 import { TableSkeleton } from '../ui/Skeleton'
 import Button from '../ui/Button'
-import { ArrowLeft, ChevronRight, ChevronDown, Check } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ChevronDown, Check, Youtube, StickyNote } from 'lucide-react'
 import { THERAPY_LABELS } from '../../types/database'
+import { getSectionsForTherapy } from '../../config/therapy-sections'
+import type { SectionKey } from '../../config/therapy-sections'
 import EnergyAssessmentTab from './tabs/EnergyAssessmentTab'
 import ChakrasTab from './tabs/ChakrasTab'
 import AuraFieldTab from './tabs/AuraFieldTab'
@@ -17,27 +19,13 @@ import DivorcesTab from './tabs/DivorcesTab'
 import TreatmentTab from './tabs/TreatmentTab'
 import ReportTab from './tabs/ReportTab'
 
-const SECTIONS = [
-  { key: 'assessment', label: 'Avaliação Energética' },
-  { key: 'chakras', label: 'Chakras' },
-  { key: 'aura', label: 'Campo Áurico' },
-  { key: 'life-areas', label: 'Áreas da Vida' },
-  { key: 'emotions', label: 'Frequências (Hz)' },
-  { key: 'beliefs', label: 'Crenças Limitantes' },
-  { key: 'blockages', label: 'Bloqueios' },
-  { key: 'divorces', label: 'Divórcios Energéticos' },
-  { key: 'treatment', label: 'Tratamento' },
-  { key: 'report', label: 'Relatório' },
-] as const
-
-type SectionKey = typeof SECTIONS[number]['key']
-
 interface Props {
   attendanceId: string
 }
 
 export default function AttendanceDetail({ attendanceId }: Props) {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(new Set(['assessment']))
 
   const toggleSection = useCallback((key: SectionKey) => {
@@ -56,6 +44,14 @@ export default function AttendanceDetail({ attendanceId }: Props) {
     queryKey: ['attendance', attendanceId],
     queryFn: async () => { const { data } = await fetchAttendance(attendanceId); return data },
   })
+
+  const markSectionComplete = useCallback(async (key: SectionKey) => {
+    const current = attendance?.completed_sections ?? []
+    if (current.includes(key)) return
+    const updated = [...current, key]
+    await updateAttendance(attendanceId, { completed_sections: updated } as any)
+    qc.invalidateQueries({ queryKey: ['attendance', attendanceId] })
+  }, [attendance, attendanceId, qc])
 
   const { data: assessments = [] } = useQuery({
     queryKey: ['energy-assessments', attendanceId],
@@ -94,19 +90,21 @@ export default function AttendanceDetail({ attendanceId }: Props) {
     queryFn: async () => { const { data } = await fetchTreatment(attendanceId); return data },
   })
 
+  const completedSections = new Set(attendance?.completed_sections ?? [])
+
   const hasAnyData = assessments.length > 0 || chakras.length > 0 || !!(aura?.state || aura?.predominant_color) || lifeAreas.length > 0 || emotions.length > 0 || beliefs.length > 0 || blockages.length > 0 || divorces.length > 0 || !!(treatment?.techniques || treatment?.recommendations)
 
   const filledSections: Record<SectionKey, boolean> = {
-    assessment: assessments.length > 0,
-    chakras: chakras.length > 0,
-    aura: !!(aura?.state || aura?.predominant_color),
-    'life-areas': lifeAreas.length > 0,
-    emotions: emotions.length > 0,
-    beliefs: beliefs.length > 0,
-    blockages: blockages.length > 0,
-    divorces: divorces.length > 0,
-    treatment: !!(treatment?.techniques || treatment?.recommendations),
-    report: hasAnyData,
+    assessment: assessments.length > 0 || completedSections.has('assessment'),
+    chakras: chakras.length > 0 || completedSections.has('chakras'),
+    aura: !!(aura?.state || aura?.predominant_color) || completedSections.has('aura'),
+    'life-areas': lifeAreas.length > 0 || completedSections.has('life-areas'),
+    emotions: emotions.length > 0 || completedSections.has('emotions'),
+    beliefs: beliefs.length > 0 || completedSections.has('beliefs'),
+    blockages: blockages.length > 0 || completedSections.has('blockages'),
+    divorces: divorces.length > 0 || completedSections.has('divorces'),
+    treatment: !!(treatment?.techniques || treatment?.recommendations) || completedSections.has('treatment'),
+    report: hasAnyData || completedSections.has('report'),
   }
 
   const sectionSummaries: Record<SectionKey, string> = {
@@ -122,16 +120,17 @@ export default function AttendanceDetail({ attendanceId }: Props) {
     report: attendance?.report_content ? 'Preenchido' : 'Não preenchido',
   }
 
-  const filledCount = Object.values(filledSections).filter(Boolean).length
+  if (isLoading) return <TableSkeleton />
+  if (!attendance) return <p>Atendimento não encontrado.</p>
+
+  const sections = getSectionsForTherapy(attendance.therapy_type)
+  const filledCount = sections.filter(s => filledSections[s.key]).length
 
   const getStatusBadge = () => {
     if (filledCount === 0) return { label: 'Rascunho', className: 'badge badge-warning' }
-    if (filledCount === SECTIONS.length) return { label: 'Completo', className: 'badge badge-success' }
+    if (filledCount === sections.length) return { label: 'Completo', className: 'badge badge-success' }
     return { label: 'Em andamento', className: 'badge badge-info' }
   }
-
-  if (isLoading) return <TableSkeleton />
-  if (!attendance) return <p>Atendimento não encontrado.</p>
 
   const status = getStatusBadge()
 
@@ -149,15 +148,18 @@ export default function AttendanceDetail({ attendanceId }: Props) {
               {new Date(attendance.date + 'T12:00:00').toLocaleDateString('pt-BR')} • {THERAPY_LABELS[attendance.therapy_type]}
               {attendance.objective && ` • ${attendance.objective}`}
               <span style={{ marginLeft: 'var(--space-3)', color: 'var(--green)' }}>
-                {filledCount}/{SECTIONS.length} preenchidos
+                {filledCount}/{sections.length} preenchidos
               </span>
             </p>
           </div>
         </div>
       </div>
 
+      {/* YouTube + Observação interna */}
+      <AttendanceExtraFields attendanceId={attendanceId} youtubeUrl={attendance.youtube_url} internalNotes={attendance.internal_notes} />
+
       <div className="accordion">
-        {SECTIONS.map(section => {
+        {sections.map(section => {
           const isExpanded = expandedSections.has(section.key)
           const isFilled = filledSections[section.key]
 
@@ -198,12 +200,76 @@ export default function AttendanceDetail({ attendanceId }: Props) {
                   {section.key === 'divorces' && <DivorcesTab attendanceId={attendanceId} />}
                   {section.key === 'treatment' && <TreatmentTab attendanceId={attendanceId} />}
                   {section.key === 'report' && <ReportTab attendanceId={attendanceId} />}
+                  {section.key !== 'report' && !isFilled && (
+                    <button
+                      className="btn-complete-section"
+                      onClick={(e) => { e.stopPropagation(); markSectionComplete(section.key) }}
+                    >
+                      <Check size={14} /> Sem alteração
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           )
         })}
       </div>
+    </div>
+  )
+}
+
+// ========== Campos extras: YouTube + Observação Interna ==========
+
+function AttendanceExtraFields({ attendanceId, youtubeUrl, internalNotes }: {
+  attendanceId: string
+  youtubeUrl: string | null
+  internalNotes: string | null
+}) {
+  const qc = useQueryClient()
+  const [youtube, setYoutube] = useState(youtubeUrl ?? '')
+  const [notes, setNotes] = useState(internalNotes ?? '')
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => {
+    setYoutube(youtubeUrl ?? '')
+    setNotes(internalNotes ?? '')
+  }, [youtubeUrl, internalNotes])
+
+  const save = useCallback((field: 'youtube_url' | 'internal_notes', value: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      await updateAttendance(attendanceId, { [field]: value || null })
+      qc.invalidateQueries({ queryKey: ['attendance', attendanceId] })
+    }, 1000)
+  }, [attendanceId, qc])
+
+  return (
+    <div className="card" style={{ padding: 'var(--space-4)', marginBottom: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      <label className="form-label" style={{ margin: 0 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <Youtube size={14} color="var(--red)" /> Link do YouTube
+        </span>
+        <input
+          type="url"
+          placeholder="https://youtube.com/watch?v=..."
+          value={youtube}
+          onChange={e => { setYoutube(e.target.value); save('youtube_url', e.target.value) }}
+          style={{ marginTop: 'var(--space-2)' }}
+        />
+      </label>
+      <label className="form-label" style={{ margin: 0 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <StickyNote size={14} color="var(--gold)" /> Observação interna
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 400 }}>(não aparece no relatório)</span>
+        </span>
+        <textarea
+          placeholder="Anotações internas sobre a sessão..."
+          value={notes}
+          onChange={e => { setNotes(e.target.value); save('internal_notes', e.target.value) }}
+          rows={3}
+          style={{ marginTop: 'var(--space-2)' }}
+        />
+      </label>
     </div>
   )
 }

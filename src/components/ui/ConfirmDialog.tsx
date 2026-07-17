@@ -21,14 +21,24 @@ export default function ConfirmDialog() {
 
   if (!state) return null
 
+  const confirmLabel = state.confirmLabel ?? 'Excluir'
+  const isDanger = (state.variant ?? 'danger') === 'danger'
+
   return (
     <div className="modal-overlay" onClick={() => handle(false)}>
       <div className="modal" ref={ref} onClick={e => e.stopPropagation()} role="alertdialog" aria-modal="true">
         <h2>Confirmar</h2>
         <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{state.message}</p>
+        {state.details && (
+          <div style={{ fontSize: '0.85rem', color: 'var(--text)', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-3) var(--space-4)', marginTop: 'var(--space-3)', lineHeight: 1.6 }}>
+            {state.details.split('\n').map((line, i) => (
+              <div key={i}>{line}</div>
+            ))}
+          </div>
+        )}
         <div className="form-actions">
           <Button variant="tab" onClick={() => handle(false)}>Cancelar</Button>
-          <Button onClick={() => handle(true)} className="delete-btn-confirm">Excluir</Button>
+          <Button onClick={() => handle(true)} className={isDanger ? 'delete-btn-confirm' : ''}>{confirmLabel}</Button>
         </div>
       </div>
     </div>

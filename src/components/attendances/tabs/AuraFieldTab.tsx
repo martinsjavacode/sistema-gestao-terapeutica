@@ -4,41 +4,30 @@ import { fetchAuraField, upsertAuraField } from '../../../services/attendances'
 import { toast } from '../../../lib/toast'
 import SaveStatus from '../../ui/SaveStatus'
 import Select from '../../ui/Select'
-
-const STATES = [
-  { value: 'integro', label: 'Íntegro' },
-  { value: 'aberto', label: 'Aberto' },
-  { value: 'fechado', label: 'Fechado' },
-  { value: 'rompido', label: 'Rompido' },
-  { value: 'poroso', label: 'Poroso' },
-  { value: 'contraido', label: 'Contraído' },
-  { value: 'expandido', label: 'Expandido' },
-  { value: 'irregular', label: 'Irregular' },
-]
+import MultiSelect from '../../ui/MultiSelect'
 
 const SIZES = [
-  { value: 'muito_pequeno', label: 'Muito Pequeno' },
-  { value: 'pequeno', label: 'Pequeno' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'grande', label: 'Grande' },
-  { value: 'muito_grande', label: 'Muito Grande' },
-  { value: 'expandido', label: 'Expandido' },
+  { value: 'expandido', label: 'Expandido — Energia irradiante, extroversão, estado elevado de consciência' },
+  { value: 'regular', label: 'Regular — Equilíbrio energético, estado saudável e estável' },
+  { value: 'encolhido', label: 'Encolhido — Retraimento, medo, proteção excessiva, baixa vitalidade' },
+]
+
+const PROTECTIONS = [
+  { value: 'aberta', label: 'Aberta — Vulnerável a energias externas, sem filtro energético' },
+  { value: 'media', label: 'Média — Proteção parcial, permeável a influências' },
+  { value: 'fechada', label: 'Fechada — Bem protegida, impermeável a interferências externas' },
 ]
 
 const COLORS = [
-  { value: 'vermelho', label: '🔴 Vermelho — Vitalidade, paixão, raiva' },
-  { value: 'laranja', label: '🟠 Laranja — Criatividade, energia, emoção' },
-  { value: 'amarelo', label: '🟡 Amarelo — Intelecto, otimismo, poder pessoal' },
-  { value: 'verde', label: '🟢 Verde — Cura, equilíbrio, amor' },
-  { value: 'azul', label: '🔵 Azul — Comunicação, paz, verdade' },
-  { value: 'indigo', label: '🟣 Índigo — Intuição, percepção, sabedoria' },
-  { value: 'violeta', label: '💜 Violeta — Espiritualidade, transmutação' },
-  { value: 'rosa', label: '💗 Rosa — Amor incondicional, ternura' },
-  { value: 'dourado', label: '✨ Dourado — Proteção divina, iluminação' },
-  { value: 'branco', label: '⚪ Branco — Pureza, conexão espiritual' },
-  { value: 'cinza', label: '⚫ Cinza — Bloqueio, estagnação' },
-  { value: 'marrom', label: '🟤 Marrom — Materialismo, desequilíbrio' },
-  { value: 'preto', label: '⬛ Preto — Doença, negatividade, dor' },
+  { value: 'vermelho', label: '🔴 Vermelho — Vitalidade, paixão, força física, enraizamento' },
+  { value: 'laranja', label: '🟠 Laranja — Criatividade, emoções, sexualidade, prazer' },
+  { value: 'amarelo', label: '🟡 Amarelo — Intelecto, poder pessoal, otimismo, clareza mental' },
+  { value: 'verde', label: '🟢 Verde — Cura, equilíbrio, amor, compaixão, renovação' },
+  { value: 'azul', label: '🔵 Azul — Comunicação, paz, verdade, serenidade, expressão' },
+  { value: 'indigo', label: '🟣 Índigo — Intuição, percepção extrassensorial, sabedoria interior' },
+  { value: 'violeta', label: '💜 Violeta — Espiritualidade, transmutação, conexão divina' },
+  { value: 'cinza', label: '⚫ Cinza — Bloqueio, estagnação, cansaço, energia densa' },
+  { value: 'preto', label: '⬛ Preto — Doença, negatividade acumulada, dor, entidades' },
 ]
 
 export default function AuraFieldTab({ attendanceId }: { attendanceId: string }) {
@@ -48,25 +37,25 @@ export default function AuraFieldTab({ attendanceId }: { attendanceId: string })
     queryFn: async () => { const { data } = await fetchAuraField(attendanceId); return data },
   })
 
-  const [state, setState] = useState(aura?.state ?? '')
-  const [statePercentage, setStatePercentage] = useState(aura?.state_percentage?.toString() ?? '')
   const [size, setSize] = useState(aura?.size ?? '')
   const [sizePercentage, setSizePercentage] = useState(aura?.size_percentage?.toString() ?? '')
+  const [protection, setProtection] = useState(aura?.state ?? '')
+  const [protectionPercentage, setProtectionPercentage] = useState(aura?.state_percentage?.toString() ?? '')
   const [predominantColor, setPredominantColor] = useState(aura?.predominant_color ?? '')
-  const [excessColor, setExcessColor] = useState(aura?.excess_color ?? '')
-  const [excessColorPercentage, setExcessColorPercentage] = useState(aura?.excess_color_percentage?.toString() ?? '')
-  const [missingColor, setMissingColor] = useState(aura?.missing_color ?? '')
-  const [missingColorPercentage, setMissingColorPercentage] = useState(aura?.missing_color_percentage?.toString() ?? '')
+  const [excessColors, setExcessColors] = useState<string[]>(aura?.excess_color ? aura.excess_color.split(',') : [])
+  const [missingColors, setMissingColors] = useState<string[]>(aura?.missing_color ? aura.missing_color.split(',') : [])
   const [notes, setNotes] = useState(aura?.notes ?? '')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
 
   useEffect(() => {
     if (aura) {
-      setState(aura.state ?? ''); setStatePercentage(aura.state_percentage?.toString() ?? '')
-      setSize(aura.size ?? ''); setSizePercentage(aura.size_percentage?.toString() ?? '')
+      setSize(aura.size ?? '')
+      setSizePercentage(aura.size_percentage?.toString() ?? '')
+      setProtection(aura.state ?? '')
+      setProtectionPercentage(aura.state_percentage?.toString() ?? '')
       setPredominantColor(aura.predominant_color ?? '')
-      setExcessColor(aura.excess_color ?? ''); setExcessColorPercentage(aura.excess_color_percentage?.toString() ?? '')
-      setMissingColor(aura.missing_color ?? ''); setMissingColorPercentage(aura.missing_color_percentage?.toString() ?? '')
+      setExcessColors(aura.excess_color ? aura.excess_color.split(',') : [])
+      setMissingColors(aura.missing_color ? aura.missing_color.split(',') : [])
       setNotes(aura.notes ?? '')
     }
   }, [aura])
@@ -76,15 +65,15 @@ export default function AuraFieldTab({ attendanceId }: { attendanceId: string })
     const timer = setTimeout(async () => {
       const { error } = await upsertAuraField({
         attendance_id: attendanceId,
-        state: state || null,
-        state_percentage: statePercentage ? parseFloat(statePercentage) : null,
+        state: protection || null,
+        state_percentage: protectionPercentage ? parseFloat(protectionPercentage) : null,
         size: size || null,
         size_percentage: sizePercentage ? parseFloat(sizePercentage) : null,
         predominant_color: predominantColor || null,
-        excess_color: excessColor || null,
-        excess_color_percentage: excessColorPercentage ? parseFloat(excessColorPercentage) : null,
-        missing_color: missingColor || null,
-        missing_color_percentage: missingColorPercentage ? parseFloat(missingColorPercentage) : null,
+        excess_color: excessColors.length > 0 ? excessColors.join(',') : null,
+        excess_color_percentage: null,
+        missing_color: missingColors.length > 0 ? missingColors.join(',') : null,
+        missing_color_percentage: null,
         notes: notes || null,
       })
       if (error) toast('Erro ao salvar', 'error')
@@ -92,7 +81,7 @@ export default function AuraFieldTab({ attendanceId }: { attendanceId: string })
       setSaveStatus('saved')
     }, 1500)
     return () => clearTimeout(timer)
-  }, [state, statePercentage, size, sizePercentage, predominantColor, excessColor, excessColorPercentage, missingColor, missingColorPercentage, notes, saveStatus, attendanceId, qc])
+  }, [size, sizePercentage, protection, protectionPercentage, predominantColor, excessColors, missingColors, notes, saveStatus, attendanceId, qc])
 
   const change = () => setSaveStatus('saving')
 
@@ -103,40 +92,32 @@ export default function AuraFieldTab({ attendanceId }: { attendanceId: string })
         <SaveStatus status={saveStatus} />
       </div>
 
-      {/* Estado e Tamanho */}
+      {/* Tamanho e Proteção */}
       <div className="card" style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-4)' }}>
-        <h3 style={{ fontSize: '0.85rem', color: 'var(--violet-light)', marginBottom: 'var(--space-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Estrutura</h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 'var(--space-3)', alignItems: 'end' }}>
-          <Select label="Estado" value={state} onChange={v => { setState(v); change() }} options={STATES} placeholder="Selecione o estado" />
-          <label className="form-label">%<input type="number" min="0" max="100" step="0.1" value={statePercentage} onChange={e => { setStatePercentage(e.target.value); change() }} style={{ width: '80px' }} /></label>
+          <Select label="Tamanho" value={size} onChange={v => { setSize(v); change() }} options={SIZES} placeholder="Selecione" />
+          <label className="form-label">%<input type="number" min="0" max="100" step="0.1" value={sizePercentage} onChange={e => { setSizePercentage(e.target.value); change() }} style={{ width: '80px' }} /></label>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 'var(--space-3)', alignItems: 'end', marginTop: 'var(--space-3)' }}>
-          <Select label="Tamanho" value={size} onChange={v => { setSize(v); change() }} options={SIZES} placeholder="Selecione o tamanho" />
-          <label className="form-label">%<input type="number" min="0" max="100" step="0.1" value={sizePercentage} onChange={e => { setSizePercentage(e.target.value); change() }} style={{ width: '80px' }} /></label>
+          <Select label="Proteção" value={protection} onChange={v => { setProtection(v); change() }} options={PROTECTIONS} placeholder="Selecione" />
+          <label className="form-label">%<input type="number" min="0" max="100" step="0.1" value={protectionPercentage} onChange={e => { setProtectionPercentage(e.target.value); change() }} style={{ width: '80px' }} /></label>
         </div>
       </div>
 
       {/* Cores */}
       <div className="card" style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-4)' }}>
         <h3 style={{ fontSize: '0.85rem', color: 'var(--gold)', marginBottom: 'var(--space-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cores</h3>
-        
-        <Select label="Cor predominante" value={predominantColor} onChange={v => { setPredominantColor(v); change() }} options={COLORS} placeholder="Selecione a cor principal" />
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 'var(--space-3)', alignItems: 'end', marginTop: 'var(--space-3)' }}>
-          <Select label="Cor em excesso" value={excessColor} onChange={v => { setExcessColor(v); change() }} options={COLORS} placeholder="Selecione (se houver)" />
-          <label className="form-label">%<input type="number" min="0" max="100" step="0.1" value={excessColorPercentage} onChange={e => { setExcessColorPercentage(e.target.value); change() }} style={{ width: '80px' }} /></label>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 'var(--space-3)', alignItems: 'end', marginTop: 'var(--space-3)' }}>
-          <Select label="Cor em falta" value={missingColor} onChange={v => { setMissingColor(v); change() }} options={COLORS} placeholder="Selecione (se houver)" />
-          <label className="form-label">%<input type="number" min="0" max="100" step="0.1" value={missingColorPercentage} onChange={e => { setMissingColorPercentage(e.target.value); change() }} style={{ width: '80px' }} /></label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <Select label="Cor predominante" value={predominantColor} onChange={v => { setPredominantColor(v); change() }} options={COLORS} placeholder="Selecione" />
+          <MultiSelect label="Cor em excesso" values={excessColors} onChange={v => { setExcessColors(v); change() }} options={COLORS} placeholder="Selecione (se houver)" />
+          <MultiSelect label="Cor em falta" values={missingColors} onChange={v => { setMissingColors(v); change() }} options={COLORS} placeholder="Selecione (se houver)" />
         </div>
       </div>
 
       {/* Observações */}
       <label className="form-label">
         Observações
-        <textarea value={notes} onChange={e => { setNotes(e.target.value); change() }} rows={3} placeholder="Observações gerais sobre o campo áurico..." />
+        <textarea value={notes} onChange={e => { setNotes(e.target.value); change() }} rows={3} placeholder="Observações sobre o campo áurico..." />
       </label>
     </div>
   )

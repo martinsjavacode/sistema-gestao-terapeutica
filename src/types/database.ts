@@ -1,11 +1,12 @@
 // Domain types — SGT
 
 export type TherapyType = 'radiestesia' | 'mesa_radionica' | 'corte_energetico' | 'numerologia' | 'tarot' | 'reiki' | 'outro'
+export type AppointmentStatus = 'scheduled' | 'confirmed' | 'cancelled' | 'completed'
 export type EnergyFieldType = 'mental' | 'emocional' | 'espiritual' | 'fisico'
 export type ChakraName = 'coronario' | 'frontal' | 'laringeo' | 'cardiaco' | 'plexo_solar' | 'sacral' | 'raiz'
-export type ChakraState = 'equilibrado' | 'hiperativo' | 'hipoativo' | 'bloqueado'
-export type ChakraActivity = 'normal' | 'acelerada' | 'lenta' | 'parada'
-export type LifeAreaType = 'financeiro' | 'profissional' | 'amoroso' | 'familiar' | 'espiritual' | 'saude' | 'missao' | 'prosperidade'
+export type ChakraState = 'equilibrado' | 'desequilibrio'
+export type ChakraActivity = 'hipoativo' | 'normal' | 'hiperativo'
+export type LifeAreaType = 'financeiro' | 'profissional' | 'amoroso' | 'familiar' | 'missao'
 
 export interface Client {
   id: string
@@ -33,10 +34,27 @@ export interface Attendance {
   objective: string | null
   bovis_frequency: number | null
   notes: string | null
+  youtube_url: string | null
+  internal_notes: string | null
+  completed_sections: string[] | null
   report_content: string | null
   report_pdf_url: string | null
   created_at: string
   client?: Client
+}
+
+export interface Appointment {
+  id: string
+  client_id: string
+  scheduled_at: string
+  duration_minutes: number
+  therapy_type: TherapyType
+  status: AppointmentStatus
+  notes: string | null
+  attendance_id: string | null
+  created_at: string
+  deleted_at: string | null
+  clients?: { name: string }
 }
 
 export interface EnergyAssessment {
@@ -153,10 +171,7 @@ export const LIFE_AREA_LABELS: Record<LifeAreaType, string> = {
   profissional: 'Profissional',
   amoroso: 'Amoroso',
   familiar: 'Familiar',
-  espiritual: 'Espiritual',
-  saude: 'Saúde',
   missao: 'Missão',
-  prosperidade: 'Prosperidade',
 }
 
 export const THERAPY_LABELS: Record<TherapyType, string> = {
@@ -167,4 +182,11 @@ export const THERAPY_LABELS: Record<TherapyType, string> = {
   tarot: 'Tarot',
   reiki: 'Reiki',
   outro: 'Outro',
+}
+
+export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
+  scheduled: 'Agendado',
+  confirmed: 'Confirmado',
+  cancelled: 'Cancelado',
+  completed: 'Concluído',
 }

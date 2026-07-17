@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Modal from '../ui/Modal'
 import Input from '../ui/Input'
 import Select from '../ui/Select'
+import DateInput from '../ui/DateInput'
 import type { Client } from '../../types/database'
 
 interface Props {
@@ -36,7 +37,7 @@ export default function ClientForm({ client, onClose, onSave }: Props) {
     <Modal title={client ? 'Editar Cliente' : 'Novo Cliente'} onClose={onClose} onSubmit={handleSubmit} submitDisabled={!name.trim() || !birthDate} className="modal-wide">
       <div className="form-grid">
         <Input label="Nome completo" value={name} onChange={e => setName(e.target.value)} required />
-        <Input label="Data de nascimento" type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} required />
+        <DateInput label="Data de nascimento" value={birthDate} onChange={setBirthDate} required />
         <Input label="CPF" value={cpf} onChange={e => setCpf(e.target.value)} />
         <Select
           label="Sexo"

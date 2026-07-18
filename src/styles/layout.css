@@ -335,9 +335,6 @@
 
 /* Collapse Toggle Button */
 .sidebar-collapse-btn {
-  position: absolute;
-  bottom: var(--space-4);
-  right: var(--space-3);
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text-muted);
@@ -349,6 +346,8 @@
   justify-content: center;
   transition: all 0.15s;
   z-index: 2;
+  width: 100%;
+  margin-top: var(--space-2);
 }
 
 .sidebar-collapse-btn:hover {
@@ -358,8 +357,8 @@
 }
 
 .sidebar-collapsed .sidebar-collapse-btn {
-  right: 50%;
-  transform: translateX(50%);
+  width: auto;
+  margin: var(--space-2) auto 0;
 }
 
 /* ========== Breadcrumbs ========== */

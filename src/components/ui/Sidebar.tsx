@@ -122,16 +122,15 @@ export default function Sidebar({ can, collapsed, onToggleCollapse, draftCount =
             <span className="sidebar-link-icon"><LogOut size={18} /></span>
             <span className="sidebar-link-label">Sair</span>
           </button>
+          <button
+            className="sidebar-collapse-btn"
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
+            title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+          >
+            {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
+          </button>
         </div>
-
-        <button
-          className="sidebar-collapse-btn"
-          onClick={onToggleCollapse}
-          aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
-          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
-        >
-          {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
-        </button>
       </aside>
     </>
   )

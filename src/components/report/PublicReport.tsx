@@ -212,9 +212,7 @@ export default function PublicReport() {
             {chakras.map(c => {
               const pct = c.percentage ?? 0
               const isBalanced = pct >= 100
-              const barColor = isBalanced
-                ? '#38bdf8'
-                : (c.activity === 'hiperativo' ? '#f97316' : c.activity === 'hipoativo' ? '#6366f1' : '#a78bfa')
+              const barColor = isBalanced ? '#38bdf8' : '#f97316'
               return (
                 <div key={c.name} className="pr-chakra-card">
                   <div className="pr-chakra-bar-header">
@@ -254,7 +252,7 @@ export default function PublicReport() {
             {life_areas.map(a => {
               const pct = a.percentage ?? 0
               const isBalanced = pct >= 100
-              const barColor = isBalanced ? '#38bdf8' : pct >= 70 ? '#a78bfa' : '#c084fc'
+              const barColor = isBalanced ? '#38bdf8' : '#f97316'
               return (
                 <div key={a.area} className="pr-chakra-card">
                   <div className="pr-chakra-bar-header">
@@ -327,7 +325,7 @@ export default function PublicReport() {
                   </div>
                   {d.percentage !== null && (
                     <div className="pr-chakra-bar">
-                      <div className="pr-chakra-bar-fill" style={{ width: `${pct}%`, background: '#38bdf8' }} />
+                      <div className="pr-chakra-bar-fill" style={{ width: `${pct}%`, background: pct >= 100 ? '#38bdf8' : '#f97316' }} />
                     </div>
                   )}
                   {d.reason && (
@@ -454,9 +452,9 @@ function AuraSection({ aura }: { aura: { state: string | null; size: string | nu
 
   const AURA_BAR_COLORS: Record<string, string> = {
     'Tamanho': '#38bdf8',
-    'Proteção': '#a78bfa',
+    'Proteção': '#38bdf8',
     'Cor em excesso': '#f97316',
-    'Cor em falta': '#6366f1',
+    'Cor em falta': '#f97316',
   }
 
   return (

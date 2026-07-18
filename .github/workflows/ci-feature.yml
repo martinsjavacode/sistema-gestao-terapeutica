@@ -20,9 +20,9 @@ jobs:
           cache: npm
       - run: npm ci
 
-      # Commitlint - valida o último commit (hook local já valida cada um)
+      # Commitlint - valida mensagens de commit
       - name: Commitlint
-        run: npx commitlint --last
+        run: npx commitlint --from $(git log --oneline origin/develop..HEAD --format="%H" | tail -1)^ --to HEAD
 
       # TypeScript check (sem emit, mais rápido)
       - name: TypeScript check
@@ -51,13 +51,13 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Create PR to main
+      - name: Create PR to develop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          EXISTING=$(gh pr list --head "${{ github.ref_name }}" --base main --json number -q '.[0].number')
+          EXISTING=$(gh pr list --head "${{ github.ref_name }}" --base develop --json number -q '.[0].number')
           if [ -z "$EXISTING" ]; then
-            gh pr create --base main --head "${{ github.ref_name }}" \
-              --title "Merge ${{ github.ref_name }} into main" \
+            gh pr create --base develop --head "${{ github.ref_name }}" \
+              --title "Merge ${{ github.ref_name }} into develop" \
               --body "Auto-created by CI after successful build."
           fi

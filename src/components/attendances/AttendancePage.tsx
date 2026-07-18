@@ -24,6 +24,24 @@ export default function AttendancePage() {
   const [newClientId, setNewClientId] = useState(clientFilter ?? '')
   const [newTherapy, setNewTherapy] = useState<TherapyType>('radiestesia')
   const [newObjective, setNewObjective] = useState('')
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('')
+
+  // Templates de sessão
+  const SESSION_TEMPLATES = [
+    { id: 'first', label: '🌟 Primeira consulta', objective: 'Avaliação energética inicial completa', therapy: 'radiestesia' as TherapyType },
+    { id: 'return', label: '🔄 Retorno', objective: 'Acompanhamento e reavaliação', therapy: 'radiestesia' as TherapyType },
+    { id: 'cut', label: '✂️ Corte energético', objective: 'Remoção de crenças e vínculos energéticos', therapy: 'corte_energetico' as TherapyType },
+    { id: 'emergency', label: '🆘 Emergencial', objective: 'Atendimento emergencial — queixa aguda', therapy: 'radiestesia' as TherapyType },
+  ]
+
+  const applyTemplate = (templateId: string) => {
+    const template = SESSION_TEMPLATES.find(t => t.id === templateId)
+    if (template) {
+      setNewTherapy(template.therapy)
+      setNewObjective(template.objective)
+      setSelectedTemplate(templateId)
+    }
+  }
 
   const { data: attendances = [], isLoading } = useQuery({
     queryKey: ['attendances', clientFilter],
@@ -61,7 +79,20 @@ export default function AttendancePage() {
   }, [newClientId, newTherapy, newObjective, createMut])
 
   if (attendanceId) {
-    return <AttendanceDetail attendanceId={attendanceId} />
+    const handleDuplicate = async () => {
+      const current = attendances.find(a => a.id === attendanceId)
+      if (!current) return
+      createMut.mutate({
+        client_id: current.client_id,
+        date: new Date().toISOString().slice(0, 10),
+        time: new Date().toTimeString().slice(0, 5),
+        therapy_type: current.therapy_type,
+        objective: current.objective ? `[Continuação] ${current.objective}` : null,
+        bovis_frequency: null,
+        notes: null,
+      })
+    }
+    return <AttendanceDetail attendanceId={attendanceId} onDuplicate={handleDuplicate} />
   }
 
   if (isLoading) return <TableSkeleton />
@@ -140,6 +171,26 @@ export default function AttendancePage() {
         <div className="modal-overlay" onClick={() => setAdding(false)} role="dialog" aria-modal="true" aria-label="Novo atendimento">
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h2>Novo Atendimento</h2>
+
+            {/* Templates rápidos */}
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: 'var(--space-2)' }}>
+                Templates rápidos
+              </span>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                {SESSION_TEMPLATES.map(t => (
+                  <button
+                    key={t.id}
+                    className={`tab-nav-btn ${selectedTemplate === t.id ? 'active' : ''}`}
+                    onClick={() => applyTemplate(t.id)}
+                    style={{ fontSize: '0.78rem', padding: '6px 12px' }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="form-grid">
               <label className="form-label">
                 Cliente

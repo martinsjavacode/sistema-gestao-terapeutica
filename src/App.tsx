@@ -1,8 +1,9 @@
-import { lazy, Suspense, type ReactNode } from 'react'
+import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth, TenantProvider } from './hooks'
 import Auth from './components/auth/Auth'
 import Sidebar from './components/ui/Sidebar'
+import Breadcrumbs from './components/ui/Breadcrumbs'
 import ToastContainer from './components/ui/Toast'
 import ConfirmDialog from './components/ui/ConfirmDialog'
 import { TableSkeleton } from './components/ui/Skeleton'
@@ -30,6 +31,17 @@ function ProtectedRoute({ children, allowed, loading }: { children: ReactNode; a
 
 function AppLayout() {
   const { session, loading, needsOnboarding, user, can, permissionsLoaded } = useAuth()
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('sgt-sidebar-collapsed') === 'true'
+  })
+
+  const handleToggleCollapse = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem('sgt-sidebar-collapsed', String(next))
+      return next
+    })
+  }
 
   if (loading) return <div className="auth"><div className="skeleton" style={{ width: '120px', height: '2rem', margin: '0 auto' }} /></div>
   if (!session) return <Auth />
@@ -37,10 +49,11 @@ function AppLayout() {
 
   return (
     <TenantProvider tenantId={user?.tenant_id ?? null}>
-      <div className="layout">
+      <div className={`layout ${sidebarCollapsed ? 'layout-collapsed' : ''}`}>
         <a href="#main-content" className="skip-link">Pular para conteúdo</a>
-        <Sidebar can={can} />
+        <Sidebar can={can} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleCollapse} />
         <main className="main" id="main-content">
+          <Breadcrumbs />
           <ErrorBoundary>
             <Suspense fallback={<TableSkeleton />}>
               <Routes>

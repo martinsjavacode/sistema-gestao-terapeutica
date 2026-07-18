@@ -1,5 +1,6 @@
 @media (max-width: 1024px) {
-  .layout {
+  .layout,
+  .layout-collapsed {
     grid-template-columns: 1fr;
   }
 
@@ -7,7 +8,7 @@
     position: fixed;
     left: -280px;
     top: 0;
-    width: 280px;
+    width: 280px !important;
     z-index: 900;
     transition: left 0.25s ease;
   }
@@ -18,6 +19,35 @@
 
   .sidebar-close {
     display: flex;
+  }
+
+  .sidebar-collapse-btn {
+    display: none;
+  }
+
+  /* Reset collapsed styles on mobile */
+  .sidebar-collapsed .sidebar-brand-text,
+  .sidebar-collapsed .sidebar-link-label,
+  .sidebar-collapsed .sidebar-user-email {
+    opacity: 1;
+    width: auto;
+  }
+
+  .sidebar-collapsed .sidebar-group {
+    opacity: 1;
+    height: auto;
+    margin-top: var(--space-4);
+    margin-bottom: var(--space-2);
+    padding-left: var(--space-3);
+  }
+
+  .sidebar-collapsed .sidebar-link {
+    justify-content: flex-start;
+  }
+
+  .sidebar-collapsed .sidebar-user {
+    justify-content: flex-start;
+    padding: var(--space-2) var(--space-3);
   }
 
   .sidebar-overlay {
@@ -69,6 +99,10 @@
 
   .page-header {
     flex-wrap: wrap;
+  }
+
+  .breadcrumbs {
+    display: none;
   }
 
   .filters {

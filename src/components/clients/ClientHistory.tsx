@@ -5,6 +5,7 @@ import { fetchAttendances, fetchEnergyAssessments, fetchChakras, fetchEmotions, 
 import { THERAPY_LABELS, CHAKRA_LABELS } from '../../types/database'
 import type { TherapyType, ChakraName, EnergyFieldType } from '../../types/database'
 import { ACTIVE_THERAPIES } from '../../config/therapy-sections'
+import { RadarChart, SessionComparison, TrendIndicator } from '../charts'
 import { FileText, TrendingUp } from 'lucide-react'
 
 interface Props {
@@ -120,7 +121,7 @@ interface ChartAttendance {
 }
 
 function EvolutionChart({ attendanceIds }: { attendanceIds: ChartAttendance[] }) {
-  const [chartType, setChartType] = useState<'energy' | 'chakras'>('energy')
+  const [chartType, setChartType] = useState<'energy' | 'chakras' | 'radar' | 'comparison'>('energy')
 
   const { data: evolutionData } = useQuery({
     queryKey: ['evolution', attendanceIds.map(a => a.id).join(',')],
@@ -132,15 +133,15 @@ function EvolutionChart({ attendanceIds }: { attendanceIds: ChartAttendance[] })
 
   return (
     <div className="card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
         <h3 style={{ fontSize: '0.95rem' }}>📈 Evolução</h3>
-        <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
           <button
             className={`tab-nav-btn ${chartType === 'energy' ? 'active' : ''}`}
             onClick={() => setChartType('energy')}
             style={{ fontSize: '0.75rem', padding: '4px 10px' }}
           >
-            Campos Energéticos
+            Campos
           </button>
           <button
             className={`tab-nav-btn ${chartType === 'chakras' ? 'active' : ''}`}
@@ -148,6 +149,20 @@ function EvolutionChart({ attendanceIds }: { attendanceIds: ChartAttendance[] })
             style={{ fontSize: '0.75rem', padding: '4px 10px' }}
           >
             Chakras
+          </button>
+          <button
+            className={`tab-nav-btn ${chartType === 'radar' ? 'active' : ''}`}
+            onClick={() => setChartType('radar')}
+            style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+          >
+            Radar
+          </button>
+          <button
+            className={`tab-nav-btn ${chartType === 'comparison' ? 'active' : ''}`}
+            onClick={() => setChartType('comparison')}
+            style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+          >
+            1ª vs Última
           </button>
         </div>
       </div>
@@ -170,8 +185,42 @@ function EvolutionChart({ attendanceIds }: { attendanceIds: ChartAttendance[] })
         />
       )}
 
+      {chartType === 'radar' && evolutionData.chakras.length > 0 && (
+        <RadarChart
+          labels={Object.values(CHAKRA_LABELS)}
+          series={[
+            ...(attendanceIds.length >= 2 ? [{
+              label: formatShortDate(attendanceIds[attendanceIds.length - 2].date),
+              values: evolutionData.chakras.map(s => s.values[s.values.length - 2] ?? null),
+              color: 'rgba(167, 139, 250, 0.5)',
+              fillOpacity: 0.05,
+            }] : []),
+            {
+              label: formatShortDate(attendanceIds[attendanceIds.length - 1].date),
+              values: evolutionData.chakras.map(s => s.values[s.values.length - 1] ?? null),
+              color: '#a78bfa',
+              fillOpacity: 0.15,
+            },
+          ]}
+        />
+      )}
+
+      {chartType === 'comparison' && evolutionData.energy.length > 0 && (
+        <SessionComparison
+          firstDate={formatShortDate(attendanceIds[0].date)}
+          lastDate={formatShortDate(attendanceIds[attendanceIds.length - 1].date)}
+          fields={evolutionData.energy.map(s => ({
+            label: { mental: 'Mental', emocional: 'Emocional', espiritual: 'Espiritual', fisico: 'Físico' }[s.key] ?? s.key,
+            color: FIELD_COLORS[s.key as EnergyFieldType] ?? 'var(--text-muted)',
+            first: s.values[0] ?? null,
+            last: s.values[s.values.length - 1] ?? null,
+          }))}
+        />
+      )}
+
       {((chartType === 'energy' && evolutionData.energy.length === 0) ||
-        (chartType === 'chakras' && evolutionData.chakras.length === 0)) && (
+        (chartType === 'chakras' && evolutionData.chakras.length === 0) ||
+        (chartType === 'radar' && evolutionData.chakras.length === 0)) && (
         <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', padding: 'var(--space-4)' }}>
           Dados insuficientes para gerar o gráfico
         </p>

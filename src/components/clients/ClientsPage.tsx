@@ -10,7 +10,7 @@ import { toast } from '../../lib/toast'
 import { Plus, Pencil, Trash2, Eye, Search } from 'lucide-react'
 import type { Client } from '../../types/database'
 import ClientForm from './ClientForm'
-import ClientDetail from './ClientDetail'
+import ClientHub from './ClientHub'
 
 export default function ClientsPage() {
   const qc = useQueryClient()
@@ -46,9 +46,12 @@ export default function ClientsPage() {
     onError: () => toast('Erro ao remover', 'error'),
   })
 
-  // Se tem ?id=, mostra detalhe do cliente
+  // Se tem ?id=, mostra hub do cliente
   if (clientId) {
-    return <ClientDetail clientId={clientId} />
+    return <ClientHub clientId={clientId} onEdit={() => {
+      const c = clients.find(cl => cl.id === clientId)
+      if (c) setEditing(c)
+    }} />
   }
 
   if (isLoading) return <TableSkeleton />

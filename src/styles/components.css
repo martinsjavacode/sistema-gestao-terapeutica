@@ -624,6 +624,10 @@ tbody tr:hover { background: var(--surface-hover); }
   border-color: var(--violet);
   transform: translateX(4px);
 }
+.hawkins-item.selected {
+  background: rgba(34, 197, 94, 0.06);
+  border-color: rgba(34, 197, 94, 0.3);
+}
 .hawkins-item[data-category="low"] .hawkins-freq {
   color: var(--red);
 }

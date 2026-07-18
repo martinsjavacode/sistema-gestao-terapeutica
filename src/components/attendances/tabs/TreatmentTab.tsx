@@ -42,13 +42,11 @@ export default function TreatmentTab({ attendanceId }: { attendanceId: string })
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-        <h2 style={{ fontSize: '1.1rem' }}>Tratamento</h2>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-3)' }}>
         <SaveStatus status={saveStatus} />
       </div>
-      <label className="form-label">
-        Recomendações
-        <textarea value={recommendations} onChange={e => { setRecommendations(e.target.value); change() }} rows={6} placeholder="Recomendações para o cliente..." />
+      <label className="form-label" style={{ margin: 0 }}>
+        <textarea value={recommendations} onChange={e => { setRecommendations(e.target.value); change() }} rows={8} placeholder="Recomendações para o cliente..." />
       </label>
     </div>
   )

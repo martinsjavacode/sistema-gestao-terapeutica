@@ -179,21 +179,25 @@ function ClinicTab() {
 
 function ClinicInfoSection() {
   const { tenant, plan, refresh } = useTenant()
-  const [name, setName] = useState(tenant?.name ?? '')
+  const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [nameLoaded, setNameLoaded] = useState(false)
 
   // Sync state quando tenant carrega
-  if (tenant && !name && tenant.name) {
+  if (tenant && !nameLoaded) {
     setName(tenant.name)
+    setNameLoaded(true)
   }
 
   const handleSave = async () => {
     if (!tenant) return
     setLoading(true)
+    // Gerar novo slug a partir do nome
+    const { data: newSlug } = await supabase.rpc('generate_slug', { p_name: name.trim() })
     const { error } = await supabase
       .from('tenants')
-      .update({ name: name.trim() })
+      .update({ name: name.trim(), slug: newSlug ?? tenant.slug })
       .eq('id', tenant.id)
     if (error) toast('Erro ao atualizar', 'error')
     else {
@@ -269,18 +273,16 @@ function ClinicInfoSection() {
           }
         </div>
         <div>
-          <label style={{ cursor: 'pointer' }}>
-            <Button variant="tab" disabled={uploadingLogo} onClick={() => {}}>
-              {uploadingLogo ? 'Enviando...' : tenant?.logo_url ? 'Trocar logo' : 'Enviar logo'}
-            </Button>
-            <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={handleLogoUpload} style={{ display: 'none' }} />
-          </label>
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={handleLogoUpload} style={{ display: 'none' }} id="logo-upload" />
+          <Button variant="tab" disabled={uploadingLogo} onClick={() => document.getElementById('logo-upload')?.click()}>
+            {uploadingLogo ? 'Enviando...' : tenant?.logo_url ? 'Trocar logo' : 'Enviar logo'}
+          </Button>
           {tenant?.logo_url && (
             <button onClick={handleRemoveLogo} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.8rem', cursor: 'pointer', marginLeft: 'var(--space-3)' }}>
               Remover
             </button>
           )}
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>PNG, JPG ou WebP. Máx 2MB.</p>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>PNG, JPG ou WebP. Máx 2MB. Recomendado: 256×256px.</p>
         </div>
       </div>
 

@@ -91,6 +91,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Acessível por qualquer usuário autenticado (novo signup)
 GRANT EXECUTE ON FUNCTION provision_tenant(text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION generate_slug(text) TO authenticated;
 
 -- ============================================================
 -- Habilitar extensão unaccent (necessária para generate_slug)

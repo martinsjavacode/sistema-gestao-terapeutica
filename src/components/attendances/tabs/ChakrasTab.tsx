@@ -73,8 +73,8 @@ function ChakraCard({ name, initial, onSave }: { name: ChakraName; initial?: { a
           options={ACTIVITIES}
         />
         <label className="form-label">
-          Porcentagem
-          <input type="number" min="0" max="100" step="0.1" value={percentage} onChange={e => { setPercentage(e.target.value); change() }} />
+          Percentual (%)
+          <input type="number" min="0" max="100" step="0.1" value={percentage} onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setPercentage(v); change() }} />
         </label>
       </div>
       <label className="form-label" style={{ marginTop: 'var(--space-3)' }}>

@@ -63,13 +63,11 @@ function FieldCard({ label, initial, onSave }: { label: string; initial?: { perc
         <h3 style={{ fontSize: '0.95rem', color: 'var(--violet-light)' }}>{label}</h3>
         <SaveStatus status={saveStatus} />
       </div>
-      <div className="form-row">
-        <label className="form-label">
-          Porcentagem
-          <input type="number" min="0" max="100" step="0.1" value={percentage} onChange={e => { setPercentage(e.target.value); change() }} />
-        </label>
-      </div>
-      <label className="form-label" style={{ marginTop: 'var(--space-3)' }}>
+      <label className="form-label" style={{ margin: 0, marginBottom: 'var(--space-3)', maxWidth: '140px' }}>
+        Percentual (%)
+        <input type="number" min="0" max="100" step="0.1" value={percentage} onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setPercentage(v); change() }} />
+      </label>
+      <label className="form-label" style={{ margin: 0 }}>
         Observações
         <textarea value={notes} onChange={e => { setNotes(e.target.value); change() }} rows={2} placeholder="Observações sobre este campo..." />
       </label>

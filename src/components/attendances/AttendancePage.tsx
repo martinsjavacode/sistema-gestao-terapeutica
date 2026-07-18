@@ -122,7 +122,9 @@ export default function AttendancePage() {
               <span className="badge badge-info">{THERAPY_LABELS[a.therapy_type]}</span>
               <div className="actions" onClick={e => e.stopPropagation()}>
                 <Button variant="icon" onClick={() => navigate(`/attendances?id=${a.id}`)} aria-label="Abrir"><FileText size={14} /></Button>
-                <Button variant="icon" onClick={async () => { if (await confirm('Excluir este atendimento?')) deleteMut.mutate(a.id) }} aria-label="Excluir"><Trash2 size={14} /></Button>
+                {(!a.completed_sections || a.completed_sections.length === 0) && (
+                  <Button variant="icon" onClick={async () => { if (await confirm('Excluir este atendimento?')) deleteMut.mutate(a.id) }} aria-label="Excluir"><Trash2 size={14} /></Button>
+                )}
               </div>
             </div>
           </div>

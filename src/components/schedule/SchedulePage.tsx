@@ -20,10 +20,9 @@ type ViewMode = 'week' | 'month'
 
 function getWeekRange(date: Date): { start: Date; end: Date } {
   const d = new Date(date)
-  const day = d.getDay()
-  const diff = day === 0 ? -6 : 1 - day
+  const day = d.getDay() // 0 = domingo
   const start = new Date(d)
-  start.setDate(d.getDate() + diff)
+  start.setDate(d.getDate() - day)
   start.setHours(0, 0, 0, 0)
   const end = new Date(start)
   end.setDate(start.getDate() + 6)
@@ -40,12 +39,11 @@ function getMonthRange(date: Date): { start: Date; end: Date } {
 }
 
 function getMonthCalendarDays(date: Date): Date[] {
-  const { start, end } = getMonthRange(date)
-  // Recuar até a segunda-feira anterior ao início do mês
+  const { start } = getMonthRange(date)
+  // Recuar até o domingo anterior ao início do mês
   const calStart = new Date(start)
-  const dayOfWeek = calStart.getDay()
-  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-  calStart.setDate(calStart.getDate() + diff)
+  const dayOfWeek = calStart.getDay() // 0 = domingo
+  calStart.setDate(calStart.getDate() - dayOfWeek)
 
   // Avançar até completar semanas (sempre 42 dias = 6 semanas)
   const days: Date[] = []
@@ -75,7 +73,7 @@ function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
 
-const WEEKDAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
+const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 const STATUS_COLORS: Record<string, string> = {
   scheduled: 'var(--blue)',
@@ -92,6 +90,26 @@ export default function SchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<ViewMode>('week')
   const [adding, setAdding] = useState(false)
+  const [prefillDate, setPrefillDate] = useState('')
+  const [prefillTime, setPrefillTime] = useState('')
+  const [quickAdd, setQuickAdd] = useState<{ date: string; time: string; x: number; y: number } | null>(null)
+
+  const handleSlotClick = (day: Date, slotIndex: number, e: React.MouseEvent) => {
+    const hours = Math.floor(slotIndex / 2)
+    const minutes = (slotIndex % 2) * 30
+    const date = day.toISOString().slice(0, 10)
+    const time = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+    setQuickAdd({ date, time, x: e.clientX, y: e.clientY })
+  }
+
+  const handleQuickAddExpand = () => {
+    if (quickAdd) {
+      setPrefillDate(quickAdd.date)
+      setPrefillTime(quickAdd.time)
+      setQuickAdd(null)
+      setAdding(true)
+    }
+  }
 
   const range = useMemo(() => {
     if (view === 'week') return getWeekRange(currentDate)
@@ -197,7 +215,6 @@ export default function SchedulePage() {
     <div>
       <div className="page-header">
         <h1>Agenda</h1>
-        <Button onClick={() => setAdding(true)}><Plus size={16} /> Novo agendamento</Button>
       </div>
 
       {/* Navegação + toggle de visão */}
@@ -212,39 +229,82 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* Visão semanal */}
+      {/* Visão semanal — Timeline */}
       {view === 'week' && (
-        <div className="schedule-grid">
-          {weekDays.map((day, i) => {
-            const isToday = isSameDay(day, new Date())
-            const dayAppointments = appointments.filter(a => isSameDay(new Date(a.scheduled_at), day))
-
-            return (
-              <div key={i} className={`schedule-day ${isToday ? 'schedule-day-today' : ''}`}>
-                <div className="schedule-day-header">
-                  <span className="schedule-day-label">{WEEKDAY_LABELS[i]}</span>
-                  <span className={`schedule-day-number ${isToday ? 'today' : ''}`}>
-                    {day.getDate()}
-                  </span>
+        <div className="cal-week">
+          {/* Header com dias */}
+          <div className="cal-week-header">
+            <div className="cal-time-gutter" />
+            {weekDays.map((day, i) => {
+              const isToday = isSameDay(day, new Date())
+              return (
+                <div key={i} className={`cal-day-col-header ${isToday ? 'cal-today' : ''}`}>
+                  <span className="cal-weekday">{WEEKDAY_LABELS[i]}</span>
+                  <span className={`cal-day-number ${isToday ? 'today' : ''}`}>{day.getDate()}</span>
                 </div>
-                <div className="schedule-day-slots">
-                  {dayAppointments.length === 0 && (
-                    <div className="schedule-empty">—</div>
-                  )}
-                  {dayAppointments.map(apt => (
-                    <AppointmentCard
-                      key={apt.id}
-                      appointment={apt}
-                      onConfirm={handleConfirm}
-                      onCancel={handleCancel}
-                      onDelete={handleDelete}
-                      onOpenAttendance={(id) => navigate(`/attendances?id=${id}`)}
-                    />
+              )
+            })}
+          </div>
+          {/* Grid com horas */}
+          <div className="cal-week-body">
+            <div className="cal-time-gutter">
+              {Array.from({ length: 48 }, (_, i) => (
+                <div key={i} className="cal-time-slot">
+                  {i % 2 === 0 && <span className="cal-time-label">{String(Math.floor(i / 2)).padStart(2, '0')}:00</span>}
+                </div>
+              ))}
+            </div>
+            {weekDays.map((day, dayIdx) => {
+              const dayAppointments = appointments.filter(a => isSameDay(new Date(a.scheduled_at), day))
+              return (
+                <div key={dayIdx} className="cal-day-col">
+                  {/* Grid lines */}
+                  {Array.from({ length: 48 }, (_, i) => (
+                    <div key={i} className={`cal-slot ${i % 2 === 0 ? 'cal-slot-hour' : ''}`} onClick={(e) => handleSlotClick(day, i, e)} />
                   ))}
+                  {/* Agendamentos posicionados */}
+                  {dayAppointments.map(apt => {
+                    const start = new Date(apt.scheduled_at)
+                    const startMinutes = start.getHours() * 60 + start.getMinutes()
+                    const top = (startMinutes / 30) * 48 + 2 // 48px por slot + 2px gap
+                    const height = (apt.duration_minutes / 30) * 48 - 4 // -4px para gap entre eventos
+                    const statusColor = STATUS_COLORS[apt.status] ?? 'var(--text-muted)'
+                    return (
+                      <div
+                        key={apt.id}
+                        className={`cal-event ${apt.status === 'cancelled' ? 'cal-event-cancelled' : ''}`}
+                        style={{ top: `${top}px`, height: `${Math.max(height, 48)}px`, borderLeftColor: statusColor }}
+                        title={`${apt.clients?.name ?? '—'} — ${THERAPY_LABELS[apt.therapy_type]}`}
+                        onClick={(e) => {
+                          if (apt.status === 'cancelled') {
+                            handleSlotClick(day, Math.floor(startMinutes / 30), e.nativeEvent as unknown as React.MouseEvent)
+                          }
+                        }}
+                      >
+                        <span className="cal-event-time">
+                          {start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <span className="cal-event-name">{apt.clients?.name ?? '—'}</span>
+                        <span className="cal-event-therapy">{THERAPY_LABELS[apt.therapy_type]}</span>
+                        <div className="cal-event-actions">
+                          {apt.status === 'scheduled' && (
+                            <>
+                              <button className="schedule-btn confirm" onClick={(e) => { e.stopPropagation(); handleConfirm(apt) }} title="Confirmar"><Check size={12} /></button>
+                              <button className="schedule-btn cancel" onClick={(e) => { e.stopPropagation(); handleCancel(apt.id) }} title="Cancelar"><X size={12} /></button>
+                              <button className="schedule-btn delete" onClick={(e) => { e.stopPropagation(); handleDelete(apt.id) }} title="Excluir"><Trash2 size={12} /></button>
+                            </>
+                          )}
+                          {apt.status === 'confirmed' && apt.attendance_id && (
+                            <button className="schedule-btn open" onClick={(e) => { e.stopPropagation(); navigate(`/attendances?id=${apt.attendance_id}`) }} title="Abrir atendimento"><ExternalLink size={12} /></button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       )}
 
@@ -271,18 +331,24 @@ export default function SchedulePage() {
                     {day.getDate()}
                   </span>
                   <div className="schedule-month-day-slots">
-                    {dayAppointments.map(apt => (
-                      <div
-                        key={apt.id}
-                        className="schedule-month-dot"
-                        style={{ background: STATUS_COLORS[apt.status] }}
-                        title={`${new Date(apt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} — ${apt.clients?.name ?? '—'} (${THERAPY_LABELS[apt.therapy_type]})`}
-                        onClick={() => {
-                          setView('week')
-                          setCurrentDate(new Date(apt.scheduled_at))
-                        }}
-                      />
-                    ))}
+                    {dayAppointments.slice(0, 3).map(apt => {
+                      const time = new Date(apt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                      return (
+                        <div
+                          key={apt.id}
+                          className="schedule-month-event"
+                          onClick={() => { setView('week'); setCurrentDate(new Date(apt.scheduled_at)) }}
+                        >
+                          <span className="schedule-month-event-dot" style={{ background: STATUS_COLORS[apt.status] }} />
+                          <span className="schedule-month-event-text">{time} {apt.clients?.name ?? '—'}</span>
+                        </div>
+                      )
+                    })}
+                    {dayAppointments.length > 3 && (
+                      <span className="schedule-month-more" onClick={() => { setView('week'); setCurrentDate(day) }}>
+                        +{dayAppointments.length - 3} mais
+                      </span>
+                    )}
                   </div>
                 </div>
               )
@@ -301,7 +367,9 @@ export default function SchedulePage() {
         ))}
       </div>
 
-      {adding && <NewAppointmentModal onClose={() => setAdding(false)} />}
+      {adding && <NewAppointmentModal onClose={() => setAdding(false)} prefillDate={prefillDate} prefillTime={prefillTime} />}
+
+      {quickAdd && <QuickAddPopover date={quickAdd.date} time={quickAdd.time} x={quickAdd.x} y={quickAdd.y} onClose={() => setQuickAdd(null)} onExpand={handleQuickAddExpand} />}
     </div>
   )
 }
@@ -343,13 +411,91 @@ function AppointmentCard({ appointment, onConfirm, onCancel, onDelete, onOpenAtt
   )
 }
 
-// ========== Modal de novo agendamento ==========
+// ========== Quick Add Popover (estilo Google Calendar) ==========
 
-function NewAppointmentModal({ onClose }: { onClose: () => void }) {
+function QuickAddPopover({ date, time, x, y, onClose, onExpand }: {
+  date: string; time: string; x: number; y: number; onClose: () => void; onExpand: () => void
+}) {
   const qc = useQueryClient()
   const [clientId, setClientId] = useState('')
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
-  const [time, setTime] = useState('09:00')
+  const [therapy, setTherapy] = useState<TherapyType>('radiestesia')
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => { const { data } = await (await import('../../services/clients')).fetchClients(); return data },
+  })
+
+  const createMut = useMutation({
+    mutationFn: insertAppointment,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+      toast('Agendamento criado')
+      onClose()
+    },
+    onError: (err: Error) => toast(err.message || 'Erro ao criar', 'error'),
+  })
+
+  const handleSave = () => {
+    if (!clientId) { toast('Selecione um cliente', 'error'); return }
+    const scheduled_at = new Date(`${date}T${time}:00`).toISOString()
+    createMut.mutate({ client_id: clientId, scheduled_at, duration_minutes: 60, therapy_type: therapy, notes: null })
+  }
+
+  const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' })
+  const endTime = (() => {
+    const [h, m] = time.split(':').map(Number)
+    const endMinutes = h * 60 + m + 60 // duração padrão 60min
+    const endH = Math.floor(endMinutes / 60) % 24
+    const endM = endMinutes % 60
+    return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
+  })()
+
+  // Posição do popover
+  const top = Math.min(y, window.innerHeight - 320)
+  const left = Math.min(x, window.innerWidth - 340)
+
+  return (
+    <>
+      <div className="quick-add-overlay" onClick={onClose} />
+      <div className="quick-add-popover" style={{ top, left }}>
+        <div className="quick-add-header">
+          <span className="quick-add-close" onClick={onClose}><X size={16} /></span>
+        </div>
+        <div className="quick-add-body">
+          <div className="quick-add-datetime">
+            <span>🕐</span>
+            <span>{dateLabel} — {time} – {endTime}</span>
+          </div>
+          <Select
+            label="Cliente"
+            value={clientId}
+            onChange={setClientId}
+            placeholder="Selecione um cliente"
+            options={clients.map(c => ({ value: c.id, label: c.name }))}
+          />
+          <Select
+            label="Terapia"
+            value={therapy}
+            onChange={v => setTherapy(v as TherapyType)}
+            options={ACTIVE_THERAPIES.map(k => ({ value: k, label: THERAPY_LABELS[k] }))}
+          />
+        </div>
+        <div className="quick-add-footer">
+          <button className="quick-add-more" onClick={onExpand}>Mais opções</button>
+          <Button onClick={handleSave} disabled={!clientId || createMut.isPending}>Salvar</Button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ========== Modal de novo agendamento ==========
+
+function NewAppointmentModal({ onClose, prefillDate, prefillTime }: { onClose: () => void; prefillDate?: string; prefillTime?: string }) {
+  const qc = useQueryClient()
+  const [clientId, setClientId] = useState('')
+  const [date, setDate] = useState(prefillDate || new Date().toISOString().slice(0, 10))
+  const [time, setTime] = useState(prefillTime || '09:00')
   const [duration, setDuration] = useState(60)
   const [therapy, setTherapy] = useState<TherapyType>('radiestesia')
   const [notes, setNotes] = useState('')

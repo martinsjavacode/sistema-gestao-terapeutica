@@ -7,11 +7,6 @@ import type { ChakraName, ChakraState, ChakraActivity } from '../../../types/dat
 import Select from '../../ui/Select'
 import SaveStatus from '../../ui/SaveStatus'
 
-const STATES: { value: ChakraState; label: string }[] = [
-  { value: 'equilibrado', label: 'Equilibrado' },
-  { value: 'desequilibrio', label: 'Desequilíbrio' },
-]
-
 const ACTIVITIES: { value: ChakraActivity; label: string }[] = [
   { value: 'hipoativo', label: 'Hipoativo' },
   { value: 'normal', label: 'Normal' },
@@ -27,7 +22,8 @@ export default function ChakrasTab({ attendanceId }: { attendanceId: string }) {
 
   const getChakra = (name: ChakraName) => chakras.find(c => c.name === name)
 
-  const save = async (name: ChakraName, state: ChakraState, activity: ChakraActivity, percentage: number | null, notes: string | null) => {
+  const save = async (name: ChakraName, activity: ChakraActivity, percentage: number | null, notes: string | null) => {
+    const state: ChakraState = (percentage ?? 0) >= 100 ? 'equilibrado' : 'desequilibrio'
     const { error } = await upsertChakra({ attendance_id: attendanceId, name, state, activity, percentage, color: null, gland: null, organ: null, symptoms: null, notes })
     if (error) toast('Erro ao salvar', 'error')
     else qc.invalidateQueries({ queryKey: ['chakras', attendanceId] })
@@ -39,15 +35,14 @@ export default function ChakrasTab({ attendanceId }: { attendanceId: string }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         {CHAKRA_ORDER.map(name => {
           const c = getChakra(name)
-          return <ChakraCard key={name} name={name} initial={c} onSave={(s, a, p, n) => save(name, s, a, p, n)} />
+          return <ChakraCard key={name} name={name} initial={c} onSave={(a, p, n) => save(name, a, p, n)} />
         })}
       </div>
     </div>
   )
 }
 
-function ChakraCard({ name, initial, onSave }: { name: ChakraName; initial?: { state: ChakraState; activity: ChakraActivity; percentage: number | null; notes: string | null }; onSave: (s: ChakraState, a: ChakraActivity, p: number | null, n: string | null) => void }) {
-  const [state, setState] = useState<ChakraState>(initial?.state ?? 'equilibrado')
+function ChakraCard({ name, initial, onSave }: { name: ChakraName; initial?: { activity: ChakraActivity; percentage: number | null; notes: string | null }; onSave: (a: ChakraActivity, p: number | null, n: string | null) => void }) {
   const [activity, setActivity] = useState<ChakraActivity>(initial?.activity ?? 'normal')
   const [percentage, setPercentage] = useState(initial?.percentage?.toString() ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
@@ -56,11 +51,11 @@ function ChakraCard({ name, initial, onSave }: { name: ChakraName; initial?: { s
   useEffect(() => {
     if (saveStatus !== 'saving') return
     const timer = setTimeout(() => {
-      onSave(state, activity, percentage ? parseFloat(percentage) : null, notes || null)
+      onSave(activity, percentage ? parseFloat(percentage) : null, notes || null)
       setSaveStatus('saved')
     }, 1500)
     return () => clearTimeout(timer)
-  }, [state, activity, percentage, notes, saveStatus, onSave])
+  }, [activity, percentage, notes, saveStatus, onSave])
 
   const change = () => setSaveStatus('saving')
 
@@ -72,19 +67,13 @@ function ChakraCard({ name, initial, onSave }: { name: ChakraName; initial?: { s
       </div>
       <div className="form-row">
         <Select
-          label="Estado"
-          value={state}
-          onChange={v => { setState(v as ChakraState); change() }}
-          options={STATES}
-        />
-        <Select
           label="Atividade"
           value={activity}
           onChange={v => { setActivity(v as ChakraActivity); change() }}
           options={ACTIVITIES}
         />
         <label className="form-label">
-          %
+          Porcentagem
           <input type="number" min="0" max="100" step="0.1" value={percentage} onChange={e => { setPercentage(e.target.value); change() }} />
         </label>
       </div>

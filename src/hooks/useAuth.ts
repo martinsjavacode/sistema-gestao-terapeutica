@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { getSession, onAuthChange, getUser, signOut } from '../services/auth'
+import { getSession, onAuthChange, getUser, signOut, type AppUser } from '../services/auth'
 import { usePermissions } from './usePermissions'
 
 export function useAuth() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
-  const [userId, setUserId] = useState<string | null>(null)
-  const [unauthorized, setUnauthorized] = useState(false)
+  const [user, setUser] = useState<AppUser | null>(null)
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   useEffect(() => {
     getSession().then(s => { setSession(s); setLoading(false) })
@@ -16,17 +16,34 @@ export function useAuth() {
   }, [])
 
   useEffect(() => {
-    if (!session) return
+    if (!session) {
+      setUser(null)
+      setNeedsOnboarding(false)
+      return
+    }
     let cancelled = false
     getUser(session).then(u => {
       if (cancelled) return
-      if (u) { setUserId(u.id); setUnauthorized(false) }
-      else { setUserId(null); setUnauthorized(true) }
+      if (u) {
+        setUser(u)
+        setNeedsOnboarding(false)
+      } else {
+        setUser(null)
+        setNeedsOnboarding(true)
+      }
     })
     return () => { cancelled = true }
   }, [session])
 
-  const { can, loaded: permissionsLoaded } = usePermissions(userId)
+  const { can, loaded: permissionsLoaded } = usePermissions(user?.id ?? null)
 
-  return { session, loading, unauthorized, can, permissionsLoaded, signOut }
+  return {
+    session,
+    loading,
+    user,
+    needsOnboarding,
+    can,
+    permissionsLoaded,
+    signOut,
+  }
 }

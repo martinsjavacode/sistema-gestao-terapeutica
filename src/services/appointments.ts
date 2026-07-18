@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+import { supabase, getTenantId } from '../lib/supabase'
 import type { Appointment, TherapyType } from '../types/database'
 
 // ========== Appointments ==========
@@ -35,6 +35,8 @@ export interface InsertAppointmentPayload {
 }
 
 export async function insertAppointment(row: InsertAppointmentPayload) {
+  const tenant_id = await getTenantId()
+
   // Verificar conflito: sobreposição com agendamento ativo (não cancelado/excluído)
   const startMs = new Date(row.scheduled_at).getTime()
   const endIso = new Date(startMs + row.duration_minutes * 60000).toISOString()
@@ -56,7 +58,7 @@ export async function insertAppointment(row: InsertAppointmentPayload) {
     throw new Error('Já existe um agendamento neste horário')
   }
 
-  const { data, error } = await supabase.from('appointments').insert(row).select('*, clients(name)').single()
+  const { data, error } = await supabase.from('appointments').insert({ ...row, tenant_id }).select('*, clients(name)').single()
   if (error) throw error
   return { data: data as Appointment | null, error: null }
 }
@@ -75,6 +77,8 @@ export async function deleteAppointment(id: string) {
  * Confirma um agendamento: cria o atendimento automaticamente e linka.
  */
 export async function confirmAppointment(appointment: Appointment) {
+  const tenant_id = await getTenantId()
+
   // 1. Criar atendimento
   const scheduledDate = new Date(appointment.scheduled_at)
   const { data: attendance, error: attError } = await supabase
@@ -87,6 +91,7 @@ export async function confirmAppointment(appointment: Appointment) {
       objective: appointment.notes,
       bovis_frequency: null,
       notes: null,
+      tenant_id,
     })
     .select()
     .single()

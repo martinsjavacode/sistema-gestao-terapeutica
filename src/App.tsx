@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import { useAuth } from './hooks'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth, TenantProvider } from './hooks'
 import Auth from './components/auth/Auth'
 import Sidebar from './components/ui/Sidebar'
 import ToastContainer from './components/ui/Toast'
@@ -16,6 +16,7 @@ const AttendancePage = lazy(() => import('./components/attendances/AttendancePag
 const SchedulePage = lazy(() => import('./components/schedule/SchedulePage'))
 const SettingsPage = lazy(() => import('./components/settings/SettingsPage'))
 const PublicReport = lazy(() => import('./components/report/PublicReport'))
+const ShortLinkResolver = lazy(() => import('./components/report/ShortLinkResolver'))
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 1000 * 60 * 5, retry: 1, refetchOnWindowFocus: false } },
@@ -28,45 +29,35 @@ function ProtectedRoute({ children, allowed, loading }: { children: ReactNode; a
 }
 
 function AppLayout() {
-  const { session, loading, unauthorized, can, permissionsLoaded, signOut: logout } = useAuth()
-  const navigate = useNavigate()
+  const { session, loading, needsOnboarding, user, can, permissionsLoaded } = useAuth()
 
   if (loading) return <div className="auth"><div className="skeleton" style={{ width: '120px', height: '2rem', margin: '0 auto' }} /></div>
   if (!session) return <Auth />
-  if (unauthorized) return (
-    <div className="auth">
-      <div className="auth-card">
-        <div className="auth-brand"><h1>🔮 SGT</h1></div>
-        <p className="auth-subtitle">Acesso não autorizado</p>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-          O email <strong>{session.user.email}</strong> não está cadastrado no sistema. Solicite acesso ao administrador.
-        </p>
-        <button className="auth-btn-primary" onClick={() => { logout(); navigate('/', { replace: true }) }}>Sair</button>
-      </div>
-    </div>
-  )
+  if (needsOnboarding) return <Auth />
 
   return (
-    <div className="layout">
-      <a href="#main-content" className="skip-link">Pular para conteúdo</a>
-      <Sidebar can={can} />
-      <main className="main" id="main-content">
-        <ErrorBoundary>
-          <Suspense fallback={<TableSkeleton />}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/clients" element={<ProtectedRoute allowed={can('clients', 'read')} loading={!permissionsLoaded}><ClientsPage /></ProtectedRoute>} />
-              <Route path="/attendances" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><AttendancePage /></ProtectedRoute>} />
-              <Route path="/schedule" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><SchedulePage /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute allowed={can('settings', 'read')} loading={!permissionsLoaded}><SettingsPage /></ProtectedRoute>} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </ErrorBoundary>
-      </main>
-      <ToastContainer />
-      <ConfirmDialog />
-    </div>
+    <TenantProvider tenantId={user?.tenant_id ?? null}>
+      <div className="layout">
+        <a href="#main-content" className="skip-link">Pular para conteúdo</a>
+        <Sidebar can={can} />
+        <main className="main" id="main-content">
+          <ErrorBoundary>
+            <Suspense fallback={<TableSkeleton />}>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/clients" element={<ProtectedRoute allowed={can('clients', 'read')} loading={!permissionsLoaded}><ClientsPage /></ProtectedRoute>} />
+                <Route path="/attendances" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><AttendancePage /></ProtectedRoute>} />
+                <Route path="/schedule" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><SchedulePage /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute allowed={can('settings', 'read')} loading={!permissionsLoaded}><SettingsPage /></ProtectedRoute>} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
+        </main>
+        <ToastContainer />
+        <ConfirmDialog />
+      </div>
+    </TenantProvider>
   )
 }
 
@@ -77,6 +68,8 @@ export default function App() {
         <BrowserRouter basename="/sistema-gestao-terapeutica">
           <Suspense fallback={<TableSkeleton />}>
             <Routes>
+              <Route path="/r/:code" element={<ShortLinkResolver />} />
+              <Route path="/report/:slug/:id" element={<PublicReport />} />
               <Route path="/report/:id" element={<PublicReport />} />
               <Route path="*" element={<AppLayout />} />
             </Routes>

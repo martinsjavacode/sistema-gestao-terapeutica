@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+import { supabase, clearTenantCache } from '../lib/supabase'
 import type { Session } from '@supabase/supabase-js'
 
 export function onAuthChange(cb: (session: Session | null) => void) {
@@ -12,19 +12,35 @@ export async function getSession() {
 }
 
 export async function signOut() {
+  clearTenantCache()
   await supabase.auth.signOut()
 }
 
-export async function getUser(session: Session): Promise<{ id: string } | null> {
+export interface AppUser {
+  id: string
+  tenant_id: string
+  display_name: string
+  role_id: string
+}
+
+export async function getUser(session: Session): Promise<AppUser | null> {
   const email = session.user.email ?? ''
   const { data } = await supabase
     .from('users')
-    .select('id, activated')
+    .select('id, tenant_id, display_name, role_id, activated')
     .eq('email', email)
     .single()
+
   if (!data) return null
+
   if (!data.activated) activateUser(email)
-  return { id: data.id }
+
+  return {
+    id: data.id,
+    tenant_id: data.tenant_id,
+    display_name: data.display_name,
+    role_id: data.role_id,
+  }
 }
 
 async function activateUser(email: string) {

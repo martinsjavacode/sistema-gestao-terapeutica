@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { signOut, getSession } from '../../services/auth'
+import { useTenant } from '../../hooks'
 import { LayoutDashboard, Users, ClipboardList, Calendar, Settings, LogOut, Menu, X } from 'lucide-react'
 
 interface Props {
@@ -18,6 +19,7 @@ const pageTitles: Record<string, string> = {
 export default function Sidebar({ can }: Props) {
   const [open, setOpen] = useState(false)
   const [userEmail, setUserEmail] = useState('')
+  const { tenant } = useTenant()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -40,7 +42,10 @@ export default function Sidebar({ can }: Props) {
 
       <aside className={`sidebar ${open ? 'sidebar-open' : ''}`} role="navigation" aria-label="Menu principal">
         <div className="sidebar-header">
-          <h1>🔮 SGT</h1>
+          <div>
+            <h1>🔮 SGT</h1>
+            {tenant && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>{tenant.name}</span>}
+          </div>
           <button className="sidebar-close" onClick={() => setOpen(false)} aria-label="Fechar menu"><X size={18} /></button>
         </div>
 

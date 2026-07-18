@@ -26,7 +26,7 @@ export default function LifeAreasTab({ attendanceId }: { attendanceId: string })
   return (
     <div>
       <h2 style={{ fontSize: '1.1rem', marginBottom: 'var(--space-4)' }}>Áreas da Vida</h2>
-      <div className="form-grid">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         {AREAS.map(area => {
           const a = getArea(area)
           return <AreaCard key={area} area={area} initial={a} onSave={(p, n) => save(area, p, n)} />
@@ -58,8 +58,16 @@ function AreaCard({ area, initial, onSave }: { area: LifeAreaType; initial?: { p
         <h3 style={{ fontSize: '0.95rem', color: 'var(--gold)' }}>{LIFE_AREA_LABELS[area]}</h3>
         <SaveStatus status={saveStatus} />
       </div>
-      <label className="form-label">%<input type="number" min="0" max="100" step="0.1" value={percentage} onChange={e => { setPercentage(e.target.value); change() }} /></label>
-      <label className="form-label" style={{ marginTop: 'var(--space-3)' }}>Observações<textarea value={notes} onChange={e => { setNotes(e.target.value); change() }} rows={2} placeholder="Observações sobre esta área..." /></label>
+      <div className="form-row">
+        <label className="form-label">
+          Porcentagem
+          <input type="number" min="0" max="100" step="0.1" value={percentage} onChange={e => { setPercentage(e.target.value); change() }} />
+        </label>
+      </div>
+      <label className="form-label" style={{ marginTop: 'var(--space-3)' }}>
+        Observações
+        <textarea value={notes} onChange={e => { setNotes(e.target.value); change() }} rows={2} placeholder="Observações sobre esta área..." />
+      </label>
     </div>
   )
 }

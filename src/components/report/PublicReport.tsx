@@ -5,14 +5,56 @@ import { CHAKRA_LABELS, LIFE_AREA_LABELS, THERAPY_LABELS } from '../../types/dat
 import type { ChakraName, LifeAreaType, TherapyType } from '../../types/database'
 import './PublicReport.css'
 
+function CollapsibleSection({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div className={`pr-accordion-item ${open ? 'expanded' : ''}`}>
+      <button className="pr-accordion-header" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <div className="pr-accordion-left">
+          <span className="pr-accordion-chevron">{open ? '▾' : '▸'}</span>
+          <span className="pr-accordion-icon">{icon}</span>
+          <span className="pr-accordion-title">{title}</span>
+        </div>
+      </button>
+      {open && (
+        <div className="pr-accordion-panel">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const FIELD_ICONS: Record<string, string> = {
+  mental: '🧠',
+  emocional: '💜',
+  espiritual: '✨',
+  fisico: '🌿',
+}
+
+const FIELD_DESCRIPTIONS: Record<string, string> = {
+  mental: 'Pensamentos, crenças, padrões mentais e capacidade de foco. Quando desequilibrado: ansiedade, pensamentos obsessivos, confusão mental.',
+  emocional: 'Sentimentos, reações emocionais e capacidade de processar emoções. Quando desequilibrado: instabilidade, repressão emocional, reatividade.',
+  espiritual: 'Conexão com o propósito de vida, intuição e consciência expandida. Quando desequilibrado: vazio existencial, desconexão, falta de sentido.',
+  fisico: 'Vitalidade, disposição corporal e saúde física. Quando desequilibrado: fadiga, dores crônicas, baixa imunidade, tensão muscular.',
+}
+
+const LIFE_AREA_DESCRIPTIONS: Record<string, string> = {
+  financeiro: 'Prosperidade, relação com dinheiro e abundância material',
+  profissional: 'Carreira, realização no trabalho e propósito profissional',
+  amoroso: 'Relacionamentos afetivos, autoestima e capacidade de amar',
+  familiar: 'Vínculos familiares, ancestralidade e dinâmicas do lar',
+  missao: 'Propósito de vida, missão de alma e contribuição ao mundo',
+}
+
 const CHAKRA_DESCRIPTIONS: Record<string, string> = {
-  coronario: 'Conexão espiritual, consciência superior e propósito de vida. Quando bloqueado: vazio existencial, desconexão, cinismo, enxaquecas, sensibilidade à luz.',
-  frontal: 'Intuição, clarividência e percepção extrassensorial. Quando bloqueado: confusão mental, dores de cabeça, insônia, dúvida crônica, dependência de opinião alheia.',
-  laringeo: 'Comunicação, expressão pessoal e verdade interior. Quando bloqueado: dificuldade em se expressar, dores de garganta, rigidez no pescoço, sensação de não ser ouvido.',
-  cardiaco: 'Amor incondicional, compaixão e equilíbrio emocional. Quando bloqueado: solidão, dificuldade em perdoar, respiração superficial, tensão entre escápulas, muros emocionais.',
-  plexo_solar: 'Poder pessoal, autoestima e força de vontade. Quando bloqueado: baixa autoestima, indecisão, problemas digestivos, perfeccionismo, dificuldade em impor limites.',
-  sacral: 'Criatividade, sexualidade e prazer. Quando bloqueado: bloqueio criativo, baixa libido, dormência emocional, rigidez nos quadris, vergonha em relação ao prazer.',
-  raiz: 'Segurança, sobrevivência e conexão com a terra. Quando bloqueado: ansiedade crônica, insegurança financeira, dor lombar, fadiga persistente, extremidades frias.',
+  coronario: 'Conexão espiritual, consciência superior e propósito de vida. Quando desequilibrado: vazio existencial, desconexão, cinismo, enxaquecas, sensibilidade à luz.',
+  frontal: 'Intuição, clarividência e percepção extrassensorial. Quando desequilibrado: confusão mental, dores de cabeça, insônia, dúvida crônica, dependência de opinião alheia.',
+  laringeo: 'Comunicação, expressão pessoal e verdade interior. Quando desequilibrado: dificuldade em se expressar, dores de garganta, rigidez no pescoço, sensação de não ser ouvido.',
+  cardiaco: 'Amor incondicional, compaixão e equilíbrio emocional. Quando desequilibrado: solidão, dificuldade em perdoar, respiração superficial, tensão entre escápulas, muros emocionais.',
+  plexo_solar: 'Poder pessoal, autoestima e força de vontade. Quando desequilibrado: baixa autoestima, indecisão, problemas digestivos, perfeccionismo, dificuldade em impor limites.',
+  sacral: 'Criatividade, sexualidade e prazer. Quando desequilibrado: bloqueio criativo, baixa libido, dormência emocional, rigidez nos quadris, vergonha em relação ao prazer.',
+  raiz: 'Segurança, sobrevivência e conexão com a terra. Quando desequilibrado: ansiedade crônica, insegurança financeira, dor lombar, fadiga persistente, extremidades frias.',
 }
 
 const HAWKINS_MAP: Record<number, string> = {
@@ -46,7 +88,21 @@ function getHawkinsDesc(text: string): string {
   return ''
 }
 
+function getFreqColor(text: string): string {
+  const match = text.match(/(\d+)\s*[Hh][Zz]/)
+  if (!match) return '#a78bfa'
+  const freq = parseInt(match[1])
+  if (freq < 175) return '#ef4444'   // low — vermelho
+  if (freq < 500) return '#eab308'   // mid — dourado
+  return '#22c55e'                    // high — verde
+}
+
 interface ReportData {
+  tenant: {
+    name: string
+    slug: string
+    logo_url: string | null
+  }
   attendance: {
     id: string
     date: string
@@ -68,7 +124,7 @@ interface ReportData {
 }
 
 export default function PublicReport() {
-  const { id } = useParams<{ id: string }>()
+  const { id, slug } = useParams<{ id: string; slug?: string }>()
   const [data, setData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -77,64 +133,88 @@ export default function PublicReport() {
     if (!id) return
     supabase.rpc('get_public_report', { p_attendance_id: id }).then(({ data: result, error: err }) => {
       if (err || !result) setError('Relatório não encontrado ou não disponível.')
-      else setData(result as ReportData)
+      else {
+        setData(result as ReportData)
+        // Redirecionar para URL com slug se não tiver
+        if (!slug && (result as ReportData).tenant?.slug) {
+          window.history.replaceState(null, '', `/sistema-gestao-terapeutica/report/${(result as ReportData).tenant.slug}/${id}`)
+        }
+      }
       setLoading(false)
     })
-  }, [id])
+  }, [id, slug])
 
   if (loading) return <div className="report-loading"><div className="report-spinner" /><p>Carregando relatório...</p></div>
   if (error) return <div className="report-error"><p>🔮</p><h2>Relatório não disponível</h2><p>{error}</p></div>
   if (!data) return null
 
-  const { attendance, assessments, chakras, aura, life_areas, emotions, beliefs, blockages, divorces, treatment } = data
+  const { attendance, tenant, assessments, chakras, aura, life_areas, emotions, beliefs, blockages, divorces, treatment } = data
   const fieldLabels: Record<string, string> = { mental: 'Mental', emocional: 'Emocional', espiritual: 'Espiritual', fisico: 'Físico' }
 
   return (
     <div className="public-report">
       {/* Header */}
-      <header className="pr-header">
-        <div className="pr-logo">🔮</div>
-        <h1>Relatório Terapêutico</h1>
-        <div className="pr-meta">
-          <div className="pr-meta-item"><span className="pr-meta-label">Cliente</span><span className="pr-meta-value">{attendance.client_name}</span></div>
-          <div className="pr-meta-item"><span className="pr-meta-label">Data</span><span className="pr-meta-value">{new Date(attendance.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span></div>
-          <div className="pr-meta-item"><span className="pr-meta-label">Terapia</span><span className="pr-meta-value">{THERAPY_LABELS[attendance.therapy_type]}</span></div>
-          {attendance.objective && <div className="pr-meta-item"><span className="pr-meta-label">Objetivo</span><span className="pr-meta-value">{attendance.objective}</span></div>}
+      <header className="pr-header-v2">
+        <div className="pr-header-v2-left">
+          {tenant.logo_url
+            ? <img src={tenant.logo_url} alt={tenant.name} className="pr-logo-img" />
+            : <div className="pr-logo" style={{ fontSize: '2.5rem' }}>🔮</div>
+          }
+          <h2 className="pr-clinic-name">{tenant.name}</h2>
+          <p style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '2px', color: '#7dd3fc', marginTop: '4px' }}>Relatório Terapêutico</p>
+        </div>
+        <div className="pr-header-v2-right">
+          <span className="pr-client-label">Preparado para</span>
+          <h1 className="pr-client-name">{attendance.client_name}</h1>
+          <div style={{ display: 'flex', gap: '16px', marginTop: '16px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>📅 {new Date(attendance.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>✨ {THERAPY_LABELS[attendance.therapy_type]}</span>
+            {attendance.objective && <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>🎯 {attendance.objective}</span>}
+          </div>
         </div>
       </header>
 
       {/* Avaliação Energética */}
       {assessments.length > 0 && (
-        <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">◎</span><h2>Avaliação Energética</h2></div>
-          <div className="pr-assessment-grid">
-            {assessments.map(a => (
-              <div key={a.field_type} className={`pr-assessment-card ${a.has_imbalance ? 'imbalanced' : 'balanced'}`}>
-                <div className="pr-assessment-label">{fieldLabels[a.field_type] ?? a.field_type}</div>
-                <div className="pr-assessment-status">
-                  <span className={`pr-badge ${a.has_imbalance ? 'pr-badge-warn' : 'pr-badge-ok'}`}>
-                    {a.has_imbalance ? '● Desequilíbrio' : '● Equilibrado'}
-                  </span>
-                  {a.percentage !== null && <span className="pr-badge pr-badge-neutral">{a.percentage}%</span>}
+        <CollapsibleSection icon="◎" title="Avaliação Energética">
+          <p className="pr-intro">A avaliação energética mede o equilíbrio dos seus 4 campos fundamentais. Cada campo reflete uma dimensão da sua saúde integral — quando em desequilíbrio, pode manifestar sintomas físicos, emocionais ou comportamentais.</p>
+          <div className="pr-chakra-grid">
+            {assessments.map(a => {
+              const pct = a.percentage ?? 0
+              const isBalanced = pct >= 100
+              const barColor = isBalanced ? '#38bdf8' : '#f97316'
+              return (
+                <div key={a.field_type} className="pr-chakra-card">
+                  <div className="pr-chakra-bar-header">
+                    <span className="pr-chakra-name">{FIELD_ICONS[a.field_type] ?? '◎'} {fieldLabels[a.field_type] ?? a.field_type}</span>
+                    <span className="pr-chakra-pct">{pct}%</span>
+                  </div>
+                  <div className="pr-chakra-bar">
+                    <div className="pr-chakra-bar-fill" style={{ width: `${pct}%`, background: barColor }} />
+                  </div>
+                  <div className="pr-chakra-meta">
+                    <span className="pr-highlight">{isBalanced ? 'Equilibrado' : 'Desequilíbrio'}</span>
+                  </div>
+                  <div className="pr-chakra-desc">{FIELD_DESCRIPTIONS[a.field_type] ?? ''}</div>
+                  {a.notes && <div className="pr-chakra-notes">{a.notes}</div>}
                 </div>
-                {a.notes && <div className="pr-assessment-notes">{a.notes}</div>}
-              </div>
-            ))}
+              )
+            })}
           </div>
-        </section>
+        </CollapsibleSection>
       )}
 
       {/* Chakras */}
       {chakras.length > 0 && (
-        <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">❂</span><h2>Chakras</h2></div>
+        <CollapsibleSection icon="❂" title="Chakras">
           <p className="pr-intro">Os chakras são centros energéticos que regulam o fluxo de energia vital, cada um associado a aspectos físicos, emocionais e espirituais.</p>
           <div className="pr-chakra-grid">
             {chakras.map(c => {
-              const barColor = c.state === 'desequilibrio'
-                ? (c.activity === 'hiperativo' ? '#f87171' : c.activity === 'hipoativo' ? '#38bdf8' : '#fb923c')
-                : '#4ade80'
-              const pct = c.percentage ?? 50
+              const pct = c.percentage ?? 0
+              const isBalanced = pct >= 100
+              const barColor = isBalanced
+                ? '#38bdf8'
+                : (c.activity === 'hiperativo' ? '#f97316' : c.activity === 'hipoativo' ? '#6366f1' : '#a78bfa')
               return (
                 <div key={c.name} className="pr-chakra-card">
                   <div className="pr-chakra-bar-header">
@@ -145,7 +225,7 @@ export default function PublicReport() {
                     <div className="pr-chakra-bar-fill" style={{ width: `${pct}%`, background: barColor }} />
                   </div>
                   <div className="pr-chakra-meta">
-                    <span className="pr-highlight">{c.state === 'equilibrado' ? 'Equilibrado' : 'Desequilíbrio'}</span>
+                    <span className="pr-highlight">{isBalanced ? 'Equilibrado' : 'Desequilíbrio'}</span>
                     <span className="pr-highlight">{c.activity === 'normal' ? 'Normal' : c.activity === 'hiperativo' ? 'Hiperativo' : 'Hipoativo'}</span>
                   </div>
                   <div className="pr-chakra-desc">{CHAKRA_DESCRIPTIONS[c.name]}</div>
@@ -154,65 +234,81 @@ export default function PublicReport() {
               )
             })}
           </div>
-        </section>
+        </CollapsibleSection>
       )}
 
       {/* Campo Áurico */}
       {aura && (aura.state || aura.predominant_color) && (
-        <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">◯</span><h2>Campo Áurico</h2></div>
+        <CollapsibleSection icon="◯" title="Campo Áurico">
           <p className="pr-intro">O campo áurico é a camada de energia que envolve o corpo, refletindo o estado emocional, mental e espiritual. Suas cores e dimensões indicam padrões energéticos e áreas que precisam de atenção.</p>
           <AuraSection aura={aura} />
           {aura.notes && <p className="pr-notes">{aura.notes}</p>}
-        </section>
+        </CollapsibleSection>
       )}
 
       {/* Áreas da Vida */}
       {life_areas.length > 0 && (
-        <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">✦</span><h2>Áreas da Vida</h2></div>
-          <div className="pr-life-grid">
-            {life_areas.map(a => (
-              <div key={a.area} className="pr-life-item">
-                <span className="pr-life-name">{LIFE_AREA_LABELS[a.area]}</span>
-                {a.percentage !== null && <span className="pr-life-score">{a.percentage}%</span>}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Frequências (Hz) */}
-      {emotions.length > 0 && (
-        <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">∿</span><h2>Frequências (Hz)</h2></div>
-          <p className="pr-intro">Baseado na Escala de Consciência de Dr. David R. Hawkins, cada frequência representa um nível de consciência e estado emocional associado.</p>
+        <CollapsibleSection icon="✦" title="Áreas da Vida">
+          <p className="pr-intro">Cada área da vida recebe uma porcentagem que indica o nível de equilíbrio energético naquele aspecto. Valores mais baixos indicam áreas que precisam de maior atenção e trabalho energético.</p>
           <div className="pr-chakra-grid">
-            {emotions.map((e, i) => {
-              const desc = getHawkinsDesc(e.description)
+            {life_areas.map(a => {
+              const pct = a.percentage ?? 0
+              const isBalanced = pct >= 100
+              const barColor = isBalanced ? '#38bdf8' : pct >= 70 ? '#a78bfa' : '#c084fc'
               return (
-                <div key={i} className="pr-chakra-card">
-                  <div className="pr-chakra-name">{e.description}</div>
-                  {desc && <div className="pr-chakra-desc">{desc}</div>}
+                <div key={a.area} className="pr-chakra-card">
+                  <div className="pr-chakra-bar-header">
+                    <span className="pr-chakra-name">{LIFE_AREA_LABELS[a.area]}</span>
+                    <span className="pr-chakra-pct">{pct}%</span>
+                  </div>
+                  <div className="pr-chakra-bar">
+                    <div className="pr-chakra-bar-fill" style={{ width: `${pct}%`, background: barColor }} />
+                  </div>
+                  <div className="pr-chakra-meta">
+                    <span className="pr-highlight">{isBalanced ? 'Equilibrado' : 'Desequilíbrio'}</span>
+                  </div>
+                  <div className="pr-chakra-desc">{LIFE_AREA_DESCRIPTIONS[a.area] ?? ''}</div>
                 </div>
               )
             })}
           </div>
-        </section>
+        </CollapsibleSection>
+      )}
+
+      {/* Frequências (Hz) */}
+      {emotions.length > 0 && (
+        <CollapsibleSection icon="∿" title="Frequências (Hz)">
+          <p className="pr-intro">Baseado na Escala de Consciência de Dr. David R. Hawkins, cada frequência representa um nível de consciência e estado emocional associado.</p>
+          <div className="pr-chakra-grid">
+            {emotions.map((e, i) => {
+              const desc = getHawkinsDesc(e.description)
+              const freqColor = getFreqColor(e.description)
+              return (
+                <div key={i} className="pr-chakra-card">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className="pr-color-dot" style={{ background: freqColor, boxShadow: `0 0 6px ${freqColor}` }} />
+                    <span className="pr-chakra-name">{e.description}</span>
+                  </div>
+                  {desc && <div className="pr-chakra-desc" style={{ marginTop: '8px' }}>{desc}</div>}
+                </div>
+              )
+            })}
+          </div>
+        </CollapsibleSection>
       )}
 
       {/* Crenças */}
       {beliefs.length > 0 && (
-        <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">⟡</span><h2>Crenças Limitantes</h2></div>
+        <CollapsibleSection icon="⟡" title="Crenças Limitantes">
+          <p className="pr-intro">Crenças limitantes são pensamentos ou convicções inconscientes que restringem seu potencial. Geralmente formadas na infância ou em momentos de trauma, elas criam padrões repetitivos que bloqueiam sua evolução. Identificá-las é o primeiro passo para reprogramá-las.</p>
           <ul className="pr-list">{beliefs.map((b, i) => <li key={i}>{b.description}</li>)}</ul>
-        </section>
+        </CollapsibleSection>
       )}
 
       {/* Bloqueios */}
       {blockages.length > 0 && (
-        <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">△</span><h2>Bloqueios</h2></div>
+        <CollapsibleSection icon="△" title="Bloqueios">
+          <p className="pr-intro">Bloqueios energéticos são obstruções no fluxo de energia vital do corpo. Podem ter origem emocional, espiritual ou kármica, e sua intensidade indica o grau de impacto na sua vida. O tratamento visa dissolver essas obstruções e restaurar o fluxo natural.</p>
           <div className="pr-list">
             {blockages.map((b, i) => (
               <div key={i} className="pr-list-item">
@@ -223,13 +319,13 @@ export default function PublicReport() {
               </div>
             ))}
           </div>
-        </section>
+        </CollapsibleSection>
       )}
 
       {/* Divórcios */}
       {divorces.length > 0 && (
-        <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">⫸</span><h2>Divórcios Energéticos</h2></div>
+        <CollapsibleSection icon="⫸" title="Divórcios Energéticos">
+          <p className="pr-intro">Um divórcio energético é a separação ou desconexão de uma energia, vínculo ou padrão que não serve mais ao seu propósito de vida. A porcentagem indica o grau de desconexão necessário. Esse processo libera energia que estava presa em vínculos nocivos.</p>
           <div className="pr-list">
             {divorces.map((d, i) => (
               <div key={i} className="pr-list-item">
@@ -240,28 +336,20 @@ export default function PublicReport() {
               </div>
             ))}
           </div>
-        </section>
+        </CollapsibleSection>
       )}
 
-      {/* Tratamento */}
-      {treatment && (treatment.techniques || treatment.recommendations) && (
-        <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">✧</span><h2>Tratamento</h2></div>
-          <div className="pr-treatment">
-            {treatment.techniques && <div className="pr-treatment-item"><h4>Técnicas</h4><p>{treatment.techniques}</p></div>}
-            {treatment.charts && <div className="pr-treatment-item"><h4>Gráficos</h4><p>{treatment.charts}</p></div>}
-            {treatment.frequencies && <div className="pr-treatment-item"><h4>Frequências</h4><p>{treatment.frequencies}</p></div>}
-            {treatment.recommendations && <div className="pr-treatment-item"><h4>Recomendações</h4><p>{treatment.recommendations}</p></div>}
-            {treatment.exercises && <div className="pr-treatment-item"><h4>Exercícios</h4><p>{treatment.exercises}</p></div>}
-          </div>
-        </section>
+      {/* Recomendações */}
+      {treatment?.recommendations && (
+        <CollapsibleSection icon="✧" title="Recomendações">
+          <p className="pr-intro" style={{ whiteSpace: 'pre-line' }}>{treatment.recommendations}</p>
+        </CollapsibleSection>
       )}
 
       {attendance.youtube_url && (
-        <section className="pr-section">
-          <div className="pr-section-header"><span className="pr-icon">▷</span><h2>Vídeo da Sessão</h2></div>
+        <CollapsibleSection icon="▷" title="Vídeo da Sessão">
           <YouTubeEmbed url={attendance.youtube_url} />
-        </section>
+        </CollapsibleSection>
       )}
 
       <footer className="pr-footer">
@@ -298,50 +386,112 @@ const AURA_COLOR_DESC: Record<string, string> = {
   preto: 'Doença, negatividade acumulada, dor, entidades',
 }
 
-function AuraSection({ aura }: { aura: { state: string | null; size: string | null; predominant_color: string | null; excess_color: string | null; missing_color: string | null; state_percentage: number | null; size_percentage: number | null } }) {
-  const renderColors = (colorStr: string) => {
-    return colorStr.split(',').map(c => {
-      const color = c.trim()
-      const desc = AURA_COLOR_DESC[color]
-      return <span key={color}>{color}{desc ? ` — ${desc}` : ''}</span>
+const AURA_COLOR_HEX: Record<string, string> = {
+  vermelho: '#ef4444',
+  laranja: '#f97316',
+  amarelo: '#eab308',
+  verde: '#22c55e',
+  azul: '#3b82f6',
+  indigo: '#6366f1',
+  violeta: '#a855f7',
+  cinza: '#94a3b8',
+  preto: '#e2e8f0',
+}
+
+function AuraSection({ aura }: { aura: { state: string | null; size: string | null; predominant_color: string | null; excess_color: string | null; missing_color: string | null; state_percentage: number | null; size_percentage: number | null; excess_color_percentage: number | null; missing_color_percentage: number | null } }) {
+  const items: { label: string; value: string; pct: number | null; desc: string; colors?: string[] }[] = []
+
+  if (aura.predominant_color) {
+    items.push({
+      label: 'Cor predominante',
+      value: aura.predominant_color,
+      pct: null,
+      desc: '',
+      colors: [aura.predominant_color.trim()],
+    })
+  }
+  if (aura.size) {
+    items.push({
+      label: 'Tamanho',
+      value: aura.size,
+      pct: aura.size_percentage,
+      desc: AURA_SIZE_DESC[aura.size] ?? '',
+    })
+  }
+  if (aura.state) {
+    items.push({
+      label: 'Proteção',
+      value: aura.state,
+      pct: aura.state_percentage,
+      desc: AURA_PROT_DESC[aura.state] ?? '',
+    })
+  }
+  if (aura.excess_color) {
+    items.push({
+      label: 'Cor em excesso',
+      value: aura.excess_color,
+      pct: aura.excess_color_percentage,
+      desc: '',
+      colors: aura.excess_color.split(',').map(c => c.trim()),
+    })
+  }
+  if (aura.missing_color) {
+    items.push({
+      label: 'Cor em falta',
+      value: aura.missing_color,
+      pct: aura.missing_color_percentage,
+      desc: '',
+      colors: aura.missing_color.split(',').map(c => c.trim()),
     })
   }
 
+  const AURA_BAR_COLORS: Record<string, string> = {
+    'Tamanho': '#38bdf8',
+    'Proteção': '#a78bfa',
+    'Cor em excesso': '#f97316',
+    'Cor em falta': '#6366f1',
+  }
+
   return (
-    <div className="pr-aura-grid">
-      {aura.size && (
-        <div className="pr-aura-item">
-          <span className="pr-aura-label">Tamanho</span>
-          <span>{aura.size}{aura.size_percentage ? ` (${aura.size_percentage}%)` : ''}</span>
-          {AURA_SIZE_DESC[aura.size] && <span className="pr-aura-desc">{AURA_SIZE_DESC[aura.size]}</span>}
-        </div>
-      )}
-      {aura.state && (
-        <div className="pr-aura-item">
-          <span className="pr-aura-label">Proteção</span>
-          <span>{aura.state}{aura.state_percentage ? ` (${aura.state_percentage}%)` : ''}</span>
-          {AURA_PROT_DESC[aura.state] && <span className="pr-aura-desc">{AURA_PROT_DESC[aura.state]}</span>}
-        </div>
-      )}
-      {aura.predominant_color && (
-        <div className="pr-aura-item">
-          <span className="pr-aura-label">Cor predominante</span>
-          <span>{aura.predominant_color}</span>
-          {AURA_COLOR_DESC[aura.predominant_color] && <span className="pr-aura-desc">{AURA_COLOR_DESC[aura.predominant_color]}</span>}
-        </div>
-      )}
-      {aura.excess_color && (
-        <div className="pr-aura-item">
-          <span className="pr-aura-label">Cor em excesso</span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>{renderColors(aura.excess_color)}</div>
-        </div>
-      )}
-      {aura.missing_color && (
-        <div className="pr-aura-item">
-          <span className="pr-aura-label">Cor em falta</span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>{renderColors(aura.missing_color)}</div>
-        </div>
-      )}
+    <div className="pr-chakra-grid">
+      {items.map(item => {
+        const pct = item.pct ?? 50
+        const isColorList = item.label === 'Cor em excesso' || item.label === 'Cor em falta' || item.label === 'Cor predominante'
+        const barColor = AURA_BAR_COLORS[item.label] ?? '#6366f1'
+        return (
+          <div
+            key={item.label}
+            className="pr-chakra-card"
+          >
+            <div className="pr-chakra-bar-header">
+              <span className="pr-chakra-name">{item.label}</span>
+              {item.pct !== null && <span className="pr-chakra-pct">{item.pct}%</span>}
+            </div>
+            {item.pct !== null && (
+              <div className="pr-chakra-bar">
+                <div className="pr-chakra-bar-fill" style={{ width: `${pct}%`, background: barColor }} />
+              </div>
+            )}
+            {!isColorList && (
+              <div className="pr-chakra-meta">
+                <span className="pr-highlight">{item.value}</span>
+              </div>
+            )}
+            {isColorList && item.colors && (
+              <div className="pr-color-list">
+                {item.colors.map(color => (
+                  <div key={color} className="pr-color-item">
+                    <span className="pr-color-dot" style={{ background: AURA_COLOR_HEX[color] ?? '#6366f1' }} />
+                    <span className="pr-color-name">{color}</span>
+                    {AURA_COLOR_DESC[color] && <span className="pr-color-desc">{AURA_COLOR_DESC[color]}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+            {item.desc && <div className="pr-chakra-desc" style={{ whiteSpace: 'pre-line' }}>{item.desc}</div>}
+          </div>
+        )
+      })}
     </div>
   )
 }

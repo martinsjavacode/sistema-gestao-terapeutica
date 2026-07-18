@@ -38,7 +38,8 @@ function ProtectedRoute({ children, allowed, loading }: { children: ReactNode; a
 function AppLayout() {
   const { session, loading, needsOnboarding, user, can, permissionsLoaded } = useAuth()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('sgt-sidebar-collapsed') === 'true'
+    const saved = localStorage.getItem('sgt-sidebar-collapsed')
+    return saved === null ? true : saved === 'true'
   })
   const { showWhatsNew, dismissWhatsNew } = useWhatsNew()
   useKeyboardShortcuts()

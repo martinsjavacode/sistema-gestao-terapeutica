@@ -20,9 +20,9 @@ jobs:
           cache: npm
       - run: npm ci
 
-      # Commitlint - valida o último commit (hook local já valida cada um)
+      # Commitlint - valida mensagens de commit
       - name: Commitlint
-        run: npx commitlint --last
+        run: npx commitlint --from $(git log --oneline origin/develop..HEAD --format="%H" | tail -1)^ --to HEAD
 
       # TypeScript check (sem emit, mais rápido)
       - name: TypeScript check

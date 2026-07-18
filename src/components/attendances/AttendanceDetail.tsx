@@ -60,6 +60,15 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
     qc.invalidateQueries({ queryKey: ['attendance', attendanceId] })
   }, [attendance, attendanceId, qc])
 
+  const handleFinalize = useCallback(async () => {
+    if (!attendance) return
+    const allKeys = getSectionsForTherapy(attendance.therapy_type).map(s => s.key)
+    await updateAttendance(attendanceId, { completed_sections: allKeys } as any)
+    qc.invalidateQueries({ queryKey: ['attendance', attendanceId] })
+    qc.invalidateQueries({ queryKey: ['attendances'] })
+    setShowSummary(true)
+  }, [attendanceId, attendance, qc])
+
   const { data: assessments = [] } = useQuery({
     queryKey: ['energy-assessments', attendanceId],
     queryFn: async () => { const { data } = await fetchEnergyAssessments(attendanceId); return data },
@@ -271,6 +280,16 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
             <Button variant="tab" onClick={() => setShowSummary(true)}>
               <FileCheck size={14} /> Ver resumo final
             </Button>
+            {filledCount < sections.length && (
+              <Button onClick={handleFinalize}>
+                <CheckCircle2 size={14} /> Finalizar atendimento
+              </Button>
+            )}
+            {filledCount === sections.length && (
+              <span className="attendance-completed-badge">
+                <CheckCircle2 size={16} /> Atendimento concluído
+              </span>
+            )}
           </div>
         )}
       </div>

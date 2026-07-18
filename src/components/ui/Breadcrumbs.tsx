@@ -6,6 +6,7 @@ const routeLabels: Record<string, string> = {
   '/clients': 'Clientes',
   '/attendances': 'Atendimentos',
   '/schedule': 'Agenda',
+  '/protocols': 'Protocolos',
   '/settings': 'Configurações',
 }
 

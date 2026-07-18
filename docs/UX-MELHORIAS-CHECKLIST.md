@@ -47,19 +47,19 @@ Baseado na análise dos sistemas **SimplePractice** e **Practice Better**.
 
 ---
 
-## Fase 4 — Sistema de Protocolos de Tratamento
+## ~~Fase 4 — Sistema de Protocolos de Tratamento~~ ✅ (2026-07-18)
 
 > Inspirado no Practice Better: templates reutilizáveis de tratamento.
 
-- [ ] Criar entidade `protocols` no banco (nome, descrição, etapas, técnicas)
-- [ ] CRUD de Protocolos (criar, editar, duplicar, arquivar)
-- [ ] Biblioteca de protocolos pré-definidos:
-  - [ ] Limpeza de Chakras
-  - [ ] Remoção de Crenças Limitantes
-  - [ ] Harmonização do Campo Áurico
-  - [ ] Tratamento de Divórcios Energéticos
-- [ ] Vincular protocolo ao atendimento (selecionar protocolo → preenche campos automaticamente)
-- [ ] Marcar progresso do protocolo ao longo das sessões
+- [x] Criar entidade `protocols` no banco (nome, descrição, etapas, técnicas)
+- [x] CRUD de Protocolos (criar, editar, duplicar, arquivar)
+- [x] Biblioteca de protocolos pré-definidos:
+  - [x] Limpeza de Chakras
+  - [x] Remoção de Crenças Limitantes
+  - [x] Harmonização do Campo Áurico
+  - [x] Tratamento de Divórcios Energéticos
+- [x] Vincular protocolo ao atendimento (selecionar protocolo → preenche campos automaticamente)
+- [x] Marcar progresso do protocolo ao longo das sessões
 - [ ] Compartilhar protocolo entre terapeutas (futuro multi-user)
 
 ---
@@ -80,15 +80,15 @@ Baseado na análise dos sistemas **SimplePractice** e **Practice Better**.
 
 ---
 
-## Fase 6 — Automações Simples
+## ~~Fase 6 — Automações Simples~~ ✅ (2026-07-18)
 
 > Reduzir trabalho manual repetitivo.
 
-- [ ] Ao finalizar atendimento → gerar PDF do relatório automaticamente
-- [ ] Ao finalizar atendimento → marcar como "concluído" e exibir resumo
-- [ ] Lembrete visual: "Cliente X não atende há 30+ dias"
-- [ ] Auto-preenchimento de campos recorrentes (dados do cliente que não mudam)
-- [ ] Notificação de atendimentos incompletos (rascunhos abandonados)
+- [x] Ao finalizar atendimento → gerar PDF do relatório automaticamente
+- [x] Ao finalizar atendimento → marcar como "concluído" e exibir resumo
+- [x] Lembrete visual: "Cliente X não atende há 30+ dias"
+- [x] Auto-preenchimento de campos recorrentes (dados do cliente que não mudam)
+- [x] Notificação de atendimentos incompletos (rascunhos abandonados)
 
 ---
 
@@ -175,4 +175,4 @@ Baseado na análise dos sistemas **SimplePractice** e **Practice Better**.
 
 ---
 
-*Última atualização: 2026-07-18 16:37*
+*Última atualização: 2026-07-18 16:50*

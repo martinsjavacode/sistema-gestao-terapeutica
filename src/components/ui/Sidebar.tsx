@@ -4,13 +4,14 @@ import { signOut, getSession } from '../../services/auth'
 import { useTenant } from '../../hooks'
 import {
   LayoutDashboard, Users, ClipboardList, Calendar, Settings,
-  LogOut, Menu, X, PanelLeftClose, PanelLeft
+  LogOut, Menu, X, PanelLeftClose, PanelLeft, BookOpen
 } from 'lucide-react'
 
 interface Props {
   can: (resource: string, action: string) => boolean
   collapsed: boolean
   onToggleCollapse: () => void
+  draftCount?: number
 }
 
 const pageTitles: Record<string, string> = {
@@ -28,7 +29,7 @@ interface NavItem {
   resource?: string
 }
 
-export default function Sidebar({ can, collapsed, onToggleCollapse }: Props) {
+export default function Sidebar({ can, collapsed, onToggleCollapse, draftCount = 0 }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userEmail, setUserEmail] = useState('')
   const { tenant } = useTenant()
@@ -42,8 +43,9 @@ export default function Sidebar({ can, collapsed, onToggleCollapse }: Props) {
   const mainLinks: NavItem[] = [
     { to: '/', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
     { to: '/schedule', icon: <Calendar size={20} />, label: 'Agenda', resource: 'attendances' },
-    { to: '/attendances', icon: <ClipboardList size={20} />, label: 'Atendimentos', resource: 'attendances' },
+    { to: '/attendances', icon: <ClipboardList size={20} />, label: draftCount > 0 ? `Atendimentos (${draftCount})` : 'Atendimentos', resource: 'attendances' },
     { to: '/clients', icon: <Users size={20} />, label: 'Clientes', resource: 'clients' },
+    { to: '/protocols', icon: <BookOpen size={20} />, label: 'Protocolos', resource: 'attendances' },
   ]
 
   const systemLinks: NavItem[] = [

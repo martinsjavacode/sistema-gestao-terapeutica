@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth, TenantProvider } from './hooks'
 import Auth from './components/auth/Auth'
 import Sidebar from './components/ui/Sidebar'
@@ -9,12 +10,14 @@ import ConfirmDialog from './components/ui/ConfirmDialog'
 import { TableSkeleton } from './components/ui/Skeleton'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ErrorBoundary from './components/ui/ErrorBoundary'
+import { fetchAttendances } from './services/attendances'
 import './App.css'
 
 const Dashboard = lazy(() => import('./components/dashboard/Dashboard'))
 const ClientsPage = lazy(() => import('./components/clients/ClientsPage'))
 const AttendancePage = lazy(() => import('./components/attendances/AttendancePage'))
 const SchedulePage = lazy(() => import('./components/schedule/SchedulePage'))
+const ProtocolsPage = lazy(() => import('./components/protocols/ProtocolsPage'))
 const SettingsPage = lazy(() => import('./components/settings/SettingsPage'))
 const PublicReport = lazy(() => import('./components/report/PublicReport'))
 const ShortLinkResolver = lazy(() => import('./components/report/ShortLinkResolver'))
@@ -51,7 +54,7 @@ function AppLayout() {
     <TenantProvider tenantId={user?.tenant_id ?? null}>
       <div className={`layout ${sidebarCollapsed ? 'layout-collapsed' : ''}`}>
         <a href="#main-content" className="skip-link">Pular para conteúdo</a>
-        <Sidebar can={can} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleCollapse} />
+        <SidebarWithDrafts can={can} collapsed={sidebarCollapsed} onToggleCollapse={handleToggleCollapse} />
         <main className="main" id="main-content">
           <Breadcrumbs />
           <ErrorBoundary>
@@ -61,6 +64,7 @@ function AppLayout() {
                 <Route path="/clients" element={<ProtectedRoute allowed={can('clients', 'read')} loading={!permissionsLoaded}><ClientsPage /></ProtectedRoute>} />
                 <Route path="/attendances" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><AttendancePage /></ProtectedRoute>} />
                 <Route path="/schedule" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><SchedulePage /></ProtectedRoute>} />
+                <Route path="/protocols" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><ProtocolsPage /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute allowed={can('settings', 'read')} loading={!permissionsLoaded}><SettingsPage /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
@@ -72,6 +76,16 @@ function AppLayout() {
       </div>
     </TenantProvider>
   )
+}
+
+function SidebarWithDrafts(props: { can: (r: string, a: string) => boolean; collapsed: boolean; onToggleCollapse: () => void }) {
+  const { data: attendances = [] } = useQuery({
+    queryKey: ['attendances'],
+    queryFn: async () => { const { data } = await fetchAttendances(); return data },
+    staleTime: 1000 * 60 * 2,
+  })
+  const draftCount = attendances.filter(a => !a.completed_sections || a.completed_sections.length === 0).length
+  return <Sidebar {...props} draftCount={draftCount} />
 }
 
 export default function App() {

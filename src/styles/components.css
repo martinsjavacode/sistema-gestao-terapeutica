@@ -2591,3 +2591,173 @@ tbody tr:hover { background: var(--surface-hover); }
   color: var(--text-muted);
   text-align: right;
 }
+
+
+/* ========== Protocols ========== */
+.protocols-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+.protocol-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.protocol-card:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: var(--shadow-glow);
+}
+
+.protocol-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.protocol-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: rgba(139, 92, 246, 0.12);
+  color: var(--violet-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.protocol-card-actions {
+  display: flex;
+  gap: var(--space-1);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.protocol-card:hover .protocol-card-actions {
+  opacity: 1;
+}
+
+.protocol-card-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: var(--space-2);
+}
+
+.protocol-card-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: var(--space-3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.protocol-card-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.protocol-step-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  background: var(--surface);
+  border-radius: 100px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.protocol-step-more {
+  font-size: 0.72rem;
+  color: var(--violet-light);
+  padding: 3px 0;
+}
+
+.protocol-card-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.protocol-card-usage {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Protocol Step Form (in modal) */
+.protocol-step-form {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.protocol-step-grip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-muted);
+  padding-top: var(--space-2);
+  flex-shrink: 0;
+}
+
+.protocol-step-number {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--violet-light);
+  min-width: 16px;
+}
+
+.protocol-step-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.protocol-step-input {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-xs);
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+.protocol-step-input:focus {
+  border-color: var(--violet);
+  outline: none;
+}
+.protocol-step-input--desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+
+/* ========== Attendance Completed Badge ========== */
+.attendance-completed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--green);
+  font-size: 0.85rem;
+  font-weight: 500;
+}

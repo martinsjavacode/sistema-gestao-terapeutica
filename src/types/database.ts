@@ -10,6 +10,7 @@ export type LifeAreaType = 'financeiro' | 'profissional' | 'amoroso' | 'familiar
 
 export interface Client {
   id: string
+  tenant_id: string
   name: string
   birth_date: string
   cpf: string | null
@@ -27,6 +28,7 @@ export interface Client {
 
 export interface Attendance {
   id: string
+  tenant_id: string
   client_id: string
   date: string
   time: string | null
@@ -45,6 +47,7 @@ export interface Attendance {
 
 export interface Appointment {
   id: string
+  tenant_id: string
   client_id: string
   scheduled_at: string
   duration_minutes: number

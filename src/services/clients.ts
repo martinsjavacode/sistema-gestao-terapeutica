@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+import { supabase, getTenantId } from '../lib/supabase'
 import type { Client } from '../types/database'
 
 export async function fetchClients() {
@@ -19,8 +19,9 @@ export async function fetchClient(id: string) {
   return { data: data as Client | null, error }
 }
 
-export async function insertClient(row: Omit<Client, 'id' | 'created_at' | 'active'>) {
-  const { data, error } = await supabase.from('clients').insert(row).select().single()
+export async function insertClient(row: Omit<Client, 'id' | 'created_at' | 'active' | 'tenant_id'>) {
+  const tenant_id = await getTenantId()
+  const { data, error } = await supabase.from('clients').insert({ ...row, tenant_id }).select().single()
   return { data, error }
 }
 

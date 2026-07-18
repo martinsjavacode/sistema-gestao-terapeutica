@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+import { supabase, getTenantId } from '../lib/supabase'
 import type {
   Attendance, EnergyAssessment, Chakra, AuraField,
   LifeArea, Emotion, LimitingBelief, Blockage,
@@ -24,7 +24,8 @@ export async function fetchAttendance(id: string) {
 }
 
 export async function insertAttendance(row: Pick<Attendance, 'client_id' | 'date' | 'time' | 'therapy_type' | 'objective' | 'bovis_frequency' | 'notes'>) {
-  const { data, error } = await supabase.from('attendances').insert(row).select().single()
+  const tenant_id = await getTenantId()
+  const { data, error } = await supabase.from('attendances').insert({ ...row, tenant_id }).select().single()
   return { data: data as Attendance | null, error }
 }
 

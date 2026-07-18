@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchAttendance, fetchEnergyAssessments, fetchChakras, fetchAuraField, fetchLifeAreas, fetchEmotions, fetchLimitingBeliefs, fetchBlockages, fetchEnergyDivorces, fetchTreatment, updateAttendance } from '../../../services/attendances'
+import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
 import Button from '../../ui/Button'
 import { FileText, Link2 } from 'lucide-react'
@@ -98,7 +99,13 @@ export default function ReportTab({ attendanceId }: { attendanceId: string }) {
   const copyLink = async () => {
     // Salvar report_content para que o link público funcione
     await updateAttendance(attendanceId, { report_content: 'published' })
-    const url = `${window.location.origin}/sistema-gestao-terapeutica/report/${attendanceId}`
+    // Gerar short link
+    const { data: code, error } = await supabase.rpc('create_short_link', { p_attendance_id: attendanceId })
+    if (error || !code) {
+      toast('Erro ao gerar link', 'error')
+      return
+    }
+    const url = `${window.location.origin}/sistema-gestao-terapeutica/r/${code}`
     navigator.clipboard.writeText(url).then(() => toast('Link copiado!')).catch(() => toast('Erro ao copiar', 'error'))
   }
 

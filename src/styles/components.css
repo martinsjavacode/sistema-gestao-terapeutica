@@ -78,6 +78,8 @@
 .badge-danger { background: rgba(239, 68, 68, 0.15); color: var(--red); }
 .badge-warning { background: rgba(212, 168, 83, 0.15); color: var(--gold); }
 .badge-info { background: rgba(139, 92, 246, 0.15); color: var(--violet-light); }
+.badge-toggle { border: none; cursor: pointer; transition: opacity 0.15s, transform 0.15s; }
+.badge-toggle:hover { opacity: 0.75; transform: scale(1.05); }
 
 /* Table */
 table {
@@ -267,6 +269,10 @@ tbody tr:hover { background: var(--surface-hover); }
   padding-top: var(--space-4);
   border-top: 1px solid var(--border);
 }
+.tab-nav {
+  display: flex;
+  gap: var(--space-3);
+}
 .tab-nav-btn {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -281,7 +287,9 @@ tbody tr:hover { background: var(--surface-hover); }
   transition: all 0.15s;
   min-height: 40px;
 }
+.tab-nav-btn.active { background: var(--violet); color: #fff; border-color: var(--violet); font-weight: 600; }
 .tab-nav-btn:hover { background: var(--surface-hover); color: var(--text); border-color: var(--violet); }
+.tab-nav-btn.active:hover { background: var(--violet-dark, var(--violet)); color: #fff; }
 .tab-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .tab-nav-btn:disabled:hover { background: var(--surface); color: var(--text-muted); border-color: var(--border); }
 

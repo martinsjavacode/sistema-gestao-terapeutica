@@ -6,8 +6,7 @@ import Button from '../ui/Button'
 import Input from '../ui/Input'
 import Select from '../ui/Select'
 import { toast } from '../../lib/toast'
-import { confirm } from '../../lib/confirm'
-import { Plus, Trash2, UserPlus, User, Building2, Save } from 'lucide-react'
+import { Plus, UserPlus, User, Building2, Save } from 'lucide-react'
 
 interface UserRow {
   id: string
@@ -171,8 +170,7 @@ function ClinicTab() {
   return (
     <>
       <ClinicInfoSection />
-      <UsersSection />
-      <InvitesSection />
+      <TeamSection />
     </>
   )
 }
@@ -331,14 +329,14 @@ function ClinicInfoSection() {
 }
 
 // ============================================================
-// Seção: Usuários do consultório
+// Seção: Equipe (colaboradores na tabela users)
 // ============================================================
 
-function UsersSection() {
+function TeamSection() {
   const qc = useQueryClient()
   const [adding, setAdding] = useState(false)
-  const [newEmail, setNewEmail] = useState('')
   const [newName, setNewName] = useState('')
+  const [newEmail, setNewEmail] = useState('')
   const [newRoleId, setNewRoleId] = useState('')
 
   const { data: users = [] } = useQuery<UserRow[]>({
@@ -357,6 +355,8 @@ function UsersSection() {
     },
   })
 
+  const getRoleName = (roleId: string) => roles.find(r => r.id === roleId)?.name ?? '—'
+
   const addUser = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from('users').insert({
@@ -369,28 +369,31 @@ function UsersSection() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['settings-users'] })
-      toast('Usuário adicionado')
+      toast('Colaborador adicionado')
       setAdding(false)
-      setNewEmail('')
       setNewName('')
+      setNewEmail('')
       setNewRoleId('')
     },
     onError: (err: Error) => toast(err.message || 'Erro ao adicionar', 'error'),
   })
 
-  const removeUser = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('users').delete().eq('id', id)
+  const toggleUser = useMutation({
+    mutationFn: async ({ id, activated }: { id: string; activated: boolean }) => {
+      const { error } = await supabase.from('users').update({ activated: !activated }).eq('id', id)
       if (error) throw error
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['settings-users'] })
-      toast('Usuário removido')
+      toast('Status atualizado')
     },
-    onError: () => toast('Erro ao remover', 'error'),
+    onError: () => toast('Erro ao atualizar status', 'error'),
   })
 
-  const getRoleName = (roleId: string) => roles.find(r => r.id === roleId)?.name ?? '—'
+  const STATUS_BADGE: Record<string, { label: string; className: string }> = {
+    active: { label: 'Ativo', className: 'badge badge-success' },
+    inactive: { label: 'Inativo', className: 'badge badge-danger' },
+  }
 
   return (
     <div className="card" style={{ marginTop: 'var(--space-4)' }}>
@@ -399,203 +402,62 @@ function UsersSection() {
         <Button onClick={() => setAdding(true)}><UserPlus size={16} /> Adicionar</Button>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Nome</th>
-            <th>Role</th>
-            <th>Ativo</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map(u => (
-            <tr key={u.id}>
-              <td>{u.email}</td>
-              <td>{u.display_name}</td>
-              <td>{getRoleName(u.role_id)}</td>
-              <td>{u.activated ? '✓' : '—'}</td>
-              <td className="actions">
-                <Button
-                  variant="icon"
-                  onClick={async () => { if (await confirm(`Remover ${u.email}?`)) removeUser.mutate(u.id) }}
-                  aria-label="Remover usuário"
-                >
-                  <Trash2 size={14} />
-                </Button>
-              </td>
+      {users.length > 0 ? (
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
             </tr>
-          ))}
-          {users.length === 0 && (
-            <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 'var(--space-6)' }}>Nenhum usuário cadastrado</td></tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {users.map(u => {
+              const status = u.activated ? 'active' : 'inactive'
+              return (
+                <tr key={u.id}>
+                  <td>{u.display_name}</td>
+                  <td>{u.email}</td>
+                  <td>{getRoleName(u.role_id)}</td>
+                  <td><button className={`${STATUS_BADGE[status].className} badge-toggle`} onClick={() => toggleUser.mutate({ id: u.id, activated: u.activated })} title={u.activated ? 'Clique para desativar' : 'Clique para ativar'}>{STATUS_BADGE[status].label}</button></td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      ) : (
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: 'var(--space-4)' }}>
+          Nenhum colaborador cadastrado.
+        </p>
+      )}
 
       {adding && (
-        <div className="modal-overlay" onClick={() => setAdding(false)} role="dialog" aria-modal="true" aria-label="Adicionar usuário">
+        <div className="modal-overlay" onClick={() => setAdding(false)} role="dialog" aria-modal="true" aria-label="Adicionar colaborador">
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Adicionar Usuário</h2>
+            <h2>Adicionar Colaborador</h2>
             <div className="form-grid">
-              <Input label="Email" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} required />
-              <Input label="Nome" value={newName} onChange={e => setNewName(e.target.value)} required />
+              <Input label="Nome" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nome do colaborador" required />
+              <Input label="Email" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="email@exemplo.com" required />
               <Select
                 label="Role"
                 value={newRoleId}
                 onChange={setNewRoleId}
                 placeholder="Selecione a role"
-                options={roles.map(r => ({ value: r.id, label: r.name }))}
+                options={roles.filter(r => r.name !== 'client').map(r => ({ value: r.id, label: r.name }))}
               />
             </div>
-            <div className="form-actions">
-              <Button variant="tab" onClick={() => setAdding(false)}>Cancelar</Button>
-              <Button onClick={() => addUser.mutate()} disabled={!newEmail.trim() || !newName.trim() || !newRoleId}>
-                <Plus size={16} /> Adicionar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ============================================================
-// Seção: Convites pendentes
-// ============================================================
-
-function InvitesSection() {
-  const qc = useQueryClient()
-  const [inviting, setInviting] = useState(false)
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRoleId, setInviteRoleId] = useState('')
-
-  interface InviteRow {
-    id: string
-    email: string
-    role_id: string
-    accepted_at: string | null
-    created_at: string
-  }
-
-  const { data: invites = [] } = useQuery<InviteRow[]>({
-    queryKey: ['settings-invites'],
-    queryFn: async () => {
-      const { data } = await supabase.from('invites').select('id, email, role_id, accepted_at, created_at').order('created_at', { ascending: false })
-      return data ?? []
-    },
-  })
-
-  const { data: roles = [] } = useQuery<RoleRow[]>({
-    queryKey: ['roles'],
-    queryFn: async () => {
-      const { data } = await supabase.from('roles').select('id, name, description')
-      return data ?? []
-    },
-  })
-
-  const sendInvite = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from('invites').insert({
-        email: inviteEmail.trim().toLowerCase(),
-        role_id: inviteRoleId,
-        tenant_id: (await supabase.rpc('current_tenant_id')).data,
-        invited_by: (await supabase.from('users').select('id').eq('email', (await supabase.auth.getSession()).data.session?.user.email ?? '').single()).data?.id,
-      })
-      if (error) throw error
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['settings-invites'] })
-      toast('Convite enviado')
-      setInviting(false)
-      setInviteEmail('')
-      setInviteRoleId('')
-    },
-    onError: (err: Error) => {
-      const msg = err.message.includes('duplicate') ? 'Já existe um convite para este email' : err.message
-      toast(msg, 'error')
-    },
-  })
-
-  const revokeInvite = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('invites').delete().eq('id', id)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['settings-invites'] })
-      toast('Convite revogado')
-    },
-    onError: () => toast('Erro ao revogar', 'error'),
-  })
-
-  const getRoleName = (roleId: string) => roles.find(r => r.id === roleId)?.name ?? '—'
-  const pendingInvites = invites.filter(i => !i.accepted_at)
-
-  return (
-    <div className="card" style={{ marginTop: 'var(--space-4)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-        <h2 style={{ fontSize: '1.1rem' }}>Convites pendentes</h2>
-        <Button onClick={() => setInviting(true)}><Plus size={16} /> Convidar</Button>
-      </div>
-
-      {pendingInvites.length > 0 ? (
-        <table>
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Enviado em</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pendingInvites.map(i => (
-              <tr key={i.id}>
-                <td>{i.email}</td>
-                <td>{getRoleName(i.role_id)}</td>
-                <td>{new Date(i.created_at).toLocaleDateString('pt-BR')}</td>
-                <td className="actions">
-                  <Button
-                    variant="icon"
-                    onClick={async () => { if (await confirm(`Revogar convite de ${i.email}?`)) revokeInvite.mutate(i.id) }}
-                    aria-label="Revogar convite"
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: 'var(--space-4)' }}>
-          Nenhum convite pendente. Convide colaboradores para trabalhar com você.
-        </p>
-      )}
-
-      {inviting && (
-        <div className="modal-overlay" onClick={() => setInviting(false)} role="dialog" aria-modal="true" aria-label="Convidar colaborador">
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Convidar Colaborador</h2>
-            <div className="form-grid">
-              <Input label="Email" type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} required />
-              <Select
-                label="Role"
-                value={inviteRoleId}
-                onChange={setInviteRoleId}
-                placeholder="Selecione a role"
-                options={roles.map(r => ({ value: r.id, label: r.name }))}
-              />
+            <div style={{ marginTop: 'var(--space-4)', padding: 'var(--space-3)', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              <strong style={{ color: 'var(--text)', display: 'block', marginBottom: 'var(--space-2)' }}>O que cada role pode fazer:</strong>
+              <p style={{ margin: 0 }}><strong>Admin</strong> — Acesso total: gerencia clientes, atendimentos, relatórios, equipe e configurações.</p>
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>
-              O colaborador receberá acesso ao criar uma conta com este email.
+              O colaborador poderá acessar o sistema ao criar uma conta com este email.
             </p>
             <div className="form-actions">
-              <Button variant="tab" onClick={() => setInviting(false)}>Cancelar</Button>
-              <Button onClick={() => sendInvite.mutate()} disabled={!inviteEmail.trim() || !inviteRoleId}>
-                <Plus size={16} /> Enviar convite
+              <Button variant="tab" onClick={() => setAdding(false)}>Cancelar</Button>
+              <Button onClick={() => addUser.mutate()} disabled={!newName.trim() || !newEmail.trim() || !newRoleId}>
+                <Plus size={16} /> Adicionar
               </Button>
             </div>
           </div>

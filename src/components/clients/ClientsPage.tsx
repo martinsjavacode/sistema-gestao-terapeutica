@@ -84,18 +84,32 @@ export default function ClientsPage() {
       <table>
         <thead>
           <tr>
-            <th>Nome</th>
-            <th>WhatsApp</th>
-            <th>Cidade</th>
+            <th>Cliente</th>
+            <th>Contato</th>
             <th>Ações</th>
           </tr>
         </thead>
         <tbody>
           {paginated.map(c => (
             <tr key={c.id} onClick={() => navigate(`/clients?id=${c.id}`)} style={{ cursor: 'pointer' }}>
-              <td>{c.name}</td>
-              <td>{c.whatsapp ?? '—'}</td>
-              <td>{c.city ?? '—'}</td>
+              <td>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--violet)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 600, color: 'white', flexShrink: 0 }}>
+                    {c.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: 500, display: 'block' }}>{c.name}</span>
+                    {c.city && <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{c.city}</span>}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  {c.whatsapp && <span style={{ fontSize: '0.85rem' }}>{c.whatsapp}</span>}
+                  {c.email && <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{c.email}</span>}
+                  {!c.whatsapp && !c.email && <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                </div>
+              </td>
               <td className="actions" onClick={e => e.stopPropagation()}>
                 <Button variant="icon" onClick={() => navigate(`/clients?id=${c.id}`)} aria-label="Ver detalhes" title="Ver detalhes"><Eye size={14} /></Button>
                 <Button variant="icon" onClick={() => setEditing(c)} aria-label="Editar" title="Editar"><Pencil size={14} /></Button>

@@ -64,19 +64,19 @@ Baseado na análise dos sistemas **SimplePractice** e **Practice Better**.
 
 ---
 
-## Fase 5 — Snippets & Preenchimento Rápido
+## ~~Fase 5 — Snippets & Preenchimento Rápido~~ ✅ (2026-07-18)
 
 > Reduzir tempo de documentação com trechos reutilizáveis.
 
-- [ ] Sistema de snippets: trechos de texto salvos por categoria
-  - [ ] Bloqueios comuns (ex: "Bloqueio emocional de origem familiar, intensidade 8/10")
-  - [ ] Técnicas frequentes (ex: "Aplicação de Reiki no chakra cardíaco por 15min")
-  - [ ] Recomendações padrão (ex: "Meditação guiada diária por 10min durante 7 dias")
-  - [ ] Emoções recorrentes
-  - [ ] Crenças limitantes comuns
-- [ ] Atalho de inserção rápida nos campos de texto (digitar `/` para buscar snippet)
-- [ ] Autocomplete com sugestões baseadas no histórico
-- [ ] Permitir criar snippet a partir de texto já digitado ("Salvar como snippet")
+- [x] Sistema de snippets: trechos de texto salvos por categoria
+  - [x] Bloqueios comuns (ex: "Bloqueio emocional de origem familiar, intensidade 8/10")
+  - [x] Técnicas frequentes (ex: "Aplicação de Reiki no chakra cardíaco por 15min")
+  - [x] Recomendações padrão (ex: "Meditação guiada diária por 10min durante 7 dias")
+  - [x] Emoções recorrentes
+  - [x] Crenças limitantes comuns
+- [x] Atalho de inserção rápida nos campos de texto (digitar `/` para buscar snippet)
+- [x] Autocomplete com sugestões baseadas no histórico
+- [x] Permitir criar snippet a partir de texto já digitado ("Salvar como snippet")
 
 ---
 
@@ -106,21 +106,21 @@ Baseado na análise dos sistemas **SimplePractice** e **Practice Better**.
 
 ---
 
-## Fase 8 — Dashboard Avançado
+## ~~Fase 8 — Dashboard Avançado~~ ✅ (2026-07-18)
 
 > Transformar o Dashboard em centro de decisão.
 
-- [ ] Cards de resumo:
-  - [ ] Total de clientes ativos
-  - [ ] Atendimentos este mês (com comparativo ao mês anterior)
-  - [ ] Clientes que precisam de retorno (sem sessão há 30+ dias)
-  - [ ] Atendimentos em rascunho (incompletos)
-- [ ] Lista "Próximas ações" (atendimentos incompletos, clientes sem retorno)
-- [ ] Gráficos:
-  - [ ] Atendimentos por semana/mês (linha)
-  - [ ] Distribuição de bloqueios por tipo (pizza/donut)
-  - [ ] Chakras mais frequentemente desequilibrados (barra)
-- [ ] Quick actions: "Novo Cliente", "Novo Atendimento", "Ver Rascunhos"
+- [x] Cards de resumo:
+  - [x] Total de clientes ativos
+  - [x] Atendimentos este mês (com comparativo ao mês anterior)
+  - [x] Clientes que precisam de retorno (sem sessão há 30+ dias)
+  - [x] Atendimentos em rascunho (incompletos)
+- [x] Lista "Próximas ações" (atendimentos incompletos, clientes sem retorno)
+- [x] Gráficos:
+  - [x] Atendimentos por semana/mês (linha)
+  - [x] Distribuição de bloqueios por tipo (pizza/donut)
+  - [x] Chakras mais frequentemente desequilibrados (barra)
+- [x] Quick actions: "Novo Cliente", "Novo Atendimento", "Ver Rascunhos"
 
 ---
 
@@ -175,4 +175,4 @@ Baseado na análise dos sistemas **SimplePractice** e **Practice Better**.
 
 ---
 
-*Última atualização: 2026-07-18 13:00*
+*Última atualização: 2026-07-18 16:37*

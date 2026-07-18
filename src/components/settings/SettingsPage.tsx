@@ -5,8 +5,9 @@ import { useTenant } from '../../hooks'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 import Select from '../ui/Select'
+import SnippetsManager from '../ui/SnippetsManager'
 import { toast } from '../../lib/toast'
-import { Plus, UserPlus, User, Building2, Save } from 'lucide-react'
+import { Plus, UserPlus, User, Building2, Save, Bookmark } from 'lucide-react'
 
 interface UserRow {
   id: string
@@ -22,7 +23,7 @@ interface RoleRow {
   description: string | null
 }
 
-type SettingsTab = 'account' | 'clinic'
+type SettingsTab = 'account' | 'clinic' | 'snippets'
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<SettingsTab>('clinic')
@@ -46,10 +47,17 @@ export default function SettingsPage() {
         >
           <Building2 size={14} /> Consultório
         </button>
+        <button
+          className={`tab-nav-btn ${tab === 'snippets' ? 'active' : ''}`}
+          onClick={() => setTab('snippets')}
+        >
+          <Bookmark size={14} /> Snippets
+        </button>
       </div>
 
       {tab === 'account' && <AccountTab />}
       {tab === 'clinic' && <ClinicTab />}
+      {tab === 'snippets' && <SnippetsManager />}
     </div>
   )
 }

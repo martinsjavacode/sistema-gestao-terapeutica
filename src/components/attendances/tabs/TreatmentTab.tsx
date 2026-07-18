@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchTreatment, upsertTreatment } from '../../../services/attendances'
+import { insertSnippet } from '../../../services/snippets'
 import { toast } from '../../../lib/toast'
 import SaveStatus from '../../ui/SaveStatus'
+import TextAreaWithSnippets from '../../ui/TextAreaWithSnippets'
 
 export default function TreatmentTab({ attendanceId }: { attendanceId: string }) {
   const qc = useQueryClient()
@@ -38,16 +40,34 @@ export default function TreatmentTab({ attendanceId }: { attendanceId: string })
     return () => clearTimeout(timer)
   }, [recommendations, saveStatus, attendanceId, qc])
 
-  const change = () => setSaveStatus('saving')
+  const handleChange = useCallback((value: string) => {
+    setRecommendations(value)
+    setSaveStatus('saving')
+  }, [])
+
+  const handleSaveSnippet = useCallback(async (text: string) => {
+    const title = text.slice(0, 50).trim()
+    const { error } = await insertSnippet({ title, content: text, category: 'recomendacoes' })
+    if (error) toast('Erro ao salvar snippet', 'error')
+    else {
+      toast('Salvo como snippet!')
+      qc.invalidateQueries({ queryKey: ['snippets'] })
+    }
+  }, [qc])
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-3)' }}>
         <SaveStatus status={saveStatus} />
       </div>
-      <label className="form-label" style={{ margin: 0 }}>
-        <textarea value={recommendations} onChange={e => { setRecommendations(e.target.value); change() }} rows={8} placeholder="Recomendações para o cliente..." />
-      </label>
+      <TextAreaWithSnippets
+        value={recommendations}
+        onChange={handleChange}
+        placeholder="Recomendações para o cliente... (digite / para snippets)"
+        rows={8}
+        category="recomendacoes"
+        onSaveSnippet={handleSaveSnippet}
+      />
     </div>
   )
 }

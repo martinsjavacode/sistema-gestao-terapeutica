@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { fetchAttendance, updateAttendance, fetchEnergyAssessments, fetchChakras, fetchAuraField, fetchLifeAreas, fetchEmotions, fetchLimitingBeliefs, fetchBlockages, fetchEnergyDivorces, fetchTreatment } from '../../services/attendances'
+import { fetchAttendance, updateAttendance, fetchEnergyAssessments, fetchChakras, fetchAuraField, fetchLifeAreas, fetchEmotions, fetchLimitingBeliefs, fetchEnergyDivorces, fetchTreatment } from '../../services/attendances'
 import { TableSkeleton } from '../ui/Skeleton'
 import Button from '../ui/Button'
 import { ArrowLeft, ChevronRight, ChevronDown, Check, Youtube, StickyNote } from 'lucide-react'
@@ -14,7 +14,6 @@ import AuraFieldTab from './tabs/AuraFieldTab'
 import LifeAreasTab from './tabs/LifeAreasTab'
 import EmotionsTab from './tabs/EmotionsTab'
 import BeliefsTab from './tabs/BeliefsTab'
-import BlockagesTab from './tabs/BlockagesTab'
 import DivorcesTab from './tabs/DivorcesTab'
 import TreatmentTab from './tabs/TreatmentTab'
 import ReportTab from './tabs/ReportTab'
@@ -77,10 +76,6 @@ export default function AttendanceDetail({ attendanceId }: Props) {
     queryKey: ['beliefs', attendanceId],
     queryFn: async () => { const { data } = await fetchLimitingBeliefs(attendanceId); return data },
   })
-  const { data: blockages = [] } = useQuery({
-    queryKey: ['blockages', attendanceId],
-    queryFn: async () => { const { data } = await fetchBlockages(attendanceId); return data },
-  })
   const { data: divorces = [] } = useQuery({
     queryKey: ['divorces', attendanceId],
     queryFn: async () => { const { data } = await fetchEnergyDivorces(attendanceId); return data },
@@ -92,7 +87,7 @@ export default function AttendanceDetail({ attendanceId }: Props) {
 
   const completedSections = new Set(attendance?.completed_sections ?? [])
 
-  const hasAnyData = assessments.length > 0 || chakras.length > 0 || !!(aura?.state || aura?.predominant_color) || lifeAreas.length > 0 || emotions.length > 0 || beliefs.length > 0 || blockages.length > 0 || divorces.length > 0 || !!(treatment?.techniques || treatment?.recommendations)
+  const hasAnyData = assessments.length > 0 || chakras.length > 0 || !!(aura?.state || aura?.predominant_color) || lifeAreas.length > 0 || emotions.length > 0 || beliefs.length > 0 || divorces.length > 0 || !!(treatment?.techniques || treatment?.recommendations)
 
   const filledSections: Record<SectionKey, boolean> = {
     assessment: assessments.length > 0 || completedSections.has('assessment'),
@@ -101,7 +96,6 @@ export default function AttendanceDetail({ attendanceId }: Props) {
     'life-areas': lifeAreas.length > 0 || completedSections.has('life-areas'),
     emotions: emotions.length > 0 || completedSections.has('emotions'),
     beliefs: beliefs.length > 0 || completedSections.has('beliefs'),
-    blockages: blockages.length > 0 || completedSections.has('blockages'),
     divorces: divorces.length > 0 || completedSections.has('divorces'),
     treatment: !!(treatment?.techniques || treatment?.recommendations) || completedSections.has('treatment'),
     report: hasAnyData || completedSections.has('report'),
@@ -114,8 +108,7 @@ export default function AttendanceDetail({ attendanceId }: Props) {
     'life-areas': lifeAreas.length > 0 ? `${lifeAreas.length} áreas` : 'Nenhuma área',
     emotions: emotions.length > 0 ? `${emotions.length} frequências` : 'Nenhuma frequência',
     beliefs: beliefs.length > 0 ? `${beliefs.length} crenças` : 'Nenhuma crença',
-    blockages: blockages.length > 0 ? `${blockages.length} bloqueios` : 'Nenhum bloqueio',
-    divorces: divorces.length > 0 ? `${divorces.length} divórcios` : 'Nenhum divórcio',
+    divorces: divorces.length > 0 ? `${divorces.length} cortes` : 'Nenhum corte',
     treatment: treatment?.techniques || treatment?.recommendations ? 'Preenchido' : 'Não preenchido',
     report: attendance?.report_content ? 'Preenchido' : 'Não preenchido',
   }
@@ -156,7 +149,7 @@ export default function AttendanceDetail({ attendanceId }: Props) {
       </div>
 
       {/* YouTube + Observação interna */}
-      <AttendanceExtraFields attendanceId={attendanceId} youtubeUrl={attendance.youtube_url} internalNotes={attendance.internal_notes} />
+      <AttendanceExtraFields attendanceId={attendanceId} youtubeUrl={attendance.youtube_url} internalNotes={attendance.internal_notes} objective={attendance.objective} />
 
       <div className="accordion">
         {sections.map(section => {
@@ -196,7 +189,6 @@ export default function AttendanceDetail({ attendanceId }: Props) {
                   {section.key === 'life-areas' && <LifeAreasTab attendanceId={attendanceId} />}
                   {section.key === 'emotions' && <EmotionsTab attendanceId={attendanceId} />}
                   {section.key === 'beliefs' && <BeliefsTab attendanceId={attendanceId} />}
-                  {section.key === 'blockages' && <BlockagesTab attendanceId={attendanceId} />}
                   {section.key === 'divorces' && <DivorcesTab attendanceId={attendanceId} />}
                   {section.key === 'treatment' && <TreatmentTab attendanceId={attendanceId} />}
                   {section.key === 'report' && <ReportTab attendanceId={attendanceId} />}
@@ -220,22 +212,25 @@ export default function AttendanceDetail({ attendanceId }: Props) {
 
 // ========== Campos extras: YouTube + Observação Interna ==========
 
-function AttendanceExtraFields({ attendanceId, youtubeUrl, internalNotes }: {
+function AttendanceExtraFields({ attendanceId, youtubeUrl, internalNotes, objective }: {
   attendanceId: string
   youtubeUrl: string | null
   internalNotes: string | null
+  objective: string | null
 }) {
   const qc = useQueryClient()
   const [youtube, setYoutube] = useState(youtubeUrl ?? '')
   const [notes, setNotes] = useState(internalNotes ?? '')
+  const [obj, setObj] = useState(objective ?? '')
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
     setYoutube(youtubeUrl ?? '')
     setNotes(internalNotes ?? '')
-  }, [youtubeUrl, internalNotes])
+    setObj(objective ?? '')
+  }, [youtubeUrl, internalNotes, objective])
 
-  const save = useCallback((field: 'youtube_url' | 'internal_notes', value: string) => {
+  const save = useCallback((field: 'youtube_url' | 'internal_notes' | 'objective', value: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
       await updateAttendance(attendanceId, { [field]: value || null })
@@ -245,6 +240,18 @@ function AttendanceExtraFields({ attendanceId, youtubeUrl, internalNotes }: {
 
   return (
     <div className="card" style={{ padding: 'var(--space-4)', marginBottom: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      <label className="form-label" style={{ margin: 0 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          🎯 Objetivo da sessão
+        </span>
+        <input
+          type="text"
+          placeholder="Ex: Limpeza energética, alinhamento de chakras..."
+          value={obj}
+          onChange={e => { setObj(e.target.value); save('objective', e.target.value) }}
+          style={{ marginTop: 'var(--space-2)' }}
+        />
+      </label>
       <label className="form-label" style={{ margin: 0 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           <Youtube size={14} color="var(--red)" /> Link do YouTube

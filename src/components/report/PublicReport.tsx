@@ -301,21 +301,11 @@ export default function PublicReport() {
       {beliefs.length > 0 && (
         <CollapsibleSection icon="⟡" title="Crenças Limitantes">
           <p className="pr-intro">Crenças limitantes são pensamentos ou convicções inconscientes que restringem seu potencial. Geralmente formadas na infância ou em momentos de trauma, elas criam padrões repetitivos que bloqueiam sua evolução. Identificá-las é o primeiro passo para reprogramá-las.</p>
-          <ul className="pr-list">{beliefs.map((b, i) => <li key={i}>{b.description}</li>)}</ul>
-        </CollapsibleSection>
-      )}
-
-      {/* Bloqueios */}
-      {blockages.length > 0 && (
-        <CollapsibleSection icon="△" title="Bloqueios">
-          <p className="pr-intro">Bloqueios energéticos são obstruções no fluxo de energia vital do corpo. Podem ter origem emocional, espiritual ou kármica, e sua intensidade indica o grau de impacto na sua vida. O tratamento visa dissolver essas obstruções e restaurar o fluxo natural.</p>
-          <div className="pr-list">
-            {blockages.map((b, i) => (
-              <div key={i} className="pr-list-item">
-                <strong>{b.type}</strong>
-                {b.origin && <span> • Origem: {b.origin}</span>}
-                {b.intensity && <span> • Intensidade: {b.intensity}</span>}
-                {b.notes && <p className="pr-notes">{b.notes}</p>}
+          <div className="pr-beliefs-grid">
+            {beliefs.map((b, i) => (
+              <div key={i} className="pr-belief-card">
+                <span className="pr-belief-icon">🔗</span>
+                <span className="pr-belief-text">{b.description}</span>
               </div>
             ))}
           </div>
@@ -324,17 +314,34 @@ export default function PublicReport() {
 
       {/* Divórcios */}
       {divorces.length > 0 && (
-        <CollapsibleSection icon="⫸" title="Divórcios Energéticos">
-          <p className="pr-intro">Um divórcio energético é a separação ou desconexão de uma energia, vínculo ou padrão que não serve mais ao seu propósito de vida. A porcentagem indica o grau de desconexão necessário. Esse processo libera energia que estava presa em vínculos nocivos.</p>
-          <div className="pr-list">
-            {divorces.map((d, i) => (
-              <div key={i} className="pr-list-item">
-                <strong>{d.what}</strong>
-                {d.reason && <span> • Motivo: {d.reason}</span>}
-                {d.percentage !== null && <span> • {d.percentage}%</span>}
-                {d.result && <span> • Resultado: {d.result}</span>}
-              </div>
-            ))}
+        <CollapsibleSection icon="⫸" title="Cortes Realizados">
+          <p className="pr-intro">Um corte energético é a separação ou desconexão de uma energia, vínculo ou padrão que não serve mais ao seu propósito de vida. A porcentagem indica o grau de desconexão realizado. Esse processo libera energia que estava presa em vínculos nocivos.</p>
+          <div className="pr-chakra-grid">
+            {divorces.map((d, i) => {
+              const pct = d.percentage ?? 0
+              return (
+                <div key={i} className="pr-chakra-card">
+                  <div className="pr-chakra-bar-header">
+                    <span className="pr-chakra-name">{d.what}</span>
+                    {d.percentage !== null && <span className="pr-chakra-pct">{pct}%</span>}
+                  </div>
+                  {d.percentage !== null && (
+                    <div className="pr-chakra-bar">
+                      <div className="pr-chakra-bar-fill" style={{ width: `${pct}%`, background: '#38bdf8' }} />
+                    </div>
+                  )}
+                  {d.reason && (
+                    <div className="pr-chakra-meta">
+                      <span style={{ color: '#94a3b8', fontSize: '0.88rem' }}>Motivo: {d.reason}</span>
+                    </div>
+                  )}
+                  {d.result && (
+                    <div className="pr-chakra-desc">Resultado: {d.result}</div>
+                  )}
+                  {d.notes && <div className="pr-chakra-notes">{d.notes}</div>}
+                </div>
+              )
+            })}
           </div>
         </CollapsibleSection>
       )}

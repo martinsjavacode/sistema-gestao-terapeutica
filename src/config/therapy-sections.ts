@@ -16,7 +16,6 @@ export type SectionKey =
   | 'life-areas'
   | 'emotions'
   | 'beliefs'
-  | 'blockages'
   | 'divorces'
   | 'treatment'
   | 'report'
@@ -34,9 +33,8 @@ export const ALL_SECTIONS: Record<SectionKey, string> = {
   'life-areas': 'Áreas da Vida',
   emotions: 'Frequências (Hz)',
   beliefs: 'Crenças Limitantes',
-  blockages: 'Bloqueios',
-  divorces: 'Divórcios Energéticos',
-  treatment: 'Tratamento',
+  divorces: 'Cortes Realizados',
+  treatment: 'Recomendações',
   report: 'Relatório',
 }
 
@@ -55,7 +53,6 @@ export const THERAPY_SECTIONS: Record<TherapyType, SectionKey[]> = {
     'chakras',
     'emotions',
     'beliefs',
-    'blockages',
     'divorces',
     'treatment',
     'report',
@@ -65,7 +62,7 @@ export const THERAPY_SECTIONS: Record<TherapyType, SectionKey[]> = {
   numerologia: ['assessment', 'treatment', 'report'],
   tarot: ['assessment', 'treatment', 'report'],
   reiki: ['chakras', 'aura', 'treatment', 'report'],
-  outro: ['assessment', 'chakras', 'aura', 'life-areas', 'emotions', 'beliefs', 'blockages', 'divorces', 'treatment', 'report'],
+  outro: ['assessment', 'chakras', 'aura', 'life-areas', 'emotions', 'beliefs', 'divorces', 'treatment', 'report'],
 }
 
 /**

@@ -137,16 +137,16 @@ Baseado na análise dos sistemas **SimplePractice** e **Practice Better**.
 
 ---
 
-## Fase 10 — Polish & Detalhes
+## ~~Fase 10 — Polish & Detalhes~~ ✅ (2026-07-18)
 
 > Pequenos detalhes que elevam a experiência.
 
-- [ ] Animações sutis em transições de página (fade/slide)
-- [ ] Feedback tátil: toast confirmando ações (salvar, excluir, duplicar)
-- [ ] Atalhos de teclado para power users (Ctrl+N = novo atendimento, etc.)
-- [ ] Tema escuro (dark mode)
-- [ ] Onboarding guiado para primeiro acesso (tooltip tour)
-- [ ] Página de "O que há de novo" para comunicar atualizações
+- [x] Animações sutis em transições de página (fade/slide)
+- [x] Feedback tátil: toast confirmando ações (salvar, excluir, duplicar)
+- [x] Atalhos de teclado para power users (Ctrl+N = novo atendimento, etc.)
+- [x] Tema escuro (dark mode)
+- [x] Onboarding guiado para primeiro acesso (tooltip tour)
+- [x] Página de "O que há de novo" para comunicar atualizações
 
 ---
 
@@ -175,4 +175,4 @@ Baseado na análise dos sistemas **SimplePractice** e **Practice Better**.
 
 ---
 
-*Última atualização: 2026-07-18 16:50*
+*Última atualização: 2026-07-18 17:15*

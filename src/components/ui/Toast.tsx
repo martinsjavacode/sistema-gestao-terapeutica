@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 import { subscribe, type ToastMessage } from '../../lib/toast'
-import { Check, X } from 'lucide-react'
+import { Check, X, Info, AlertTriangle } from 'lucide-react'
 import './Toast.css'
+
+const ICONS = {
+  success: <Check size={14} />,
+  error: <X size={14} />,
+  info: <Info size={14} />,
+  warning: <AlertTriangle size={14} />,
+}
 
 export default function ToastContainer() {
   const [messages, setMessages] = useState<ToastMessage[]>([])
@@ -20,7 +27,7 @@ export default function ToastContainer() {
     <div className="toast-container" role="status" aria-live="polite">
       {messages.map(m => (
         <div key={m.id} className={`toast toast-${m.type}`}>
-          {m.type === 'error' ? <X size={14} /> : <Check size={14} />} {m.text}
+          {ICONS[m.type]} <span>{m.text}</span>
         </div>
       ))}
     </div>

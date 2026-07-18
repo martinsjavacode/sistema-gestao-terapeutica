@@ -2,9 +2,12 @@ import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth, TenantProvider } from './hooks'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import Auth from './components/auth/Auth'
 import Sidebar from './components/ui/Sidebar'
 import Breadcrumbs from './components/ui/Breadcrumbs'
+import OnboardingTour from './components/ui/OnboardingTour'
+import WhatsNewModal, { useWhatsNew } from './components/ui/WhatsNew'
 import ToastContainer from './components/ui/Toast'
 import ConfirmDialog from './components/ui/ConfirmDialog'
 import { TableSkeleton } from './components/ui/Skeleton'
@@ -37,6 +40,8 @@ function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('sgt-sidebar-collapsed') === 'true'
   })
+  const { showWhatsNew, dismissWhatsNew } = useWhatsNew()
+  useKeyboardShortcuts()
 
   const handleToggleCollapse = () => {
     setSidebarCollapsed(prev => {
@@ -73,6 +78,8 @@ function AppLayout() {
         </main>
         <ToastContainer />
         <ConfirmDialog />
+        <OnboardingTour />
+        {showWhatsNew && <WhatsNewModal onClose={dismissWhatsNew} />}
       </div>
     </TenantProvider>
   )

@@ -20,15 +20,14 @@ jobs:
           cache: npm
       - run: npm ci
 
-      # Commitlint - valida mensagens de commit
+      # Commitlint - valida apenas commits do push atual
       - name: Commitlint
         run: |
-          git fetch origin develop --quiet 2>/dev/null || true
-          BASE=$(git merge-base origin/develop HEAD 2>/dev/null || echo "")
-          if [ -n "$BASE" ]; then
-            npx commitlint --from "$BASE" --to HEAD
-          else
+          FROM="${{ github.event.before }}"
+          if [ "$FROM" = "0000000000000000000000000000000000000000" ]; then
             npx commitlint --last
+          else
+            npx commitlint --from "$FROM" --to HEAD
           fi
 
       # TypeScript check

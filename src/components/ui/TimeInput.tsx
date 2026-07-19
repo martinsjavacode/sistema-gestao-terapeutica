@@ -21,9 +21,11 @@ function isValidTime(time: string): boolean {
 export default function TimeInput({ value, onChange, label }: Props) {
   const [display, setDisplay] = useState(value)
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setDisplay(value)
   }, [value])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleChange = (raw: string) => {
     const masked = maskTime(raw)

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { fetchClients } from '../../services/clients'
-import { fetchAttendances, fetchBlockages } from '../../services/attendances'
+import { fetchAttendances } from '../../services/attendances'
 import { DashboardSkeleton } from '../ui/Skeleton'
 import EmptyState from '../ui/EmptyState'
 import Button from '../ui/Button'
@@ -11,7 +11,7 @@ import {
   Clock, FileText, AlertCircle, UserPlus
 } from 'lucide-react'
 import { THERAPY_LABELS } from '../../types/database'
-import type { TherapyType } from '../../types/database'
+import type { TherapyType, Attendance } from '../../types/database'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -58,6 +58,8 @@ export default function Dashboard() {
   })
 
   const hour = new Date().getHours()
+  // eslint-disable-next-line react-hooks/purity -- timestamp needed for days-ago display
+  const now = Date.now()
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
 
   // Month comparison
@@ -188,7 +190,7 @@ export default function Dashboard() {
 
                 {/* Clientes que precisam retorno */}
                 {needsReturn.slice(0, 3).map(client => {
-                  const days = Math.floor((Date.now() - new Date(client.date + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24))
+                  const days = Math.floor((now - new Date(client.date + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24))
                   return (
                     <div
                       key={client.id}
@@ -285,7 +287,7 @@ export default function Dashboard() {
 
 // ========== Monthly Sparkline ==========
 
-function MonthlySparkline({ attendances }: { attendances: any[] }) {
+function MonthlySparkline({ attendances }: { attendances: Attendance[] }) {
   const weeks = 8
   const now = new Date()
   const weekCounts: number[] = []

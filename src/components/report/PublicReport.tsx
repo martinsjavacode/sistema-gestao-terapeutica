@@ -148,7 +148,7 @@ export default function PublicReport() {
   if (error) return <div className="report-error"><p>🔮</p><h2>Relatório não disponível</h2><p>{error}</p></div>
   if (!data) return null
 
-  const { attendance, tenant, assessments, chakras, aura, life_areas, emotions, beliefs, blockages, divorces, treatment } = data
+  const { attendance, tenant, assessments, chakras, aura, life_areas, emotions, beliefs, divorces, treatment } = data
   const fieldLabels: Record<string, string> = { mental: 'Mental', emocional: 'Emocional', espiritual: 'Espiritual', fisico: 'Físico' }
 
   return (

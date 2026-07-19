@@ -32,9 +32,11 @@ function maskDate(value: string): string {
 export default function DateInput({ value, onChange, label, required }: Props) {
   const [display, setDisplay] = useState(isoToBr(value))
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setDisplay(isoToBr(value))
   }, [value])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleChange = (raw: string) => {
     const masked = maskDate(raw)

@@ -16,11 +16,14 @@ export default function TreatmentTab({ attendanceId }: { attendanceId: string })
   const [recommendations, setRecommendations] = useState(treatment?.recommendations ?? '')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
 
+  // Sync local state when server data changes
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (treatment) {
       setRecommendations(treatment.recommendations ?? '')
     }
   }, [treatment])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (saveStatus !== 'saving') return

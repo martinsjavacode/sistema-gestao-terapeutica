@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { fetchClient } from '../../services/clients'
-import { fetchAttendances, fetchEnergyAssessments, fetchChakras } from '../../services/attendances'
+import { fetchAttendances, fetchEnergyAssessments } from '../../services/attendances'
 import { DashboardSkeleton } from '../ui/Skeleton'
 import EmptyState from '../ui/EmptyState'
 import Button from '../ui/Button'
@@ -11,7 +11,7 @@ import {
   Clock, TrendingUp, ClipboardList, Pencil
 } from 'lucide-react'
 import { THERAPY_LABELS } from '../../types/database'
-import type { EnergyFieldType, ChakraName } from '../../types/database'
+import type { EnergyFieldType, Client, Attendance } from '../../types/database'
 import ClientHistory from './ClientHistory'
 
 interface Props {
@@ -149,8 +149,8 @@ export default function ClientHub({ clientId, onEdit }: Props) {
 // ========== Tab Resumo ==========
 
 function HubResumo({ client, attendances, lastDays, onNewAttendance, onViewAttendance }: {
-  client: any
-  attendances: any[]
+  client: Client
+  attendances: Attendance[]
   lastDays: number | null
   onNewAttendance: () => void
   onViewAttendance: (id: string) => void
@@ -249,7 +249,7 @@ const FIELD_LABELS: Record<EnergyFieldType, string> = {
   fisico: 'Físico',
 }
 
-function MiniEvolutionChart({ attendances }: { attendances: any[] }) {
+function MiniEvolutionChart({ attendances }: { attendances: Attendance[] }) {
   const { data: evolution } = useQuery({
     queryKey: ['hub-evolution', attendances.map(a => a.id).join(',')],
     queryFn: async () => {
@@ -321,7 +321,7 @@ function MiniEvolutionChart({ attendances }: { attendances: any[] }) {
 
 // ========== Tab Dados Pessoais ==========
 
-function HubDadosPessoais({ client }: { client: any }) {
+function HubDadosPessoais({ client }: { client: Client }) {
   return (
     <>
       {/* Cards de contato */}

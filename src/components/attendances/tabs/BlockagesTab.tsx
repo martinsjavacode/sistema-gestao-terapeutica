@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchBlockages, insertBlockage, deleteBlockage } from '../../../services/attendances'
 import { toast } from '../../../lib/toast'
 import { confirm } from '../../../lib/confirm'

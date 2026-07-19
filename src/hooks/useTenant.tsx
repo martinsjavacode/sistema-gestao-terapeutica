@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useCallback, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 
 export interface Tenant {
@@ -37,7 +37,7 @@ export function TenantProvider({ children, tenantId }: { children: ReactNode; te
   const [plan, setPlan] = useState<PlanLimits | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchTenant = async () => {
+  const fetchTenant = useCallback(async () => {
     if (!tenantId) {
       setTenant(null)
       setPlan(null)
@@ -73,11 +73,13 @@ export function TenantProvider({ children, tenantId }: { children: ReactNode; te
     }
 
     setLoading(false)
-  }
+  }, [tenantId])
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     fetchTenant()
-  }, [tenantId])
+  }, [fetchTenant])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <TenantContext.Provider value={{ tenant, plan, loading, refresh: fetchTenant }}>
@@ -86,6 +88,7 @@ export function TenantProvider({ children, tenantId }: { children: ReactNode; te
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTenant() {
   return useContext(TenantContext)
 }

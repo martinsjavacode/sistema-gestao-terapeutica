@@ -65,6 +65,7 @@ export default function WhatsNewModal({ onClose }: { onClose: () => void }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useWhatsNew() {
   const [show, setShow] = useState(() => {
     const seen = localStorage.getItem(WHATS_NEW_KEY)

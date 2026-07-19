@@ -15,6 +15,7 @@ export function useAuth() {
     return () => sub.unsubscribe()
   }, [])
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!session) {
       setUser(null)
@@ -34,6 +35,7 @@ export function useAuth() {
     })
     return () => { cancelled = true }
   }, [session])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const { can, loaded: permissionsLoaded } = usePermissions(user?.id ?? null)
 

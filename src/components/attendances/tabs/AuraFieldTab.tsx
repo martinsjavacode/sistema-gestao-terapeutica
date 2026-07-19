@@ -47,6 +47,8 @@ export default function AuraFieldTab({ attendanceId }: { attendanceId: string })
   const [notes, setNotes] = useState(aura?.notes ?? '')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
 
+  // Sync local state when server data changes
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (aura) {
       setSize(aura.size ?? '')
@@ -59,6 +61,7 @@ export default function AuraFieldTab({ attendanceId }: { attendanceId: string })
       setNotes(aura.notes ?? '')
     }
   }, [aura])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (saveStatus !== 'saving') return

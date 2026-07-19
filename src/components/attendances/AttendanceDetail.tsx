@@ -56,14 +56,14 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
     const current = attendance?.completed_sections ?? []
     if (current.includes(key)) return
     const updated = [...current, key]
-    await updateAttendance(attendanceId, { completed_sections: updated } as any)
+    await updateAttendance(attendanceId, { completed_sections: updated })
     qc.invalidateQueries({ queryKey: ['attendance', attendanceId] })
   }, [attendance, attendanceId, qc])
 
   const handleFinalize = useCallback(async () => {
     if (!attendance) return
     const allKeys = getSectionsForTherapy(attendance.therapy_type).map(s => s.key)
-    await updateAttendance(attendanceId, { completed_sections: allKeys } as any)
+    await updateAttendance(attendanceId, { completed_sections: allKeys })
     qc.invalidateQueries({ queryKey: ['attendance', attendanceId] })
     qc.invalidateQueries({ queryKey: ['attendances'] })
     setShowSummary(true)
@@ -377,11 +377,14 @@ function AttendanceExtraFields({ attendanceId, youtubeUrl, internalNotes, object
   const [obj, setObj] = useState(objective ?? '')
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
+  // Sync local state when server data (props) change
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setYoutube(youtubeUrl ?? '')
     setNotes(internalNotes ?? '')
     setObj(objective ?? '')
   }, [youtubeUrl, internalNotes, objective])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const save = useCallback((field: 'youtube_url' | 'internal_notes' | 'objective', value: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current)

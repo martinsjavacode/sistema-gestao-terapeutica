@@ -12,7 +12,7 @@ import { toast } from '../../lib/toast'
 import { confirm } from '../../lib/confirm'
 import DateInput from '../ui/DateInput'
 import TimeInput from '../ui/TimeInput'
-import { Plus, ChevronLeft, ChevronRight, Check, X, Trash2, ExternalLink } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, X, Trash2, ExternalLink } from 'lucide-react'
 
 // ========== Helpers de data ==========
 
@@ -370,43 +370,6 @@ export default function SchedulePage() {
       {adding && <NewAppointmentModal onClose={() => setAdding(false)} prefillDate={prefillDate} prefillTime={prefillTime} />}
 
       {quickAdd && <QuickAddPopover date={quickAdd.date} time={quickAdd.time} x={quickAdd.x} y={quickAdd.y} onClose={() => setQuickAdd(null)} onExpand={handleQuickAddExpand} />}
-    </div>
-  )
-}
-
-// ========== Card do agendamento ==========
-
-function AppointmentCard({ appointment, onConfirm, onCancel, onDelete, onOpenAttendance }: {
-  appointment: Appointment
-  onConfirm: (apt: Appointment) => void
-  onCancel: (id: string) => void
-  onDelete: (id: string) => void
-  onOpenAttendance: (id: string) => void
-}) {
-  const time = new Date(appointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-  const statusColor = STATUS_COLORS[appointment.status] ?? 'var(--text-muted)'
-
-  return (
-    <div className="schedule-card" style={{ borderLeftColor: statusColor }}>
-      <div className="schedule-card-header">
-        <span className="schedule-card-time">{time}</span>
-        <span className="schedule-card-duration">{appointment.duration_minutes}min</span>
-      </div>
-      <div className="schedule-card-name">{appointment.clients?.name ?? '—'}</div>
-      <div className="schedule-card-therapy">{THERAPY_LABELS[appointment.therapy_type]}</div>
-      {appointment.notes && <div className="schedule-card-notes">{appointment.notes}</div>}
-      <div className="schedule-card-actions">
-        {appointment.status === 'scheduled' && (
-          <>
-            <button className="schedule-btn confirm" onClick={() => onConfirm(appointment)} title="Confirmar e criar atendimento"><Check size={14} /></button>
-            <button className="schedule-btn cancel" onClick={() => onCancel(appointment.id)} title="Cancelar"><X size={14} /></button>
-            <button className="schedule-btn delete" onClick={() => onDelete(appointment.id)} title="Excluir"><Trash2 size={14} /></button>
-          </>
-        )}
-        {appointment.status === 'confirmed' && appointment.attendance_id && (
-          <button className="schedule-btn open" onClick={() => onOpenAttendance(appointment.attendance_id!)} title="Abrir atendimento"><ExternalLink size={14} /></button>
-        )}
-      </div>
     </div>
   )
 }

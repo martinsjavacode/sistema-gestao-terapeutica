@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { fetchAttendances, fetchEnergyAssessments, fetchChakras, fetchEmotions, fetchLimitingBeliefs, fetchBlockages, fetchEnergyDivorces } from '../../services/attendances'
 import { THERAPY_LABELS, CHAKRA_LABELS } from '../../types/database'
 import type { TherapyType, ChakraName, EnergyFieldType } from '../../types/database'
 import { ACTIVE_THERAPIES } from '../../config/therapy-sections'
-import { RadarChart, SessionComparison, TrendIndicator } from '../charts'
+import { RadarChart, SessionComparison } from '../charts'
 import { FileText, TrendingUp } from 'lucide-react'
 
 interface Props {

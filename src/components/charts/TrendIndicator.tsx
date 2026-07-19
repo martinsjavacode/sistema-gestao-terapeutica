@@ -43,6 +43,7 @@ export default function TrendIndicator({ current, previous, higherIsBetter = tru
 /**
  * Calcula a tendência geral baseada em múltiplos valores
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function calculateOverallTrend(currentValues: (number | null)[], previousValues: (number | null)[]): 'improving' | 'declining' | 'stable' {
   let improvements = 0
   let declines = 0

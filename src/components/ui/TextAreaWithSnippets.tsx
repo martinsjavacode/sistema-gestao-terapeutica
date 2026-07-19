@@ -45,49 +45,12 @@ export default function TextAreaWithSnippets({
     staleTime: 5000,
   })
 
-  // Detect / trigger
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (showPicker) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        setSelectedIndex(prev => Math.min(prev + 1, snippets.length - 1))
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        setSelectedIndex(prev => Math.max(prev - 1, 0))
-      } else if (e.key === 'Enter' && snippets.length > 0) {
-        e.preventDefault()
-        insertSnippet(snippets[selectedIndex])
-      } else if (e.key === 'Escape') {
-        closePicker()
-      }
-    }
-  }, [showPicker, snippets, selectedIndex])
-
-  const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value
-    onChange(newValue)
-
-    // Check if user just typed /
-    const cursorPos = e.target.selectionStart
-    const textBeforeCursor = newValue.slice(0, cursorPos)
-
-    // Find the last / that's either at start or after a space/newline
-    const lastSlash = textBeforeCursor.lastIndexOf('/')
-    if (lastSlash >= 0 && (lastSlash === 0 || /[\s\n]/.test(textBeforeCursor[lastSlash - 1]))) {
-      const term = textBeforeCursor.slice(lastSlash + 1)
-      if (term.length <= 30 && !term.includes('\n')) {
-        setSlashPos(lastSlash)
-        setSearchTerm(term)
-        setShowPicker(true)
-        setSelectedIndex(0)
-        return
-      }
-    }
-
-    if (showPicker) {
-      closePicker()
-    }
-  }, [onChange, showPicker])
+  const closePicker = useCallback(() => {
+    setShowPicker(false)
+    setSearchTerm('')
+    setSlashPos(null)
+    setSelectedIndex(0)
+  }, [])
 
   const insertSnippet = useCallback((snippet: Snippet) => {
     if (slashPos === null) return
@@ -113,14 +76,51 @@ export default function TextAreaWithSnippets({
         textareaRef.current.focus()
       }
     }, 0)
-  }, [slashPos, value, onChange])
+  }, [slashPos, value, onChange, closePicker])
 
-  const closePicker = () => {
-    setShowPicker(false)
-    setSearchTerm('')
-    setSlashPos(null)
-    setSelectedIndex(0)
-  }
+  // Detect / trigger
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showPicker) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedIndex(prev => Math.min(prev + 1, snippets.length - 1))
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedIndex(prev => Math.max(prev - 1, 0))
+      } else if (e.key === 'Enter' && snippets.length > 0) {
+        e.preventDefault()
+        insertSnippet(snippets[selectedIndex])
+      } else if (e.key === 'Escape') {
+        closePicker()
+      }
+    }
+  }, [showPicker, snippets, selectedIndex, insertSnippet, closePicker])
+
+  const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value
+    onChange(newValue)
+
+    // Check if user just typed /
+    const cursorPos = e.target.selectionStart
+    const textBeforeCursor = newValue.slice(0, cursorPos)
+
+    // Find the last / that's either at start or after a space/newline
+    const lastSlash = textBeforeCursor.lastIndexOf('/')
+    if (lastSlash >= 0 && (lastSlash === 0 || /[\s\n]/.test(textBeforeCursor[lastSlash - 1]))) {
+      const term = textBeforeCursor.slice(lastSlash + 1)
+      if (term.length <= 30 && !term.includes('\n')) {
+        setSlashPos(lastSlash)
+        setSearchTerm(term)
+        setShowPicker(true)
+        setSelectedIndex(0)
+        return
+      }
+    }
+
+    if (showPicker) {
+      closePicker()
+    }
+  }, [onChange, showPicker, closePicker])
 
   // Close picker on outside click
   useEffect(() => {
@@ -133,7 +133,7 @@ export default function TextAreaWithSnippets({
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [showPicker])
+  }, [showPicker, closePicker])
 
   const hasContent = value.trim().length > 0
 

@@ -3,7 +3,7 @@ import Modal from '../ui/Modal'
 import Input from '../ui/Input'
 import Select from '../ui/Select'
 import DateInput from '../ui/DateInput'
-import { User, Phone, MapPin, Briefcase, FileText } from 'lucide-react'
+import { User, Phone, Briefcase, FileText } from 'lucide-react'
 import type { Client } from '../../types/database'
 
 function maskCpf(value: string): string {
@@ -24,7 +24,7 @@ function maskPhone(value: string): string {
 interface Props {
   client?: Client
   onClose: () => void
-  onSave: (data: any) => void
+  onSave: (data: Partial<Client>) => void
 }
 
 export default function ClientForm({ client, onClose, onSave }: Props) {

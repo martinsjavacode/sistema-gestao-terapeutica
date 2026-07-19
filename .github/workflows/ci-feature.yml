@@ -24,8 +24,9 @@ jobs:
       - name: Commitlint
         run: |
           git fetch origin develop --quiet 2>/dev/null || true
-          if git rev-parse origin/develop >/dev/null 2>&1; then
-            npx commitlint --from origin/develop --to HEAD
+          BASE=$(git merge-base origin/develop HEAD 2>/dev/null || echo "")
+          if [ -n "$BASE" ]; then
+            npx commitlint --from "$BASE" --to HEAD
           else
             npx commitlint --last
           fi

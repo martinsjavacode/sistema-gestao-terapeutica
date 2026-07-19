@@ -1,0 +1,15 @@
+{
+  "name": "SGT — Sistema de Gestão Terapêutica",
+  "short_name": "SGT",
+  "start_url": "/sistema-gestao-terapeutica/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#6b21a8",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

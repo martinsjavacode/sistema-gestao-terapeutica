@@ -1,0 +1,69 @@
+name: CI Feature
+
+on:
+  push:
+    branches: ['feature/**', 'feat/**']
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      # Commitlint - valida apenas commits do push atual
+      - name: Commitlint
+        run: |
+          FROM="${{ github.event.before }}"
+          if [ "$FROM" = "0000000000000000000000000000000000000000" ]; then
+            npx commitlint --last
+          else
+            npx commitlint --from "$FROM" --to HEAD
+          fi
+
+      # TypeScript check
+      - name: TypeScript check
+        run: npx tsc -b
+
+      # ESLint
+      - name: Lint
+        run: npm run lint
+
+      # Tests
+      - name: Tests
+        run: npm run test:run
+
+      # Build
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+
+  open-pr:
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create PR to develop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh pr list --head "${{ github.ref_name }}" --base develop --json number -q '.[0].number')
+          if [ -z "$EXISTING" ]; then
+            gh pr create --base develop --head "${{ github.ref_name }}" \
+              --title "Merge ${{ github.ref_name }} into develop" \
+              --body "Auto-created by CI after successful build."
+          fi

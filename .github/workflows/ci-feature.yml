@@ -22,11 +22,17 @@ jobs:
 
       # Commitlint - valida mensagens de commit
       - name: Commitlint
-        run: npx commitlint --from $(git log --oneline origin/develop..HEAD --format="%H" | tail -1)^ --to HEAD
+        run: |
+          git fetch origin develop --quiet 2>/dev/null || true
+          if git rev-parse origin/develop >/dev/null 2>&1; then
+            npx commitlint --from origin/develop --to HEAD
+          else
+            npx commitlint --last
+          fi
 
-      # TypeScript check (sem emit, mais rápido)
+      # TypeScript check
       - name: TypeScript check
-        run: npx tsc --noEmit
+        run: npx tsc -b
 
       # ESLint
       - name: Lint

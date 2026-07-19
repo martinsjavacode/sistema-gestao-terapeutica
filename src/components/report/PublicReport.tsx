@@ -79,9 +79,9 @@ const HAWKINS_MAP: Record<number, string> = {
 
 function getHawkinsDesc(text: string): string {
   const match = text.match(/(\d+)\s*[Hh][Zz]/)
-  if (!match) return ''
+  if (!match?.[1]) return ''
   const freq = parseInt(match[1])
-  if (HAWKINS_MAP[freq]) return HAWKINS_MAP[freq]
+  if (HAWKINS_MAP[freq]) return HAWKINS_MAP[freq]!
   const freqs = Object.keys(HAWKINS_MAP).map(Number).sort((a, b) => a - b)
   const closest = freqs.reduce((prev, curr) => Math.abs(curr - freq) < Math.abs(prev - freq) ? curr : prev)
   if (Math.abs(closest - freq) <= 25) return `Próximo a ${closest} Hz — ${HAWKINS_MAP[closest]}`
@@ -90,7 +90,7 @@ function getHawkinsDesc(text: string): string {
 
 function getFreqColor(text: string): string {
   const match = text.match(/(\d+)\s*[Hh][Zz]/)
-  if (!match) return '#a78bfa'
+  if (!match?.[1]) return '#a78bfa'
   const freq = parseInt(match[1])
   if (freq < 175) return '#ef4444'   // low — vermelho
   if (freq < 500) return '#eab308'   // mid — dourado
@@ -505,7 +505,7 @@ function AuraSection({ aura }: { aura: { state: string | null; size: string | nu
 
 function getYouTubeId(url: string): string | null {
   const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
-  return match ? match[1] : null
+  return match?.[1] ?? null
 }
 
 function YouTubeEmbed({ url }: { url: string }) {

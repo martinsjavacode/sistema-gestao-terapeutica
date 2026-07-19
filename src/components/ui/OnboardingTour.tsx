@@ -51,7 +51,7 @@ export default function OnboardingTour() {
 
   if (!visible) return null
 
-  const step = STEPS[currentStep]
+  const step = STEPS[currentStep]!
 
   return (
     <div className="onboarding-overlay">

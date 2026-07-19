@@ -167,7 +167,7 @@ function HubResumo({ client, attendances, lastDays, onNewAttendance, onViewAtten
     )
   }
 
-  const lastAttendance = attendances[attendances.length - 1]
+  const lastAttendance = attendances[attendances.length - 1]!
 
   return (
     <div className="client-hub-resumo">

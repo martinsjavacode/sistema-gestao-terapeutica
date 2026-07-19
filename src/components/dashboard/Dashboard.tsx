@@ -135,7 +135,7 @@ export default function Dashboard() {
             ) : (
               <>
                 <span className="stat-card-value" style={{ fontSize: '1.1rem' }}>
-                  {attendances.length > 0 ? new Date(attendances[attendances.length - 1].date + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
+                  {attendances.length > 0 ? new Date(attendances[attendances.length - 1]!.date + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
                 </span>
                 <span className="stat-card-label">Último atendimento</span>
               </>

@@ -17,7 +17,7 @@ describe('clients service', () => {
       expect(supabase.from).toHaveBeenCalledWith('clients')
       expect(eqMock).toHaveBeenCalledWith('active', true)
       expect(data).toHaveLength(1)
-      expect(data[0].name).toBe('Ana')
+      expect(data[0]!.name).toBe('Ana')
     })
 
     it('returns empty array when data is null', async () => {

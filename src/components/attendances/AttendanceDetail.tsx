@@ -375,7 +375,7 @@ function AttendanceExtraFields({ attendanceId, youtubeUrl, internalNotes, object
   const [youtube, setYoutube] = useState(youtubeUrl ?? '')
   const [notes, setNotes] = useState(internalNotes ?? '')
   const [obj, setObj] = useState(objective ?? '')
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   // Sync local state when server data (props) change
   /* eslint-disable react-hooks/set-state-in-effect */

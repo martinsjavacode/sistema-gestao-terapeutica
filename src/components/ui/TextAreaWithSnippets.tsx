@@ -89,7 +89,8 @@ export default function TextAreaWithSnippets({
         setSelectedIndex(prev => Math.max(prev - 1, 0))
       } else if (e.key === 'Enter' && snippets.length > 0) {
         e.preventDefault()
-        insertSnippet(snippets[selectedIndex])
+        const snippet = snippets[selectedIndex]
+        if (snippet) insertSnippet(snippet)
       } else if (e.key === 'Escape') {
         closePicker()
       }
@@ -106,7 +107,7 @@ export default function TextAreaWithSnippets({
 
     // Find the last / that's either at start or after a space/newline
     const lastSlash = textBeforeCursor.lastIndexOf('/')
-    if (lastSlash >= 0 && (lastSlash === 0 || /[\s\n]/.test(textBeforeCursor[lastSlash - 1]))) {
+    if (lastSlash >= 0 && (lastSlash === 0 || /[\s\n]/.test(textBeforeCursor[lastSlash - 1] ?? ''))) {
       const term = textBeforeCursor.slice(lastSlash + 1)
       if (term.length <= 30 && !term.includes('\n')) {
         setSlashPos(lastSlash)

@@ -9,14 +9,15 @@ interface Props {
   className?: string
   style?: React.CSSProperties
   'aria-label'?: string
+  title?: string
 }
 
-export default function Button({ children, variant = 'primary', active, disabled, loading, onClick, type = 'button', className = '', style, 'aria-label': ariaLabel }: Props) {
+export default function Button({ children, variant = 'primary', active, disabled, loading, onClick, type = 'button', className = '', style, 'aria-label': ariaLabel, title }: Props) {
   const base = variant === 'primary' ? 'btn-primary' : variant === 'icon' ? 'edit-btn' : 'tab'
   const cls = `${base} ${active ? 'active' : ''} ${loading ? 'btn-loading' : ''} ${className}`.trim()
 
   return (
-    <button type={type} className={cls} disabled={disabled || loading} onClick={onClick} style={style} aria-label={ariaLabel}>
+    <button type={type} className={cls} disabled={disabled || loading} onClick={onClick} style={style} aria-label={ariaLabel} title={title}>
       {loading ? <span className="btn-spinner" /> : children}
     </button>
   )

@@ -50,7 +50,7 @@ export function calculateOverallTrend(currentValues: (number | null)[], previous
 
   currentValues.forEach((curr, i) => {
     const prev = previousValues[i]
-    if (curr === null || prev === null) return
+    if (curr === null || prev == null) return
     const diff = curr - prev
     if (diff > 3) improvements++
     else if (diff < -3) declines++

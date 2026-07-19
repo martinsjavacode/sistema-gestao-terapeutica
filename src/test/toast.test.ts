@@ -47,8 +47,8 @@ describe('toast', () => {
     subscribe(listener)
     toast('First')
     toast('Second')
-    const firstId = listener.mock.calls[0][0].id
-    const secondId = listener.mock.calls[1][0].id
+    const firstId = listener.mock.calls[0]![0].id
+    const secondId = listener.mock.calls[1]![0].id
     expect(secondId).toBeGreaterThan(firstId)
   })
 })

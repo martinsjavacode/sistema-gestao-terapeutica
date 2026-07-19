@@ -190,13 +190,13 @@ function EvolutionChart({ attendanceIds }: { attendanceIds: ChartAttendance[] })
           labels={Object.values(CHAKRA_LABELS)}
           series={[
             ...(attendanceIds.length >= 2 ? [{
-              label: formatShortDate(attendanceIds[attendanceIds.length - 2].date),
+              label: formatShortDate(attendanceIds[attendanceIds.length - 2]!.date),
               values: evolutionData.chakras.map(s => s.values[s.values.length - 2] ?? null),
               color: 'rgba(167, 139, 250, 0.5)',
               fillOpacity: 0.05,
             }] : []),
             {
-              label: formatShortDate(attendanceIds[attendanceIds.length - 1].date),
+              label: formatShortDate(attendanceIds[attendanceIds.length - 1]!.date),
               values: evolutionData.chakras.map(s => s.values[s.values.length - 1] ?? null),
               color: '#a78bfa',
               fillOpacity: 0.15,
@@ -207,8 +207,8 @@ function EvolutionChart({ attendanceIds }: { attendanceIds: ChartAttendance[] })
 
       {chartType === 'comparison' && evolutionData.energy.length > 0 && (
         <SessionComparison
-          firstDate={formatShortDate(attendanceIds[0].date)}
-          lastDate={formatShortDate(attendanceIds[attendanceIds.length - 1].date)}
+          firstDate={formatShortDate(attendanceIds[0]!.date)}
+          lastDate={formatShortDate(attendanceIds[attendanceIds.length - 1]!.date)}
           fields={evolutionData.energy.map(s => ({
             label: { mental: 'Mental', emocional: 'Emocional', espiritual: 'Espiritual', fisico: 'Físico' }[s.key] ?? s.key,
             color: FIELD_COLORS[s.key as EnergyFieldType] ?? 'var(--text-muted)',
@@ -417,8 +417,8 @@ async function fetchAttendanceSummary(attendanceId: string): Promise<string[]> {
   }
 
   if (chakras.length > 0) {
-    const blocked = chakras.filter(c => c.state === 'bloqueado').length
-    if (blocked > 0) parts.push(`${blocked} chakra${blocked > 1 ? 's' : ''} bloqueado${blocked > 1 ? 's' : ''}`)
+    const blocked = chakras.filter(c => c.state === 'desequilibrio').length
+    if (blocked > 0) parts.push(`${blocked} chakra${blocked > 1 ? 's' : ''} em desequilíbrio`)
     else parts.push(`${chakras.length} chakras avaliados`)
   }
 

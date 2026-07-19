@@ -14,7 +14,7 @@ function maskTime(value: string): string {
 
 function isValidTime(time: string): boolean {
   if (time.length !== 5) return false
-  const [h, m] = time.split(':').map(Number)
+  const [h = NaN, m = NaN] = time.split(':').map(Number)
   return h >= 0 && h <= 23 && m >= 0 && m <= 59
 }
 

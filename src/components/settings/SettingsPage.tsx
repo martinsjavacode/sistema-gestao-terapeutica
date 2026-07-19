@@ -428,7 +428,7 @@ function TeamSection() {
                   <td>{u.display_name}</td>
                   <td>{u.email}</td>
                   <td>{getRoleName(u.role_id)}</td>
-                  <td><button className={`${STATUS_BADGE[status].className} badge-toggle`} onClick={() => toggleUser.mutate({ id: u.id, activated: u.activated })} title={u.activated ? 'Clique para desativar' : 'Clique para ativar'}>{STATUS_BADGE[status].label}</button></td>
+                  <td><button className={`${STATUS_BADGE[status]!.className} badge-toggle`} onClick={() => toggleUser.mutate({ id: u.id, activated: u.activated })} title={u.activated ? 'Clique para desativar' : 'Clique para ativar'}>{STATUS_BADGE[status]!.label}</button></td>
                 </tr>
               )
             })}

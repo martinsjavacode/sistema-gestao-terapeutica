@@ -52,7 +52,7 @@ export default function Select({ label, value, options, onChange, placeholder = 
       case ' ':
         e.preventDefault()
         if (open && focusIndex >= 0) {
-          onChange(options[focusIndex].value)
+          onChange(options[focusIndex]!.value)
           close()
         } else {
           setOpen(true)

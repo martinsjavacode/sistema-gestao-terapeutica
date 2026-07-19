@@ -82,11 +82,6 @@ export async function incrementSnippetUsage(id: string) {
   const { error } = await supabase.rpc('increment_snippet_usage', { snippet_id: id })
   // Fallback: se não tiver RPC, faz manualmente
   if (error) {
-    await supabase
-      .from('snippets')
-      .update({ usage_count: supabase.rpc ? undefined : 0 })
-      .eq('id', id)
-    // Simpler approach: fetch + update
     const { data } = await supabase.from('snippets').select('usage_count').eq('id', id).single()
     if (data) {
       await supabase.from('snippets').update({ usage_count: data.usage_count + 1 }).eq('id', id)

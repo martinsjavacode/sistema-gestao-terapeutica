@@ -69,11 +69,11 @@ export default function WhatsNewModal({ onClose }: { onClose: () => void }) {
 export function useWhatsNew() {
   const [show, setShow] = useState(() => {
     const seen = localStorage.getItem(WHATS_NEW_KEY)
-    return seen !== RELEASES[0].version
+    return seen !== RELEASES[0]!.version
   })
 
   const dismiss = () => {
-    localStorage.setItem(WHATS_NEW_KEY, RELEASES[0].version)
+    localStorage.setItem(WHATS_NEW_KEY, RELEASES[0]!.version)
     setShow(false)
   }
 

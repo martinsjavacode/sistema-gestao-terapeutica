@@ -41,7 +41,9 @@ export default function Sparkline({
   const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
 
   // Area path (closes to bottom)
-  const areaD = pathD + ` L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`
+  const lastPoint = points[points.length - 1]!
+  const firstPoint = points[0]!
+  const areaD = pathD + ` L ${lastPoint.x} ${height - padding} L ${firstPoint.x} ${height - padding} Z`
 
   return (
     <svg
@@ -67,8 +69,8 @@ export default function Sparkline({
       ))}
       {/* Last point always visible */}
       <circle
-        cx={points[points.length - 1].x}
-        cy={points[points.length - 1].y}
+        cx={lastPoint.x}
+        cy={lastPoint.y}
         r={2.5}
         fill={color}
       />

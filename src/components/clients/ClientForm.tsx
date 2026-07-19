@@ -21,10 +21,12 @@ function maskPhone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
 }
 
+type ClientFormData = Omit<Client, 'id' | 'created_at' | 'active' | 'tenant_id'>
+
 interface Props {
   client?: Client
   onClose: () => void
-  onSave: (data: Partial<Client>) => void
+  onSave: (data: ClientFormData) => void
 }
 
 export default function ClientForm({ client, onClose, onSave }: Props) {

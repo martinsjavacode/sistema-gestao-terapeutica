@@ -39,7 +39,7 @@ const HAWKINS_MAP: Record<number, { emotion: string; description: string }> = {
 
 function getHawkinsDescription(text: string): string {
   const match = text.match(/(\d+)\s*[Hh][Zz]/)
-  if (!match) return ''
+  if (!match?.[1]) return ''
   const freq = parseInt(match[1])
   const entry = HAWKINS_MAP[freq]
   if (entry) return `${entry.emotion}: ${entry.description}`
@@ -47,7 +47,7 @@ function getHawkinsDescription(text: string): string {
   const closest = freqs.reduce((prev, curr) => Math.abs(curr - freq) < Math.abs(prev - freq) ? curr : prev)
   if (Math.abs(closest - freq) <= 25) {
     const e = HAWKINS_MAP[closest]
-    return `Próximo a ${closest} Hz (${e.emotion}): ${e.description}`
+    if (e) return `Próximo a ${closest} Hz (${e.emotion}): ${e.description}`
   }
   return ''
 }

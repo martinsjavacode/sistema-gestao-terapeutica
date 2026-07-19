@@ -54,7 +54,7 @@ function getMonthCalendarDays(date: Date): Date[] {
   }
   // Se a última semana está toda fora do mês, remover
   const lastWeekStart = days[35]
-  if (lastWeekStart.getMonth() !== date.getMonth()) {
+  if (lastWeekStart && lastWeekStart.getMonth() !== date.getMonth()) {
     days.splice(35, 7)
   }
   return days
@@ -115,7 +115,7 @@ export default function SchedulePage() {
     if (view === 'week') return getWeekRange(currentDate)
     // Para o mês, buscar range expandido (inclui dias do mês anterior/próximo visíveis)
     const monthDays = getMonthCalendarDays(currentDate)
-    return { start: monthDays[0], end: monthDays[monthDays.length - 1] }
+    return { start: monthDays[0]!, end: monthDays[monthDays.length - 1]! }
   }, [currentDate, view])
 
   const { data: appointments = [], isLoading } = useQuery({
@@ -406,7 +406,7 @@ function QuickAddPopover({ date, time, x, y, onClose, onExpand }: {
 
   const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' })
   const endTime = (() => {
-    const [h, m] = time.split(':').map(Number)
+    const [h = 0, m = 0] = time.split(':').map(Number)
     const endMinutes = h * 60 + m + 60 // duração padrão 60min
     const endH = Math.floor(endMinutes / 60) % 24
     const endM = endMinutes % 60

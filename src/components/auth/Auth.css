@@ -1,0 +1,120 @@
+.auth {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.auth-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-7);
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-brand {
+  text-align: center;
+  margin-bottom: var(--space-6);
+}
+
+.auth-brand h1 {
+  font-size: 2rem;
+  margin-bottom: var(--space-2);
+}
+
+.auth-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.auth-field {
+  margin-bottom: var(--space-4);
+}
+
+.auth-field label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+  font-weight: 500;
+}
+
+.auth-field input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  min-height: 44px;
+}
+
+.auth-field input:focus {
+  border-color: var(--violet);
+  outline: none;
+}
+
+.auth-password {
+  position: relative;
+}
+
+.auth-password input {
+  padding-right: 44px;
+}
+
+.auth-eye {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 44px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-error {
+  color: var(--red);
+  font-size: 0.85rem;
+  margin-bottom: var(--space-3);
+}
+
+.auth-btn-primary {
+  width: 100%;
+  background: var(--gradient-2);
+  color: white;
+  border: none;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  margin-top: var(--space-3);
+  transition: opacity 0.15s;
+}
+
+.auth-btn-primary:hover { opacity: 0.9; }
+.auth-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.auth-btn-link {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--violet-light);
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-top: var(--space-4);
+  text-align: center;
+}
+
+.auth-btn-link:hover { text-decoration: underline; }

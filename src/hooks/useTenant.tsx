@@ -1,5 +1,7 @@
 import { createContext, useContext, useCallback, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
+import type { TechniqueWithSections } from '../services/techniques'
+import { fetchTenantTechniquesWithSections } from '../services/techniques'
 
 export interface Tenant {
   id: string
@@ -15,12 +17,15 @@ export interface PlanLimits {
   max_users: number
   max_clients: number
   max_attendances_month: number | null
+  max_techniques: number
+  addon_price_cents: number
   features: Record<string, boolean>
 }
 
 interface TenantContextValue {
   tenant: Tenant | null
   plan: PlanLimits | null
+  techniques: TechniqueWithSections[]
   loading: boolean
   refresh: () => void
 }
@@ -28,6 +33,7 @@ interface TenantContextValue {
 const TenantContext = createContext<TenantContextValue>({
   tenant: null,
   plan: null,
+  techniques: [],
   loading: true,
   refresh: () => {},
 })
@@ -35,12 +41,14 @@ const TenantContext = createContext<TenantContextValue>({
 export function TenantProvider({ children, tenantId }: { children: ReactNode; tenantId: string | null }) {
   const [tenant, setTenant] = useState<Tenant | null>(null)
   const [plan, setPlan] = useState<PlanLimits | null>(null)
+  const [techniques, setTechniques] = useState<TechniqueWithSections[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchTenant = useCallback(async () => {
     if (!tenantId) {
       setTenant(null)
       setPlan(null)
+      setTechniques([])
       setLoading(false)
       return
     }
@@ -58,7 +66,7 @@ export function TenantProvider({ children, tenantId }: { children: ReactNode; te
 
       const { data: p } = await supabase
         .from('plans')
-        .select('max_users, max_clients, max_attendances_month, features')
+        .select('max_users, max_clients, max_attendances_month, max_techniques, addon_price_cents, features')
         .eq('id', t.plan_id)
         .single()
 
@@ -67,9 +75,15 @@ export function TenantProvider({ children, tenantId }: { children: ReactNode; te
           max_users: p.max_users,
           max_clients: p.max_clients,
           max_attendances_month: p.max_attendances_month,
+          max_techniques: p.max_techniques,
+          addon_price_cents: p.addon_price_cents,
           features: (p.features as Record<string, boolean>) ?? {},
         })
       }
+
+      // Buscar técnicas ativas do tenant
+      const { data: techs } = await fetchTenantTechniquesWithSections()
+      setTechniques(techs)
     }
 
     setLoading(false)
@@ -82,7 +96,7 @@ export function TenantProvider({ children, tenantId }: { children: ReactNode; te
   /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
-    <TenantContext.Provider value={{ tenant, plan, loading, refresh: fetchTenant }}>
+    <TenantContext.Provider value={{ tenant, plan, techniques, loading, refresh: fetchTenant }}>
       {children}
     </TenantContext.Provider>
   )

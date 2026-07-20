@@ -8,6 +8,7 @@ import { ArrowLeft, ChevronRight, ChevronDown, Check, Youtube, StickyNote, Copy,
 import { THERAPY_LABELS } from '../../types/database'
 import { getSectionsForTherapy } from '../../config/therapy-sections'
 import type { SectionKey } from '../../config/therapy-sections'
+import { useTenant } from '../../hooks/useTenant'
 import EnergyAssessmentTab from './tabs/EnergyAssessmentTab'
 import ChakrasTab from './tabs/ChakrasTab'
 import AuraFieldTab from './tabs/AuraFieldTab'
@@ -26,6 +27,7 @@ interface Props {
 export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { techniques } = useTenant()
   const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(new Set(['assessment']))
   const [showSummary, setShowSummary] = useState(false)
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -62,12 +64,12 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
 
   const handleFinalize = useCallback(async () => {
     if (!attendance) return
-    const allKeys = getSectionsForTherapy(attendance.therapy_type).map(s => s.key)
+    const allKeys = getSectionsForTherapy(attendance.therapy_type, techniques).map(s => s.key)
     await updateAttendance(attendanceId, { completed_sections: allKeys })
     qc.invalidateQueries({ queryKey: ['attendance', attendanceId] })
     qc.invalidateQueries({ queryKey: ['attendances'] })
     setShowSummary(true)
-  }, [attendanceId, attendance, qc])
+  }, [attendanceId, attendance, qc, techniques])
 
   const { data: assessments = [] } = useQuery({
     queryKey: ['energy-assessments', attendanceId],
@@ -133,7 +135,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
   if (isLoading) return <TableSkeleton />
   if (!attendance) return <p>Atendimento não encontrado.</p>
 
-  const sections = getSectionsForTherapy(attendance.therapy_type)
+  const sections = getSectionsForTherapy(attendance.therapy_type, techniques)
   const filledCount = sections.filter(s => filledSections[s.key]).length
   const progressPercent = Math.round((filledCount / sections.length) * 100)
 

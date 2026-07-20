@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { fetchAppointments, insertAppointment, confirmAppointment, cancelAppointment, deleteAppointment } from '../../services/appointments'
 import { THERAPY_LABELS, APPOINTMENT_STATUS_LABELS } from '../../types/database'
-import { ACTIVE_THERAPIES } from '../../config/therapy-sections'
+import { getActiveTechniques } from '../../config/therapy-sections'
+import { useTenant } from '../../hooks/useTenant'
 import type { TherapyType, Appointment } from '../../types/database'
 import Button from '../ui/Button'
 import Select from '../ui/Select'
@@ -380,6 +381,8 @@ function QuickAddPopover({ date, time, x, y, onClose, onExpand }: {
   date: string; time: string; x: number; y: number; onClose: () => void; onExpand: () => void
 }) {
   const qc = useQueryClient()
+  const { techniques } = useTenant()
+  const activeTechniques = getActiveTechniques(techniques)
   const [clientId, setClientId] = useState('')
   const [therapy, setTherapy] = useState<TherapyType>('radiestesia')
 
@@ -440,7 +443,7 @@ function QuickAddPopover({ date, time, x, y, onClose, onExpand }: {
             label="Terapia"
             value={therapy}
             onChange={v => setTherapy(v as TherapyType)}
-            options={ACTIVE_THERAPIES.map(k => ({ value: k, label: THERAPY_LABELS[k] }))}
+            options={activeTechniques.map(t => ({ value: t.id, label: t.name }))}
           />
         </div>
         <div className="quick-add-footer">
@@ -456,6 +459,8 @@ function QuickAddPopover({ date, time, x, y, onClose, onExpand }: {
 
 function NewAppointmentModal({ onClose, prefillDate, prefillTime }: { onClose: () => void; prefillDate?: string; prefillTime?: string }) {
   const qc = useQueryClient()
+  const { techniques } = useTenant()
+  const activeTechniques = getActiveTechniques(techniques)
   const [clientId, setClientId] = useState('')
   const [date, setDate] = useState(prefillDate || new Date().toISOString().slice(0, 10))
   const [time, setTime] = useState(prefillTime || '09:00')
@@ -513,7 +518,7 @@ function NewAppointmentModal({ onClose, prefillDate, prefillTime }: { onClose: (
             label="Tipo de terapia"
             value={therapy}
             onChange={v => setTherapy(v as TherapyType)}
-            options={ACTIVE_THERAPIES.map(k => ({ value: k, label: THERAPY_LABELS[k] }))}
+            options={activeTechniques.map(t => ({ value: t.id, label: t.name }))}
           />
         </div>
         <div className="form-grid" style={{ marginTop: 'var(--space-4)' }}>

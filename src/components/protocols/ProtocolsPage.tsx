@@ -10,10 +10,13 @@ import { toast } from '../../lib/toast'
 import { Plus, Copy, Pencil, Trash2, GripVertical, BookOpen, Hash } from 'lucide-react'
 import { THERAPY_LABELS } from '../../types/database'
 import type { TherapyType } from '../../types/database'
-import { ACTIVE_THERAPIES } from '../../config/therapy-sections'
+import { getActiveTechniques } from '../../config/therapy-sections'
+import { useTenant } from '../../hooks/useTenant'
 
 export default function ProtocolsPage() {
   const qc = useQueryClient()
+  const { techniques } = useTenant()
+  const activeTechniques = getActiveTechniques(techniques)
   const [filterTherapy, setFilterTherapy] = useState<TherapyType | 'all'>('all')
   const [editing, setEditing] = useState<Protocol | null>(null)
   const [adding, setAdding] = useState(false)
@@ -59,14 +62,14 @@ export default function ProtocolsPage() {
         >
           Todos
         </button>
-        {ACTIVE_THERAPIES.map(t => (
+        {activeTechniques.map(t => (
           <button
-            key={t}
-            className={`tab-nav-btn ${filterTherapy === t ? 'active' : ''}`}
-            onClick={() => setFilterTherapy(t)}
+            key={t.id}
+            className={`tab-nav-btn ${filterTherapy === t.id ? 'active' : ''}`}
+            onClick={() => setFilterTherapy(t.id as TherapyType)}
             style={{ fontSize: '0.78rem', padding: '6px 12px' }}
           >
-            {THERAPY_LABELS[t]}
+            {t.name}
           </button>
         ))}
       </div>
@@ -136,6 +139,8 @@ export default function ProtocolsPage() {
 // ========== Formulário de Protocolo ==========
 
 function ProtocolForm({ protocol, onClose, onSaved }: { protocol: Protocol | null; onClose: () => void; onSaved: () => void }) {
+  const { techniques } = useTenant()
+  const activeTechniques = getActiveTechniques(techniques)
   const [name, setName] = useState(protocol?.name ?? '')
   const [description, setDescription] = useState(protocol?.description ?? '')
   const [therapyType, setTherapyType] = useState<TherapyType>(protocol?.therapy_type ?? 'radiestesia')
@@ -200,7 +205,7 @@ function ProtocolForm({ protocol, onClose, onSaved }: { protocol: Protocol | nul
             label="Tipo de terapia"
             value={therapyType}
             onChange={v => setTherapyType(v as TherapyType)}
-            options={ACTIVE_THERAPIES.map(k => ({ value: k, label: THERAPY_LABELS[k] }))}
+            options={activeTechniques.map(t => ({ value: t.id, label: t.name }))}
           />
         </div>
 

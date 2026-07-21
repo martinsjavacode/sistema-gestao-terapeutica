@@ -29,7 +29,7 @@ export async function getUser(session: Session): Promise<AppUser | null> {
     .from('users')
     .select('id, tenant_id, display_name, role_id, activated')
     .eq('email', email)
-    .single()
+    .maybeSingle()
 
   if (!data) return null
 

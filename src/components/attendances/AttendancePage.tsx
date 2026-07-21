@@ -10,9 +10,18 @@ import { toast } from '../../lib/toast'
 import { Plus, Trash2, FileText, Search } from 'lucide-react'
 import type { TherapyType } from '../../types/database'
 import { THERAPY_LABELS } from '../../types/database'
-import { getActiveTechniques } from '../../config/therapy-sections'
+import { getActiveTechniques, getSectionsForTherapy } from '../../config/therapy-sections'
+import type { TechniqueWithSections } from '../../services/techniques'
 import { useTenant } from '../../hooks/useTenant'
 import AttendanceDetail from './AttendanceDetail'
+
+function getAttendanceStatus(a: { completed_sections: string[] | null; therapy_type: TherapyType }, techniques: TechniqueWithSections[]) {
+  const completed = a.completed_sections ?? []
+  if (completed.length === 0) return { label: 'Rascunho', className: 'badge badge-warning' }
+  const totalSections = getSectionsForTherapy(a.therapy_type, techniques).length
+  if (completed.length >= totalSections) return { label: 'Completo', className: 'badge badge-success' }
+  return { label: 'Em andamento', className: 'badge badge-info' }
+}
 
 export default function AttendancePage() {
   const [searchParams] = useSearchParams()
@@ -153,6 +162,10 @@ export default function AttendancePage() {
               </div>
             </div>
             <div className="attendance-row-right">
+              {(() => {
+                const status = getAttendanceStatus(a, techniques)
+                return <span className={status.className}>{status.label}</span>
+              })()}
               <span className="badge badge-info">{THERAPY_LABELS[a.therapy_type]}</span>
               <div className="actions" onClick={e => e.stopPropagation()}>
                 <Button variant="icon" onClick={() => navigate(`/attendances?id=${a.id}`)} aria-label="Abrir"><FileText size={14} /></Button>

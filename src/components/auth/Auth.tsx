@@ -36,7 +36,7 @@ export default function Auth() {
     }
 
     // Verificar se já tem tenant provisionado
-    const { data: user } = await supabase.from('users').select('id').eq('email', email).single()
+    const { data: user } = await supabase.from('users').select('id').eq('email', email).maybeSingle()
     if (!user) {
       // User autenticado mas sem tenant — precisa do onboarding
       setMode('onboarding')
@@ -75,9 +75,29 @@ export default function Auth() {
       return
     }
 
-    // Signup + login ok — ir para onboarding
-    setMode('onboarding')
-    checkPendingInvite()
+    // Signup + login ok — provisionar tenant e user imediatamente
+    if (tenantName.trim()) {
+      const { error: rpcError } = await supabase.rpc('provision_tenant', {
+        p_tenant_name: tenantName.trim(),
+        p_owner_name: ownerName.trim() || null,
+      })
+
+      if (rpcError) {
+        if (rpcError.message.includes('já possui uma conta')) {
+          navigate('/', { replace: true })
+        } else {
+          setError(rpcError.message)
+        }
+        setLoading(false)
+        return
+      }
+
+      navigate('/', { replace: true })
+    } else {
+      // Sem nome de consultório — ir para onboarding
+      setMode('onboarding')
+      checkPendingInvite()
+    }
     setLoading(false)
   }
 

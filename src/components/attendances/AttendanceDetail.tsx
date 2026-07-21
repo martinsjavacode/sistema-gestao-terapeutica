@@ -132,6 +132,25 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
     report: attendance?.report_content ? 'Preenchido' : 'Não preenchido',
   }
 
+  // Sincronizar completed_sections no banco quando seções são preenchidas
+  const filledKeys = Object.entries(filledSections)
+    .filter(([, filled]) => filled)
+    .map(([key]) => key)
+    .sort()
+  const storedKeys = [...(attendance?.completed_sections ?? [])].sort()
+
+  useEffect(() => {
+    if (!attendance || isLoading) return
+    // Só atualiza se há seções preenchidas que não estão no banco
+    const newKeys = filledKeys.filter(k => !storedKeys.includes(k))
+    if (newKeys.length === 0) return
+
+    const merged = [...new Set([...storedKeys, ...filledKeys])].sort()
+    updateAttendance(attendanceId, { completed_sections: merged })
+      .then(() => qc.invalidateQueries({ queryKey: ['attendance', attendanceId] }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filledKeys.join(',')])
+
   if (isLoading) return <TableSkeleton />
   if (!attendance) return <p>Atendimento não encontrado.</p>
 

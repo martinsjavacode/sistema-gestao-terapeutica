@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { fetchAppointments, insertAppointment, confirmAppointment, cancelAppointment, deleteAppointment } from '../../services/appointments'
-import { THERAPY_LABELS, APPOINTMENT_STATUS_LABELS } from '../../types/database'
+import { getTherapyLabel, APPOINTMENT_STATUS_LABELS } from '../../types/database'
 import { getActiveTechniques } from '../../config/therapy-sections'
 import { useTenant } from '../../hooks/useTenant'
 import type { TherapyType, Appointment } from '../../types/database'
@@ -88,6 +88,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function SchedulePage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { techniques } = useTenant()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<ViewMode>('week')
   const [adding, setAdding] = useState(false)
@@ -154,7 +155,7 @@ export default function SchedulePage() {
     const details = [
       `📅 ${date.toLocaleDateString('pt-BR')} às ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
       `👤 ${apt.clients?.name ?? '—'}`,
-      `🔮 ${THERAPY_LABELS[apt.therapy_type]}`,
+      `🔮 ${getTherapyLabel(apt.therapy_type, techniques)}`,
       `⏱️ ${apt.duration_minutes} minutos`,
       apt.notes ? `📝 ${apt.notes}` : '',
     ].filter(Boolean).join('\n')
@@ -167,7 +168,7 @@ export default function SchedulePage() {
     })) {
       confirmMut.mutate(apt)
     }
-  }, [confirmMut])
+  }, [confirmMut, techniques])
 
   const handleCancel = useCallback(async (id: string) => {
     if (await confirm('Cancelar este agendamento?')) cancelMut.mutate(id)
@@ -275,7 +276,7 @@ export default function SchedulePage() {
                         key={apt.id}
                         className={`cal-event ${apt.status === 'cancelled' ? 'cal-event-cancelled' : ''}`}
                         style={{ top: `${top}px`, height: `${Math.max(height, 48)}px`, borderLeftColor: statusColor }}
-                        title={`${apt.clients?.name ?? '—'} — ${THERAPY_LABELS[apt.therapy_type]}`}
+                        title={`${apt.clients?.name ?? '—'} — ${getTherapyLabel(apt.therapy_type, techniques)}`}
                         onClick={(e) => {
                           if (apt.status === 'cancelled') {
                             handleSlotClick(day, Math.floor(startMinutes / 30), e.nativeEvent as unknown as React.MouseEvent)
@@ -286,7 +287,7 @@ export default function SchedulePage() {
                           {start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                         <span className="cal-event-name">{apt.clients?.name ?? '—'}</span>
-                        <span className="cal-event-therapy">{THERAPY_LABELS[apt.therapy_type]}</span>
+                        <span className="cal-event-therapy">{getTherapyLabel(apt.therapy_type, techniques)}</span>
                         <div className="cal-event-actions">
                           {apt.status === 'scheduled' && (
                             <>

@@ -9,7 +9,7 @@ import { confirm } from '../../lib/confirm'
 import { toast } from '../../lib/toast'
 import { Plus, Trash2, FileText, Search } from 'lucide-react'
 import type { TherapyType } from '../../types/database'
-import { THERAPY_LABELS } from '../../types/database'
+import { getTherapyLabel } from '../../types/database'
 import { getActiveTechniques, getSectionsForTherapy } from '../../config/therapy-sections'
 import type { TechniqueWithSections } from '../../services/techniques'
 import { useTenant } from '../../hooks/useTenant'
@@ -115,7 +115,7 @@ export default function AttendancePage() {
     return (
       a.clients?.name?.toLowerCase().includes(term) ||
       a.objective?.toLowerCase().includes(term) ||
-      THERAPY_LABELS[a.therapy_type].toLowerCase().includes(term) ||
+      getTherapyLabel(a.therapy_type, techniques).toLowerCase().includes(term) ||
       new Date(a.date + 'T12:00:00').toLocaleDateString('pt-BR').includes(term)
     )
   })
@@ -166,7 +166,7 @@ export default function AttendancePage() {
                 const status = getAttendanceStatus(a, techniques)
                 return <span className={status.className}>{status.label}</span>
               })()}
-              <span className="badge badge-info">{THERAPY_LABELS[a.therapy_type]}</span>
+              <span className="badge badge-info">{getTherapyLabel(a.therapy_type, techniques)}</span>
               <div className="actions" onClick={e => e.stopPropagation()}>
                 <Button variant="icon" onClick={() => navigate(`/attendances?id=${a.id}`)} aria-label="Abrir"><FileText size={14} /></Button>
                 {(!a.completed_sections || a.completed_sections.length === 0) && (

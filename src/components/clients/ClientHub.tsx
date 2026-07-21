@@ -10,7 +10,7 @@ import {
   ArrowLeft, Plus, Phone, Mail, MapPin, Calendar, User, Heart, Briefcase,
   Clock, TrendingUp, ClipboardList, Pencil
 } from 'lucide-react'
-import { THERAPY_LABELS } from '../../types/database'
+import { getTherapyLabel } from '../../types/database'
 import type { EnergyFieldType, Client, Attendance } from '../../types/database'
 import ClientHistory from './ClientHistory'
 
@@ -189,7 +189,7 @@ function HubResumo({ client, attendances, lastDays, onNewAttendance, onViewAtten
         </div>
         <div className="client-hub-stat">
           <span className="client-hub-stat-value">
-            {THERAPY_LABELS[lastAttendance.therapy_type]}
+            {getTherapyLabel(lastAttendance.therapy_type)}
           </span>
           <span className="client-hub-stat-label">Última terapia</span>
         </div>
@@ -219,7 +219,7 @@ function HubResumo({ client, attendances, lastDays, onNewAttendance, onViewAtten
                   {a.time && <span className="client-hub-timeline-time">{a.time.slice(0, 5)}</span>}
                 </span>
                 <span className="client-hub-timeline-therapy">
-                  {THERAPY_LABELS[a.therapy_type]}
+                  {getTherapyLabel(a.therapy_type)}
                 </span>
                 {a.objective && (
                   <span className="client-hub-timeline-objective">{a.objective}</span>

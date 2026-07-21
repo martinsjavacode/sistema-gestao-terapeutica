@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { fetchAttendances, fetchEnergyAssessments, fetchChakras, fetchEmotions, fetchLimitingBeliefs, fetchBlockages, fetchEnergyDivorces } from '../../services/attendances'
-import { THERAPY_LABELS, CHAKRA_LABELS } from '../../types/database'
+import { getTherapyLabel, CHAKRA_LABELS } from '../../types/database'
 import type { TherapyType, ChakraName, EnergyFieldType } from '../../types/database'
 import { getActiveTechniques } from '../../config/therapy-sections'
 import { useTenant } from '../../hooks/useTenant'
@@ -339,7 +339,7 @@ function HistoryItem({ attendanceId, date, time, therapyType, objective, onClick
             {dateStr}
             {timeStr && <span style={{ marginLeft: 'var(--space-2)' }}>{timeStr}</span>}
           </span>
-          <span className="badge badge-info">{THERAPY_LABELS[therapyType]}</span>
+          <span className="badge badge-info">{getTherapyLabel(therapyType, techniques)}</span>
         </div>
         {objective && (
           <p className="timeline-objective">{objective}</p>

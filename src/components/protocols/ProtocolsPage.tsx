@@ -8,7 +8,7 @@ import Select from '../ui/Select'
 import { confirm } from '../../lib/confirm'
 import { toast } from '../../lib/toast'
 import { Plus, Copy, Pencil, Trash2, GripVertical, BookOpen, Hash } from 'lucide-react'
-import { THERAPY_LABELS } from '../../types/database'
+import { getTherapyLabel } from '../../types/database'
 import type { TherapyType } from '../../types/database'
 import { getActiveTechniques } from '../../config/therapy-sections'
 import { useTenant } from '../../hooks/useTenant'
@@ -114,7 +114,7 @@ export default function ProtocolsPage() {
                 )}
               </div>
               <div className="protocol-card-footer">
-                <span className="badge badge-info">{THERAPY_LABELS[protocol.therapy_type]}</span>
+                <span className="badge badge-info">{getTherapyLabel(protocol.therapy_type, techniques)}</span>
                 {protocol.usage_count > 0 && (
                   <span className="protocol-card-usage"><Hash size={10} /> {protocol.usage_count}x</span>
                 )}

@@ -5,7 +5,7 @@ import { fetchAttendance, updateAttendance, fetchEnergyAssessments, fetchChakras
 import { TableSkeleton } from '../ui/Skeleton'
 import Button from '../ui/Button'
 import { ArrowLeft, ChevronRight, ChevronDown, Check, Youtube, StickyNote, Copy, CheckCircle2, FileCheck } from 'lucide-react'
-import { THERAPY_LABELS } from '../../types/database'
+import { getTherapyLabel } from '../../types/database'
 import { getSectionsForTherapy } from '../../config/therapy-sections'
 import type { SectionKey } from '../../config/therapy-sections'
 import { useTenant } from '../../hooks/useTenant'
@@ -211,7 +211,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
                 <span className={status.className}>{status.icon} {status.label}</span>
               </div>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                {new Date(attendance.date + 'T12:00:00').toLocaleDateString('pt-BR')} • {THERAPY_LABELS[attendance.therapy_type]}
+                {new Date(attendance.date + 'T12:00:00').toLocaleDateString('pt-BR')} • {getTherapyLabel(attendance.therapy_type, techniques)}
                 {attendance.objective && ` • ${attendance.objective}`}
               </p>
             </div>
@@ -323,7 +323,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
           sectionSummaries={sectionSummaries}
           clientName={attendance.clients?.name ?? ''}
           date={new Date(attendance.date + 'T12:00:00').toLocaleDateString('pt-BR')}
-          therapyType={THERAPY_LABELS[attendance.therapy_type]}
+          therapyType={getTherapyLabel(attendance.therapy_type, techniques)}
           onClose={() => setShowSummary(false)}
         />
       )}

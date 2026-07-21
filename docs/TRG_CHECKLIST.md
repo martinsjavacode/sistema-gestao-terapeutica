@@ -19,7 +19,9 @@ Checklist de funcionalidades para suportar a **Terapia de Reprocessamento Genera
   → Padrão consolidado com `current_tenant_id()` (migration 012). Novas tabelas seguem o mesmo modelo.
 - [x] ~~Condicionar exibição de seções pelo tipo de terapia~~
   → O frontend carrega seções dinamicamente via `useTenant → techniques`. Cada técnica exibe apenas suas seções configuradas.
-- [ ] Adicionar valor `'trg'` ao enum `therapy_type` no PostgreSQL (compatibilidade com coluna `attendances.therapy_type`)
+- [x] ~~Migrar `attendances.therapy_type` de enum para FK em `therapy_techniques`~~
+  → Migration 023: coluna convertida para `text` com FK. Enum `therapy_type` dropado.
+  Frontend usa `getTherapyLabel(id, techniques?)` para resolver nomes dinamicamente.
 - [ ] Inserir `'trg'` em `therapy_techniques` (name='TRG - Reprocessamento Generativo', active=true)
 - [ ] Criar seções TRG em `therapy_sections`:
   - `trg-anamnesis` — Anamnese TRG
@@ -264,7 +266,7 @@ Checklist de funcionalidades para suportar a **Terapia de Reprocessamento Genera
 ## Compatibilidade com SGT Existente
 
 - ✅ Reutiliza `clients` — sem alteração
-- ✅ Reutiliza `attendances` — nova opção no enum `therapy_type` + vínculo com `trg_sessions`
+- ✅ Reutiliza `attendances` — `therapy_type` agora é FK para `therapy_techniques(id)` (migration 023, enum removido)
 - ✅ Reutiliza `appointments` — agendamento normal
 - ✅ Reutiliza RBAC + tenant isolation (`current_tenant_id()`)
 - ✅ Reutiliza auto-save com debounce (padrão dos tabs)
@@ -273,3 +275,4 @@ Checklist de funcionalidades para suportar a **Terapia de Reprocessamento Genera
 - ✅ Reutiliza modelo modular `therapy_techniques` + `technique_sections` (não precisa alterar o frontend core)
 - ✅ Reutiliza `protocols` para templates de sessão TRG
 - ✅ Seções TRG são carregadas dinamicamente — basta registrar no banco e criar os componentes React
+- ✅ Labels de terapia resolvidos via `getTherapyLabel()` — sem hardcode no frontend

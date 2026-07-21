@@ -345,7 +345,7 @@ function TherapyDistributionChart({ distribution, total }: { distribution: Map<T
           <div key={type} className="distribution-row">
             <div className="distribution-label">
               <span className="distribution-dot" style={{ background: color }} />
-              <span>{getTherapyLabel(type, techniques)}</span>
+              <span>{getTherapyLabel(type)}</span>
             </div>
             <div className="distribution-bar-wrapper">
               <div className="distribution-bar" style={{ width: `${percent}%`, background: color }} />

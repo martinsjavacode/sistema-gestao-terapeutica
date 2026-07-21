@@ -339,7 +339,7 @@ function HistoryItem({ attendanceId, date, time, therapyType, objective, onClick
             {dateStr}
             {timeStr && <span style={{ marginLeft: 'var(--space-2)' }}>{timeStr}</span>}
           </span>
-          <span className="badge badge-info">{getTherapyLabel(therapyType, techniques)}</span>
+          <span className="badge badge-info">{getTherapyLabel(therapyType)}</span>
         </div>
         {objective && (
           <p className="timeline-objective">{objective}</p>

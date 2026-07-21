@@ -81,7 +81,7 @@ export function getSectionsForTherapy(
   }
 
   // Fallback estático
-  const keys = THERAPY_SECTIONS_FALLBACK[therapyType] ?? THERAPY_SECTIONS_FALLBACK.outro
+  const keys = THERAPY_SECTIONS_FALLBACK[therapyType] ?? THERAPY_SECTIONS_FALLBACK['outro'] ?? []
   return keys.map(key => ({ key, label: ALL_SECTIONS[key] }))
 }
 

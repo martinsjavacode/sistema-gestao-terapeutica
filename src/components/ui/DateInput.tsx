@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { maskDate } from '../../utils/masks'
 
 interface Props {
   value: string // ISO format yyyy-mm-dd
@@ -30,13 +31,6 @@ function brToIso(br: string): string {
   const mm = String(m).padStart(2, '0')
   const dd = String(d).padStart(2, '0')
   return `${y}-${mm}-${dd}`
-}
-
-function maskDate(value: string): string {
-  const clean = value.replace(/\D/g, '').slice(0, 8)
-  if (clean.length <= 2) return clean
-  if (clean.length <= 4) return `${clean.slice(0, 2)}/${clean.slice(2)}`
-  return `${clean.slice(0, 2)}/${clean.slice(2, 4)}/${clean.slice(4)}`
 }
 
 export default function DateInput({ value, onChange, label, required }: Props) {

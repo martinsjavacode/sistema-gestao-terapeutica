@@ -1,7 +1,7 @@
 // Domain types — SGT
 
 export type TherapyType = string
-export type AppointmentStatus = 'scheduled' | 'confirmed' | 'cancelled' | 'completed'
+export type AppointmentStatus = 'confirmed' | 'cancelled' | 'completed'
 export type EnergyFieldType = 'mental' | 'emocional' | 'espiritual' | 'fisico'
 export type ChakraName = 'coronario' | 'frontal' | 'laringeo' | 'cardiaco' | 'plexo_solar' | 'sacral' | 'raiz'
 export type ChakraState = 'equilibrado' | 'desequilibrio'
@@ -191,7 +191,6 @@ export function getTherapyLabel(therapyType: string, techniques?: { id: string; 
 }
 
 export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
-  scheduled: 'Agendado',
   confirmed: 'Confirmado',
   cancelled: 'Cancelado',
   completed: 'Concluído',

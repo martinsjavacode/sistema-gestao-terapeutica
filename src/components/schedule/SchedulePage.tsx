@@ -1,93 +1,38 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { fetchAppointments, insertAppointment, confirmAppointment, cancelAppointment, deleteAppointment } from '../../services/appointments'
+import { fetchAppointments, insertAppointment } from '../../services/appointments'
 import { getTherapyLabel, APPOINTMENT_STATUS_LABELS } from '../../types/database'
 import { getActiveTechniques } from '../../config/therapy-sections'
 import { useTenant } from '../../hooks/useTenant'
-import type { TherapyType, Appointment } from '../../types/database'
+import type { TherapyType } from '../../types/database'
 import Button from '../ui/Button'
 import Select from '../ui/Select'
 import { TableSkeleton } from '../ui/Skeleton'
 import { toast } from '../../lib/toast'
-import { confirm } from '../../lib/confirm'
 import DateInput from '../ui/DateInput'
 import TimeInput from '../ui/TimeInput'
-import { ChevronLeft, ChevronRight, Check, X, Trash2, ExternalLink } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, ExternalLink } from 'lucide-react'
+import { getCalendarDays, isSameDay, getWeekRange, formatWeekLabel, formatMonthLabel } from '../../utils/date'
 
 // ========== Helpers de data ==========
 
 type ViewMode = 'week' | 'month'
 
-function getWeekRange(date: Date): { start: Date; end: Date } {
-  const d = new Date(date)
-  const day = d.getDay() // 0 = domingo
-  const start = new Date(d)
-  start.setDate(d.getDate() - day)
-  start.setHours(0, 0, 0, 0)
-  const end = new Date(start)
-  end.setDate(start.getDate() + 6)
-  end.setHours(23, 59, 59, 999)
-  return { start, end }
-}
 
-function getMonthRange(date: Date): { start: Date; end: Date } {
-  const start = new Date(date.getFullYear(), date.getMonth(), 1)
-  start.setHours(0, 0, 0, 0)
-  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0)
-  end.setHours(23, 59, 59, 999)
-  return { start, end }
-}
-
-function getMonthCalendarDays(date: Date): Date[] {
-  const { start } = getMonthRange(date)
-  // Recuar até o domingo anterior ao início do mês
-  const calStart = new Date(start)
-  const dayOfWeek = calStart.getDay() // 0 = domingo
-  calStart.setDate(calStart.getDate() - dayOfWeek)
-
-  // Avançar até completar semanas (sempre 42 dias = 6 semanas)
-  const days: Date[] = []
-  const current = new Date(calStart)
-  while (days.length < 42) {
-    days.push(new Date(current))
-    current.setDate(current.getDate() + 1)
-  }
-  // Se a última semana está toda fora do mês, remover
-  const lastWeekStart = days[35]
-  if (lastWeekStart && lastWeekStart.getMonth() !== date.getMonth()) {
-    days.splice(35, 7)
-  }
-  return days
-}
-
-function formatWeekLabel(start: Date, end: Date): string {
-  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }
-  return `${start.toLocaleDateString('pt-BR', opts)} — ${end.toLocaleDateString('pt-BR', opts)}`
-}
-
-function formatMonthLabel(date: Date): string {
-  return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
-}
-
-function isSameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
-}
 
 const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 const STATUS_COLORS: Record<string, string> = {
-  scheduled: 'var(--blue)',
-  confirmed: 'var(--green)',
-  cancelled: 'var(--red)',
-  completed: 'var(--violet-light)',
+  confirmed: 'var(--success)',
+  cancelled: 'var(--danger)',
+  completed: 'var(--text-muted)',
 }
 
 // ========== Componente principal ==========
 
 export default function SchedulePage() {
   const navigate = useNavigate()
-  const qc = useQueryClient()
   const { techniques } = useTenant()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<ViewMode>('week')
@@ -116,7 +61,7 @@ export default function SchedulePage() {
   const range = useMemo(() => {
     if (view === 'week') return getWeekRange(currentDate)
     // Para o mês, buscar range expandido (inclui dias do mês anterior/próximo visíveis)
-    const monthDays = getMonthCalendarDays(currentDate)
+    const monthDays = getCalendarDays(currentDate)
     return { start: monthDays[0]!, end: monthDays[monthDays.length - 1]! }
   }, [currentDate, view])
 
@@ -127,56 +72,6 @@ export default function SchedulePage() {
       return data
     },
   })
-
-  const confirmMut = useMutation({
-    mutationFn: confirmAppointment,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['appointments'] })
-      qc.invalidateQueries({ queryKey: ['attendances'] })
-      toast('Atendimento criado!')
-    },
-    onError: () => toast('Erro ao confirmar', 'error'),
-  })
-
-  const cancelMut = useMutation({
-    mutationFn: cancelAppointment,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['appointments'] }); toast('Agendamento cancelado') },
-    onError: () => toast('Erro ao cancelar', 'error'),
-  })
-
-  const deleteMut = useMutation({
-    mutationFn: deleteAppointment,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['appointments'] }); toast('Agendamento removido') },
-    onError: () => toast('Erro ao remover', 'error'),
-  })
-
-  const handleConfirm = useCallback(async (apt: Appointment) => {
-    const date = new Date(apt.scheduled_at)
-    const details = [
-      `📅 ${date.toLocaleDateString('pt-BR')} às ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
-      `👤 ${apt.clients?.name ?? '—'}`,
-      `🔮 ${getTherapyLabel(apt.therapy_type, techniques)}`,
-      `⏱️ ${apt.duration_minutes} minutos`,
-      apt.notes ? `📝 ${apt.notes}` : '',
-    ].filter(Boolean).join('\n')
-
-    if (await confirm({
-      message: 'Confirmar agendamento e criar atendimento?',
-      details,
-      confirmLabel: 'Confirmar',
-      variant: 'primary',
-    })) {
-      confirmMut.mutate(apt)
-    }
-  }, [confirmMut, techniques])
-
-  const handleCancel = useCallback(async (id: string) => {
-    if (await confirm('Cancelar este agendamento?')) cancelMut.mutate(id)
-  }, [cancelMut])
-
-  const handleDelete = useCallback(async (id: string) => {
-    if (await confirm('Excluir este agendamento?')) deleteMut.mutate(id)
-  }, [deleteMut])
 
   const prev = () => setCurrentDate(d => {
     const n = new Date(d)
@@ -205,7 +100,7 @@ export default function SchedulePage() {
   }, [currentDate])
 
   // Dias do calendário mensal
-  const monthDays = useMemo(() => getMonthCalendarDays(currentDate), [currentDate])
+  const monthDays = useMemo(() => getCalendarDays(currentDate), [currentDate])
 
   const periodLabel = view === 'week'
     ? formatWeekLabel(getWeekRange(currentDate).start, getWeekRange(currentDate).end)
@@ -289,13 +184,6 @@ export default function SchedulePage() {
                         <span className="cal-event-name">{apt.clients?.name ?? '—'}</span>
                         <span className="cal-event-therapy">{getTherapyLabel(apt.therapy_type, techniques)}</span>
                         <div className="cal-event-actions">
-                          {apt.status === 'scheduled' && (
-                            <>
-                              <button className="schedule-btn confirm" onClick={(e) => { e.stopPropagation(); handleConfirm(apt) }} title="Confirmar"><Check size={12} /></button>
-                              <button className="schedule-btn cancel" onClick={(e) => { e.stopPropagation(); handleCancel(apt.id) }} title="Cancelar"><X size={12} /></button>
-                              <button className="schedule-btn delete" onClick={(e) => { e.stopPropagation(); handleDelete(apt.id) }} title="Excluir"><Trash2 size={12} /></button>
-                            </>
-                          )}
                           {apt.status === 'confirmed' && apt.attendance_id && (
                             <button className="schedule-btn open" onClick={(e) => { e.stopPropagation(); navigate(`/attendances?id=${apt.attendance_id}`) }} title="Abrir atendimento"><ExternalLink size={12} /></button>
                           )}

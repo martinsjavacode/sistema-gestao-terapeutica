@@ -77,7 +77,7 @@ CREATE POLICY "Tenant can read own techniques" ON tenant_techniques
   FOR SELECT USING (
     tenant_id = (
       SELECT tenant_id FROM users
-      WHERE id = auth.uid()
+      WHERE email = auth.jwt()->>'email'
     )
   );
 
@@ -86,7 +86,7 @@ CREATE POLICY "Owner can insert tenant_techniques" ON tenant_techniques
   FOR INSERT WITH CHECK (
     tenant_id = (
       SELECT tenant_id FROM users
-      WHERE id = auth.uid()
+      WHERE email = auth.jwt()->>'email'
     )
   );
 
@@ -94,7 +94,7 @@ CREATE POLICY "Owner can delete tenant_techniques" ON tenant_techniques
   FOR DELETE USING (
     tenant_id = (
       SELECT tenant_id FROM users
-      WHERE id = auth.uid()
+      WHERE email = auth.jwt()->>'email'
     )
   );
 

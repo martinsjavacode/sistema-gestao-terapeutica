@@ -24,6 +24,8 @@ const ProtocolsPage = lazy(() => import('./components/protocols/ProtocolsPage'))
 const SettingsPage = lazy(() => import('./components/settings/SettingsPage'))
 const PublicReport = lazy(() => import('./components/report/PublicReport'))
 const ShortLinkResolver = lazy(() => import('./components/report/ShortLinkResolver'))
+const PublicBookingPage = lazy(() => import('./components/booking/PublicBookingPage'))
+const ManageBookingPage = lazy(() => import('./components/booking/ManageBookingPage'))
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 1000 * 60 * 5, retry: 1, refetchOnWindowFocus: false } },
@@ -55,6 +57,7 @@ function AppLayout() {
   if (loading) return <div className="auth"><div className="skeleton" style={{ width: '120px', height: '2rem', margin: '0 auto' }} /></div>
   if (!session) return <Auth />
   if (needsOnboarding) return <Auth />
+  if (localStorage.getItem('sgt-onboarding-step')) return <Auth />
 
   return (
     <TenantProvider tenantId={user?.tenant_id ?? null}>
@@ -106,6 +109,10 @@ export default function App() {
               <Route path="/r/:code" element={<ShortLinkResolver />} />
               <Route path="/report/:slug/:id" element={<PublicReport />} />
               <Route path="/report/:id" element={<PublicReport />} />
+              <Route path="/agendar/:slug" element={<PublicBookingPage />} />
+              <Route path="/agendamento/:token" element={<ManageBookingPage />} />
+              <Route path="/agendamento/:token/cancelar" element={<ManageBookingPage />} />
+              <Route path="/agendamento/:token/reagendar" element={<ManageBookingPage />} />
               <Route path="*" element={<AppLayout />} />
             </Routes>
           </Suspense>

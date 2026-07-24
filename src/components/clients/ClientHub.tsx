@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { getTherapyLabel } from '../../types/database'
 import type { EnergyFieldType, Client, Attendance } from '../../types/database'
+import { formatDate, calcAge } from '../../utils/format'
 import ClientHistory from './ClientHistory'
 
 interface Props {
@@ -22,19 +23,6 @@ interface Props {
 type HubTab = 'resumo' | 'dados' | 'historico'
 
 // ========== Helpers ==========
-
-function formatDate(iso: string): string {
-  return new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR')
-}
-
-function calcAge(birthDate: string): number {
-  const birth = new Date(birthDate + 'T12:00:00')
-  const today = new Date()
-  let age = today.getFullYear() - birth.getFullYear()
-  const m = today.getMonth() - birth.getMonth()
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
-  return age
-}
 
 function daysSince(dateStr: string): number {
   const date = new Date(dateStr + 'T12:00:00')

@@ -9,7 +9,8 @@ import Select from '../ui/Select'
 import SnippetsManager from '../ui/SnippetsManager'
 import { toast } from '../../lib/toast'
 import { confirm } from '../../lib/confirm'
-import { Plus, UserPlus, User, Building2, Save, Bookmark, Sparkles, RefreshCw, Lock } from 'lucide-react'
+import { Plus, UserPlus, User, Building2, Save, Bookmark, Sparkles, RefreshCw, Lock, CalendarClock } from 'lucide-react'
+import AvailabilitySettings from './AvailabilitySettings'
 
 interface UserRow {
   id: string
@@ -25,7 +26,7 @@ interface RoleRow {
   description: string | null
 }
 
-type SettingsTab = 'account' | 'clinic' | 'snippets'
+type SettingsTab = 'account' | 'clinic' | 'booking' | 'snippets'
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<SettingsTab>('clinic')
@@ -50,6 +51,12 @@ export default function SettingsPage() {
           <Building2 size={14} /> Consultório
         </button>
         <button
+          className={`tab-nav-btn ${tab === 'booking' ? 'active' : ''}`}
+          onClick={() => setTab('booking')}
+        >
+          <CalendarClock size={14} /> Agenda Online
+        </button>
+        <button
           className={`tab-nav-btn ${tab === 'snippets' ? 'active' : ''}`}
           onClick={() => setTab('snippets')}
         >
@@ -59,6 +66,7 @@ export default function SettingsPage() {
 
       {tab === 'account' && <AccountTab />}
       {tab === 'clinic' && <ClinicTab />}
+      {tab === 'booking' && <AvailabilitySettings />}
       {tab === 'snippets' && <SnippetsManager />}
     </div>
   )

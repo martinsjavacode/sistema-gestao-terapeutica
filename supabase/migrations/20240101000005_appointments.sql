@@ -2,7 +2,7 @@
 -- appointments — Agenda de atendimentos
 -- ============================================================
 
-create type appointment_status as enum ('scheduled', 'confirmed', 'cancelled', 'completed');
+create type appointment_status as enum ('confirmed', 'cancelled', 'completed');
 
 create table appointments (
   id uuid primary key default gen_random_uuid(),
@@ -10,7 +10,7 @@ create table appointments (
   scheduled_at timestamptz not null,
   duration_minutes int not null default 60,
   therapy_type therapy_type not null default 'radiestesia',
-  status appointment_status not null default 'scheduled',
+  status appointment_status not null default 'confirmed',
   notes text,
   attendance_id uuid references attendances(id) on delete set null,
   created_at timestamptz default now(),

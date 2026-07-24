@@ -36,7 +36,9 @@ BEGIN
     WHERE table_name = 'appointments' AND column_name = 'therapy_type'
     AND data_type = 'USER-DEFINED'
   ) THEN
+    ALTER TABLE appointments ALTER COLUMN therapy_type DROP DEFAULT;
     ALTER TABLE appointments ALTER COLUMN therapy_type TYPE text USING therapy_type::text;
+    ALTER TABLE appointments ALTER COLUMN therapy_type SET DEFAULT 'radiestesia';
     ALTER TABLE appointments
       ADD CONSTRAINT fk_appointments_therapy_type
       FOREIGN KEY (therapy_type) REFERENCES therapy_techniques(id)
@@ -44,5 +46,9 @@ BEGIN
   END IF;
 END $$;
 
--- 6. Dropar o enum antigo (não é mais necessário)
+-- 6. Remover defaults que ainda referenciam o enum (necessário antes do DROP TYPE)
+ALTER TABLE attendances ALTER COLUMN therapy_type DROP DEFAULT;
+ALTER TABLE attendances ALTER COLUMN therapy_type SET DEFAULT 'radiestesia';
+
+-- 7. Dropar o enum antigo (não é mais necessário)
 DROP TYPE IF EXISTS therapy_type;

@@ -1,0 +1,699 @@
+/* ============================================================
+   PublicBooking.css — Estilo Calendly
+   Layout: sidebar esquerda + calendário + slots à direita
+   ============================================================ */
+
+:root {
+  --booking-primary: #0069ff;
+  --booking-primary-hover: #0052cc;
+  --booking-text: #1a1a2e;
+  --booking-muted: #6b7280;
+  --booking-border: #d4e0ed;
+  --booking-bg: #f3f4f6;
+  --booking-card-bg: #f9f9f9;
+  --booking-radius: 8px;
+  --booking-slot-radius: 20px;
+}
+
+/* Page shell */
+.booking-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: var(--booking-bg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--booking-text);
+  /* Isolar do tema do app */
+  position: relative;
+  z-index: 1;
+}
+
+/* Esconder o gradiente do body quando na página de booking */
+body:has(.booking-page)::before {
+  display: none;
+}
+
+body:has(.booking-page) {
+  background: #f3f4f6 !important;
+}
+
+/* Reset dos estilos globais do app dentro do booking */
+.booking-page h1,
+.booking-page h2,
+.booking-page h3,
+.booking-page h4 {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+  background-clip: unset !important;
+  color: var(--booking-text) !important;
+}
+
+.booking-page input,
+.booking-page textarea,
+.booking-page button {
+  font-family: inherit;
+  color: inherit;
+}
+
+.booking-page input,
+.booking-page textarea {
+  background: #ffffff;
+  color: var(--booking-text);
+  border: 1px solid var(--booking-border);
+}
+
+.booking-page input::placeholder,
+.booking-page textarea::placeholder {
+  color: var(--booking-muted);
+}
+
+.booking-container {
+  width: 100%;
+  max-width: 1080px;
+}
+
+.booking-footer {
+  margin-top: 32px;
+  font-size: 0.72rem;
+  color: var(--booking-muted);
+  letter-spacing: 0.02em;
+}
+
+.booking-footer strong {
+  color: var(--booking-text);
+}
+
+/* Card principal */
+.booking-card {
+  display: flex;
+  background: var(--booking-card-bg);
+  border-radius: var(--booking-radius);
+  border: 1px solid var(--booking-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  min-height: 560px;
+}
+
+.booking-card--form {
+  min-height: auto;
+}
+
+.booking-card--therapy {
+  min-height: auto;
+}
+
+.booking-card--confirmation {
+  min-height: auto;
+  justify-content: center;
+  align-items: center;
+  padding: 48px;
+}
+
+/* Sidebar esquerda */
+.booking-sidebar {
+  width: 320px;
+  min-width: 320px;
+  padding: 40px 32px;
+  border-right: 1px solid var(--booking-border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.booking-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 16px;
+}
+
+.booking-avatar--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--booking-bg);
+  color: var(--booking-muted);
+}
+
+.booking-host-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1a3e5c;
+  margin: 0;
+}
+
+.booking-event-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--booking-text);
+  margin: 4px 0 20px;
+}
+
+.booking-event-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.booking-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--booking-muted);
+}
+
+.booking-meta-item--highlight {
+  color: var(--booking-text);
+  font-weight: 500;
+}
+
+/* Área principal (direita) */
+.booking-main {
+  flex: 1;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+.booking-section-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin: 0 0 24px;
+  color: var(--booking-text);
+}
+
+/* Calendário + Slots lado a lado */
+.booking-calendar-area {
+  display: flex;
+  gap: 24px;
+  flex: 1;
+}
+
+.booking-calendar {
+  flex: 1;
+  min-width: 280px;
+}
+
+.booking-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.booking-month-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.booking-nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  color: var(--booking-text);
+  transition: background 0.15s;
+}
+
+.booking-nav-btn:hover:not(:disabled) {
+  background: var(--booking-bg);
+}
+
+.booking-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Dias da semana */
+.booking-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.booking-weekdays span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--booking-muted);
+  letter-spacing: 0.04em;
+  padding: 4px;
+}
+
+/* Grid de dias */
+.booking-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  position: relative;
+}
+
+/* Overlay: sem horários no mês */
+.booking-no-availability {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  grid-column: 1 / -1;
+  background: none;
+  border-radius: 8px;
+}
+
+.booking-no-availability-card {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--booking-text);
+}
+
+.booking-next-month-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: #8b5cf6;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 10px 20px;
+  border-radius: 20px;
+  transition: background 0.15s;
+}
+
+.booking-next-month-btn:hover {
+  background: #7c3aed;
+}
+
+.booking-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--booking-text);
+  transition: all 0.15s;
+}
+
+.booking-day:hover:not(:disabled):not(.booking-day--selected) {
+  background: var(--booking-bg);
+}
+
+.booking-day--selected {
+  background: var(--booking-primary);
+  color: #fff;
+  font-weight: 700;
+}
+
+.booking-day--today:not(.booking-day--selected) {
+  font-weight: 700;
+  color: var(--booking-primary);
+}
+
+.booking-day--disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* Fuso horário */
+.booking-timezone {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--booking-border);
+}
+
+.booking-timezone-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--booking-text);
+  margin-bottom: 6px;
+}
+
+.booking-timezone-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--booking-muted);
+}
+
+/* Coluna de slots */
+.booking-slots {
+  width: 220px;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+}
+
+.booking-slots-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin: 0 0 16px;
+  text-transform: capitalize;
+  color: var(--booking-text);
+}
+
+.booking-slots-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  max-height: 400px;
+  padding-right: 4px;
+}
+
+.booking-slot-btn {
+  padding: 14px 16px;
+  border: 1px solid #68a4f5;
+  border-radius: 4px;
+  background: none;
+  color: var(--booking-primary);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+  width: 100%;
+}
+
+.booking-slot-btn:hover {
+  background: var(--booking-primary);
+  color: #fff;
+  border-color: var(--booking-primary);
+}
+
+.booking-slots-empty {
+  font-size: 0.82rem;
+  color: var(--booking-muted);
+  text-align: center;
+  padding: 32px 0;
+}
+
+.booking-slots-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.booking-slot-skeleton {
+  height: 38px;
+  border-radius: var(--booking-slot-radius);
+  background: var(--booking-bg);
+  animation: booking-pulse 1.5s infinite;
+}
+
+@keyframes booking-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Formulário */
+.booking-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--booking-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+.booking-back-btn:hover {
+  text-decoration: underline;
+}
+
+.booking-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 400px;
+}
+
+.booking-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.booking-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--booking-text);
+}
+
+.booking-field input,
+.booking-field textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--booking-border);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: var(--booking-text);
+  background: #ffffff;
+  transition: border-color 0.15s;
+}
+
+.booking-field input:focus,
+.booking-field textarea:focus {
+  outline: none;
+  border-color: var(--booking-primary);
+  box-shadow: 0 0 0 3px rgba(0, 105, 255, 0.08);
+}
+
+.booking-field textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.booking-submit-btn {
+  margin-top: 8px;
+  padding: 12px 24px;
+  background: var(--booking-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--booking-slot-radius);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.booking-submit-btn:hover:not(:disabled) {
+  background: var(--booking-primary-hover);
+}
+
+.booking-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Seleção de terapia */
+.booking-therapy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.booking-therapy-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px;
+  background: none;
+  border: 1px solid var(--booking-border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  width: 100%;
+}
+
+.booking-therapy-card:hover {
+  border-color: var(--booking-primary);
+  background: rgba(0, 105, 255, 0.03);
+}
+
+.booking-therapy-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--booking-text);
+}
+
+.booking-therapy-desc {
+  font-size: 0.82rem;
+  color: var(--booking-muted);
+  flex: 1;
+}
+
+.booking-therapy-arrow {
+  margin-left: auto;
+  color: var(--booking-primary);
+  flex-shrink: 0;
+}
+
+/* Confirmação */
+.booking-confirmation-content {
+  text-align: center;
+  max-width: 460px;
+}
+
+.booking-check-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.booking-confirmation-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.booking-confirmation-subtitle {
+  font-size: 0.9rem;
+  color: var(--booking-muted);
+  margin: 0 0 28px;
+}
+
+.booking-confirmation-details {
+  text-align: left;
+  border-top: 1px solid var(--booking-border);
+  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.booking-confirmation-row {
+  display: flex;
+  gap: 12px;
+  font-size: 0.88rem;
+}
+
+.booking-confirmation-label {
+  font-weight: 600;
+  color: var(--booking-muted);
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.booking-manage-link {
+  display: inline-block;
+  font-size: 0.85rem;
+  color: var(--booking-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.booking-manage-link:hover {
+  text-decoration: underline;
+}
+
+.booking-manage-link--danger {
+  color: #ef4444;
+}
+
+.booking-manage-links {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+/* ============================================================
+   Responsivo — Mobile (empilha sidebar em cima)
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .booking-card {
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .booking-sidebar {
+    width: 100%;
+    min-width: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--booking-border);
+    padding: 24px;
+  }
+
+  .booking-main {
+    padding: 24px;
+  }
+
+  .booking-calendar-area {
+    flex-direction: column;
+  }
+
+  .booking-calendar {
+    min-width: auto;
+  }
+
+  .booking-slots {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .booking-slots-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .booking-slot-btn {
+    flex: 0 0 auto;
+  }
+
+  .booking-card--confirmation {
+    padding: 32px 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .booking-page {
+    padding: 0;
+  }
+
+  .booking-container {
+    max-width: 100%;
+  }
+
+  .booking-card {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+}

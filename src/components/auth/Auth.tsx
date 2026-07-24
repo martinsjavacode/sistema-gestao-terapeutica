@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { Eye, EyeOff } from 'lucide-react'
+import TechniqueSelector from './TechniqueSelector'
 import './Auth.css'
 
-type Mode = 'login' | 'signup' | 'onboarding'
+type Mode = 'login' | 'signup' | 'onboarding' | 'onboarding-techniques'
 
 interface PendingInvite {
   invite_id: string
@@ -15,7 +16,11 @@ interface PendingInvite {
 
 export default function Auth() {
   const navigate = useNavigate()
-  const [mode, setMode] = useState<Mode>('login')
+  const [mode, setMode] = useState<Mode>(() => {
+    const savedStep = localStorage.getItem('sgt-onboarding-step')
+    if (savedStep === 'techniques') return 'onboarding-techniques'
+    return 'login'
+  })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [ownerName, setOwnerName] = useState('')
@@ -24,6 +29,7 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [pendingInvite, setPendingInvite] = useState<PendingInvite | null>(null)
+  const [selectedTechniques, setSelectedTechniques] = useState<string[]>([])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,7 +59,7 @@ export default function Auth() {
     e.preventDefault()
     setLoading(true); setError('')
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: window.location.origin + '/sistema-gestao-terapeutica/' },
@@ -65,14 +71,16 @@ export default function Auth() {
       return
     }
 
-    // Supabase pode auto-confirmar em dev — tentar login imediato
-    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
-    if (loginError) {
-      // Provavelmente precisa confirmar email
-      setError('Conta criada! Verifique seu email para confirmar, depois faça login.')
-      setMode('login')
-      setLoading(false)
-      return
+    // Se não temos session (email confirmation habilitado)
+    if (!signUpData.session) {
+      // Tentar login direto (confirmação desabilitada mas session não veio)
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
+      if (loginError) {
+        setError('Conta criada! Verifique seu email para confirmar, depois faça login.')
+        setMode('login')
+        setLoading(false)
+        return
+      }
     }
 
     // Signup + login ok — provisionar tenant e user imediatamente
@@ -92,7 +100,9 @@ export default function Auth() {
         return
       }
 
-      navigate('/', { replace: true })
+      // Ir para seleção de técnicas
+      localStorage.setItem('sgt-onboarding-step', 'techniques')
+      setMode('onboarding-techniques')
     } else {
       // Sem nome de consultório — ir para onboarding
       setMode('onboarding')
@@ -144,9 +154,63 @@ export default function Auth() {
     }
 
     if (data) {
-      navigate('/', { replace: true })
+      // Ir para seleção de técnicas
+      localStorage.setItem('sgt-onboarding-step', 'techniques')
+      setMode('onboarding-techniques')
     }
     setLoading(false)
+  }
+
+  const handleFinishOnboarding = async () => {
+    if (selectedTechniques.length === 0) {
+      setError('Selecione pelo menos uma técnica')
+      return
+    }
+    setLoading(true); setError('')
+
+    // Buscar tenant_id do user recém criado
+    const { data: userData } = await supabase
+      .from('users')
+      .select('tenant_id')
+      .eq('email', (await supabase.auth.getSession()).data.session?.user.email ?? '')
+      .single()
+
+    if (!userData?.tenant_id) {
+      setError('Erro ao vincular técnicas. Tente novamente.')
+      setLoading(false)
+      return
+    }
+
+    // Inserir técnicas selecionadas
+    const rows = selectedTechniques.map(techId => ({
+      tenant_id: userData.tenant_id,
+      technique_id: techId,
+      is_addon: false,
+    }))
+
+    const { error: insertError } = await supabase
+      .from('tenant_techniques')
+      .insert(rows)
+
+    if (insertError) {
+      setError(insertError.message)
+      setLoading(false)
+      return
+    }
+
+    localStorage.removeItem('sgt-onboarding-step')
+    navigate('/', { replace: true })
+    setLoading(false)
+  }
+
+  if (mode === 'onboarding-techniques') {
+    return <TechniqueSelector
+      selectedTechniques={selectedTechniques}
+      setSelectedTechniques={setSelectedTechniques}
+      onFinish={handleFinishOnboarding}
+      loading={loading}
+      error={error}
+    />
   }
 
   if (mode === 'onboarding') {
@@ -274,3 +338,4 @@ export default function Auth() {
     </div>
   )
 }
+

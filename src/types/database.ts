@@ -41,6 +41,7 @@ export interface Attendance {
   completed_sections: string[] | null
   report_content: string | null
   report_pdf_url: string | null
+  template_id: string | null
   created_at: string
   client?: Client
 }

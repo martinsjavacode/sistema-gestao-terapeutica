@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { fetchAttendance, updateAttendance, fetchEnergyAssessments, fetchChakras, fetchAuraField, fetchLifeAreas, fetchEmotions, fetchLimitingBeliefs, fetchEnergyDivorces, fetchTreatment } from '../../services/attendances'
+import { fetchTemplates, linkTemplateToAttendance, fetchCustomSectionValues, upsertCustomSectionValue, incrementTemplateUsage } from '../../services/templates'
 import { TableSkeleton } from '../ui/Skeleton'
 import Button from '../ui/Button'
-import { ArrowLeft, ChevronRight, ChevronDown, Check, Youtube, StickyNote, Copy, CheckCircle2, FileCheck } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ChevronDown, Check, Youtube, StickyNote, Copy, CheckCircle2, FileCheck, BookOpen } from 'lucide-react'
 import { getTherapyLabel } from '../../types/database'
 import { getSectionsForTherapy } from '../../config/therapy-sections'
 import type { SectionKey } from '../../config/therapy-sections'
@@ -53,6 +54,46 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
   const { data: attendance, isLoading } = useQuery({
     queryKey: ['attendance', attendanceId],
     queryFn: async () => { const { data } = await fetchAttendance(attendanceId); return data },
+  })
+
+  // Ficha selecionada
+  const { data: templates = [] } = useQuery({
+    queryKey: ['templates', attendance?.therapy_type],
+    queryFn: async () => {
+      const { data } = await fetchTemplates(attendance!.therapy_type)
+      return data
+    },
+    enabled: !!attendance,
+  })
+
+  const { data: customValues = [] } = useQuery({
+    queryKey: ['custom-section-values', attendanceId],
+    queryFn: async () => {
+      const { data } = await fetchCustomSectionValues(attendanceId)
+      return data
+    },
+  })
+
+  const selectedTemplate = templates.find(p => p.id === attendance?.template_id) ?? null
+
+  const changeTemplateMut = useMutation({
+    mutationFn: async (templateId: string | null) => {
+      await linkTemplateToAttendance(attendanceId, templateId)
+      if (templateId) await incrementTemplateUsage(templateId)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['attendance', attendanceId] })
+    },
+  })
+
+  const saveCustomSectionMut = useMutation({
+    mutationFn: async ({ sectionId, content }: { sectionId: string; content: string }) => {
+      if (!attendance?.template_id) return
+      await upsertCustomSectionValue(attendanceId, attendance.template_id, sectionId, content)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['custom-section-values', attendanceId] })
+    },
   })
 
   const markSectionComplete = useCallback(async (key: SectionKey) => {
@@ -155,13 +196,20 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
   if (isLoading) return <TableSkeleton />
   if (!attendance) return <p>Atendimento não encontrado.</p>
 
-  const sections = getSectionsForTherapy(attendance.therapy_type, techniques)
+  const sections = selectedTemplate
+    ? selectedTemplate.sections.filter(s => s.type === 'builtin').map(s => ({ key: s.key as SectionKey, label: s.label }))
+    : getSectionsForTherapy(attendance.therapy_type, techniques)
+  const customSections = selectedTemplate
+    ? selectedTemplate.sections.filter(s => s.type === 'custom')
+    : []
   const filledCount = sections.filter(s => filledSections[s.key]).length
-  const progressPercent = Math.round((filledCount / sections.length) * 100)
+  const totalSections = sections.length + customSections.length
+  const customFilledCount = customSections.filter(cs => customValues.some(v => v.section_id === cs.id && v.content.trim()))?.length ?? 0
+  const progressPercent = Math.round(((filledCount + customFilledCount) / totalSections) * 100)
 
   const getStatusBadge = () => {
-    if (filledCount === 0) return { label: 'Rascunho', className: 'badge badge-warning', icon: null }
-    if (filledCount === sections.length) return { label: 'Completo', className: 'badge badge-success', icon: <CheckCircle2 size={12} /> }
+    if (filledCount === 0 && customFilledCount === 0) return { label: 'Rascunho', className: 'badge badge-warning', icon: null }
+    if (filledCount + customFilledCount === totalSections) return { label: 'Completo', className: 'badge badge-success', icon: <CheckCircle2 size={12} /> }
     return { label: 'Em andamento', className: 'badge badge-info', icon: null }
   }
 
@@ -173,7 +221,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
       <aside className="attendance-minimap">
         <div className="minimap-header">
           <span className="minimap-title">Seções</span>
-          <span className="minimap-progress">{filledCount}/{sections.length}</span>
+          <span className="minimap-progress">{filledCount + customFilledCount}/{totalSections}</span>
         </div>
         <div className="minimap-progress-bar">
           <div className="minimap-progress-fill" style={{ width: `${progressPercent}%` }} />
@@ -229,8 +277,26 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
           <div className="attendance-progress-track">
             <div className="attendance-progress-fill" style={{ width: `${progressPercent}%` }} />
           </div>
-          <span className="attendance-progress-text">{filledCount}/{sections.length} seções</span>
+          <span className="attendance-progress-text">{filledCount + customFilledCount}/{totalSections} seções</span>
         </div>
+
+        {/* Seletor de ficha */}
+        {templates.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-4)', padding: 'var(--space-3) var(--space-4)', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+            <BookOpen size={16} style={{ color: 'var(--violet-light)', flexShrink: 0 }} />
+            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)', flexShrink: 0 }}>Ficha:</span>
+            <select
+              value={attendance.template_id ?? ''}
+              onChange={e => changeTemplateMut.mutate(e.target.value || null)}
+              style={{ flex: 1, padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--card)', fontSize: '0.85rem', color: 'var(--text)' }}
+            >
+              <option value="">Padrão (todas as seções da terapia)</option>
+              {templates.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* YouTube + Observação interna */}
         <AttendanceExtraFields attendanceId={attendanceId} youtubeUrl={attendance.youtube_url} internalNotes={attendance.internal_notes} objective={attendance.objective} />
@@ -296,18 +362,46 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
           })}
         </div>
 
+        {/* Seções customizadas do protocolo */}
+        {customSections.length > 0 && (
+          <div className="accordion" style={{ marginTop: 'var(--space-4)' }}>
+            {customSections.map(section => {
+              const savedValue = customValues.find(v => v.section_id === section.id)?.content ?? ''
+              return (
+                <div key={section.id} className="accordion-item expanded">
+                  <div className="accordion-header" style={{ cursor: 'default', borderLeftColor: 'var(--gold)' }}>
+                    <div className="accordion-header-left">
+                      <span className="accordion-title">{section.label}</span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--gold)', marginLeft: 'var(--space-2)' }}>personalizado</span>
+                    </div>
+                  </div>
+                  <div className="accordion-panel">
+                    <div className="accordion-content">
+                      <CustomSectionField
+                        sectionId={section.id}
+                        initialValue={savedValue}
+                        onSave={(content) => saveCustomSectionMut.mutate({ sectionId: section.id, content })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
         {/* Ações finais */}
         {filledCount > 0 && (
           <div className="attendance-footer-actions">
             <Button variant="tab" onClick={() => setShowSummary(true)}>
               <FileCheck size={14} /> Ver resumo final
             </Button>
-            {filledCount < sections.length && (
+            {filledCount + customFilledCount < totalSections && (
               <Button onClick={handleFinalize}>
                 <CheckCircle2 size={14} /> Finalizar atendimento
               </Button>
             )}
-            {filledCount === sections.length && (
+            {filledCount + customFilledCount === totalSections && (
               <span className="attendance-completed-badge">
                 <CheckCircle2 size={16} /> Atendimento concluído
               </span>
@@ -382,6 +476,38 @@ function AttendanceSummaryModal({ sections, filledSections, sectionSummaries, cl
         </div>
       </div>
     </div>
+  )
+}
+
+// ========== Seção Customizada (texto livre com auto-save) ==========
+
+function CustomSectionField({ initialValue, onSave }: {
+  sectionId: string
+  initialValue: string
+  onSave: (content: string) => void
+}) {
+  const [value, setValue] = useState(initialValue)
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  // Sync when initialValue changes (e.g., first load)
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => { setValue(initialValue) }, [initialValue])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const handleChange = useCallback((v: string) => {
+    setValue(v)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => onSave(v), 1500)
+  }, [onSave])
+
+  return (
+    <TextAreaWithSnippets
+      value={value}
+      onChange={handleChange}
+      placeholder="Digite aqui... (/ para snippets)"
+      rows={4}
+      allowSave={false}
+    />
   )
 }
 

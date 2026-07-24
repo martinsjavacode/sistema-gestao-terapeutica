@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchTemplates, insertTemplate, updateTemplate, deleteTemplate, duplicateTemplate, type SessionTemplate, type TemplateSection } from '../../services/templates'
+import { fetchTemplates, insertTemplate, updateTemplate, deleteTemplate, duplicateTemplate, setDefaultTemplate, type SessionTemplate, type TemplateSection } from '../../services/templates'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import EmptyState from '../ui/EmptyState'
 import Select from '../ui/Select'
 import { confirm } from '../../lib/confirm'
 import { toast } from '../../lib/toast'
-import { Plus, Copy, Pencil, Trash2, GripVertical, BookOpen, Hash, Check } from 'lucide-react'
+import { Plus, Copy, Pencil, Trash2, GripVertical, BookOpen, Hash, Check, Star } from 'lucide-react'
 import { getTherapyLabel } from '../../types/database'
 import type { TherapyType } from '../../types/database'
 import { getActiveTechniques, ALL_SECTIONS } from '../../config/therapy-sections'
@@ -99,6 +99,11 @@ export default function ProtocolsPage() {
                     <BookOpen size={18} />
                   </div>
                   <div className="protocol-card-actions">
+                    {template.is_default && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.7rem', color: 'var(--gold)', fontWeight: 600 }}>
+                        <Star size={12} fill="var(--gold)" /> Padrão
+                      </span>
+                    )}
                     <button className="edit-btn" onClick={() => handleDuplicate(template)} title="Duplicar"><Copy size={14} /></button>
                     <button className="edit-btn" onClick={() => setEditing(template)} title="Editar"><Pencil size={14} /></button>
                     <button className="edit-btn" onClick={() => handleDelete(template)} title="Arquivar"><Trash2 size={14} /></button>
@@ -145,9 +150,16 @@ export default function ProtocolsPage() {
   )
 }
 
-// ========== Formulário de Protocolo ==========
+// ========== Formulário de Ficha ==========
 
 const BUILTIN_SECTION_KEYS = Object.keys(ALL_SECTIONS) as SectionKey[]
+
+const FIELD_TYPE_LABELS: Record<string, string> = {
+  text: 'Texto livre',
+  list: 'Lista de itens',
+  rating: 'Nota',
+  checkbox: 'Checkbox',
+}
 
 function ProtocolForm({ template, onClose, onSaved }: { template: SessionTemplate | null; onClose: () => void; onSaved: () => void }) {
   const { techniques } = useTenant()
@@ -158,9 +170,11 @@ function ProtocolForm({ template, onClose, onSaved }: { template: SessionTemplat
   const [sections, setSections] = useState<TemplateSection[]>(
     template?.sections?.length ? template.sections : []
   )
+  const [isDefault, setIsDefault] = useState(template?.is_default ?? false)
   const [newCustomLabel, setNewCustomLabel] = useState('')
+  const [newFieldType, setNewFieldType] = useState<'text' | 'list' | 'rating' | 'checkbox'>('text')
+  const [saving, setSaving] = useState(false)
 
-  // Quais seções builtin estão selecionadas
   const selectedBuiltinKeys = new Set(sections.filter(s => s.type === 'builtin').map(s => s.key))
 
   const toggleBuiltin = (key: SectionKey) => {
@@ -179,14 +193,22 @@ function ProtocolForm({ template, onClose, onSaved }: { template: SessionTemplat
 
   const addCustomSection = () => {
     if (!newCustomLabel.trim()) return
-    setSections(prev => [...prev, {
+    const section: TemplateSection = {
       id: crypto.randomUUID(),
       type: 'custom' as const,
       key: null,
       label: newCustomLabel.trim(),
-      order: prev.length + 1,
-    }])
+      order: sections.length + 1,
+      field_type: newFieldType,
+    }
+    if (newFieldType === 'rating') {
+      section.config = { max_rating: 10, rating_label: '/10' }
+    } else if (newFieldType === 'checkbox') {
+      section.config = { checkbox_label: 'Realizado' }
+    }
+    setSections(prev => [...prev, section])
     setNewCustomLabel('')
+    setNewFieldType('text')
   }
 
   const removeSection = (id: string) => {
@@ -209,6 +231,9 @@ function ProtocolForm({ template, onClose, onSaved }: { template: SessionTemplat
     e.preventDefault()
     if (!name.trim()) return
     if (sections.length === 0) { toast('Adicione ao menos uma seção', 'error'); return }
+    setSaving(true)
+
+    let templateId: string | null = template?.id ?? null
 
     if (template) {
       const { error } = await updateTemplate(template.id, {
@@ -217,18 +242,25 @@ function ProtocolForm({ template, onClose, onSaved }: { template: SessionTemplat
         therapy_type: therapyType,
         sections,
       })
-      if (error) { toast('Erro ao atualizar', 'error'); return }
+      if (error) { toast('Erro ao atualizar', 'error'); setSaving(false); return }
       toast('Ficha atualizada')
     } else {
-      const { error } = await insertTemplate({
+      const { data, error } = await insertTemplate({
         name: name.trim(),
         description: description.trim() || null,
         therapy_type: therapyType,
         sections,
       })
-      if (error) { toast('Erro ao criar', 'error'); return }
+      if (error) { toast('Erro ao criar', 'error'); setSaving(false); return }
+      templateId = data?.id ?? null
       toast('Ficha criada')
     }
+
+    if (isDefault && templateId) {
+      await setDefaultTemplate(templateId)
+    }
+
+    setSaving(false)
     onSaved()
   }
 
@@ -237,12 +269,11 @@ function ProtocolForm({ template, onClose, onSaved }: { template: SessionTemplat
       title={template ? 'Editar Ficha' : 'Nova Ficha'}
       onClose={onClose}
       onSubmit={handleSubmit}
-      submitLabel={template ? 'Salvar' : 'Criar'}
-      submitDisabled={!name.trim() || sections.length === 0}
+      submitLabel={saving ? 'Salvando...' : template ? 'Salvar' : 'Criar'}
+      submitDisabled={!name.trim() || sections.length === 0 || saving}
       className="modal-wide"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        {/* Nome + Tipo */}
         <div className="form-grid">
           <label className="form-label">
             Nome da ficha
@@ -261,14 +292,25 @@ function ProtocolForm({ template, onClose, onSaved }: { template: SessionTemplat
           <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="Breve descrição da ficha..." />
         </label>
 
-        {/* Seções builtin — picker */}
+        {/* Toggle ficha padrão */}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', cursor: 'pointer', padding: 'var(--space-3)', background: isDefault ? 'rgba(234, 179, 8, 0.08)' : 'var(--surface)', borderRadius: 'var(--radius-sm)', border: isDefault ? '1px solid var(--gold)' : '1px solid var(--border)', transition: 'all 0.15s' }}>
+          <input type="checkbox" checked={isDefault} onChange={e => setIsDefault(e.target.checked)} style={{ width: 18, height: 18, accentColor: 'var(--gold)' }} />
+          <div>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>
+              <Star size={14} style={{ color: 'var(--gold)', marginRight: 4, verticalAlign: -2 }} />
+              Ficha padrão para {getTherapyLabel(therapyType, techniques)}
+            </span>
+            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Será usada automaticamente em novos atendimentos desta terapia
+            </span>
+          </div>
+        </label>
+
+        {/* Seções builtin */}
         <div>
           <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 'var(--space-2)' }}>
             Seções do sistema
           </span>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
-            Selecione quais seções builtin esta ficha vai usar:
-          </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {BUILTIN_SECTION_KEYS.map(key => {
               const isSelected = selectedBuiltinKeys.has(key)
@@ -300,23 +342,30 @@ function ProtocolForm({ template, onClose, onSaved }: { template: SessionTemplat
           </div>
         </div>
 
-        {/* Seções custom — adicionar */}
+        {/* Seções custom com tipo de campo */}
         <div>
           <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 'var(--space-2)' }}>
             Seções personalizadas
           </span>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>
-            Adicione campos de texto livre para informações específicas desta ficha:
-          </p>
-          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
             <input
               type="text"
               value={newCustomLabel}
               onChange={e => setNewCustomLabel(e.target.value)}
-              placeholder="Ex: Exercícios para casa"
+              placeholder="Nome do campo"
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomSection() } }}
-              style={{ flex: 1 }}
+              style={{ flex: 1, minWidth: '150px' }}
             />
+            <select
+              value={newFieldType}
+              onChange={e => setNewFieldType(e.target.value as typeof newFieldType)}
+              style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: '0.82rem', color: 'var(--text)' }}
+            >
+              <option value="text">Texto livre</option>
+              <option value="list">Lista de itens</option>
+              <option value="rating">Nota</option>
+              <option value="checkbox">Checkbox</option>
+            </select>
             <Button variant="tab" onClick={addCustomSection} type="button" disabled={!newCustomLabel.trim()}>
               <Plus size={14} /> Adicionar
             </Button>
@@ -327,7 +376,7 @@ function ProtocolForm({ template, onClose, onSaved }: { template: SessionTemplat
         {sections.length > 0 && (
           <div>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 'var(--space-3)' }}>
-              Ordem das seções na ficha ({sections.length})
+              Ordem das seções ({sections.length})
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
               {sections.map((section, index) => (
@@ -341,33 +390,13 @@ function ProtocolForm({ template, onClose, onSaved }: { template: SessionTemplat
                       {section.label}
                     </span>
                     <span style={{ fontSize: '0.7rem', color: section.type === 'custom' ? 'var(--gold)' : 'var(--text-muted)' }}>
-                      {section.type === 'custom' ? 'Campo personalizado' : 'Seção do sistema'}
+                      {section.type === 'custom' ? FIELD_TYPE_LABELS[section.field_type ?? 'text'] : 'Seção do sistema'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: '2px' }}>
-                    <button
-                      className="edit-btn"
-                      onClick={() => moveSection(section.id, 'up')}
-                      disabled={index === 0}
-                      type="button"
-                      aria-label="Mover para cima"
-                      style={{ opacity: index === 0 ? 0.3 : 1 }}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      className="edit-btn"
-                      onClick={() => moveSection(section.id, 'down')}
-                      disabled={index === sections.length - 1}
-                      type="button"
-                      aria-label="Mover para baixo"
-                      style={{ opacity: index === sections.length - 1 ? 0.3 : 1 }}
-                    >
-                      ↓
-                    </button>
-                    <button className="edit-btn" onClick={() => removeSection(section.id)} type="button" aria-label="Remover">
-                      <Trash2 size={14} />
-                    </button>
+                    <button className="edit-btn" onClick={() => moveSection(section.id, 'up')} disabled={index === 0} type="button" aria-label="Mover para cima" style={{ opacity: index === 0 ? 0.3 : 1 }}>↑</button>
+                    <button className="edit-btn" onClick={() => moveSection(section.id, 'down')} disabled={index === sections.length - 1} type="button" aria-label="Mover para baixo" style={{ opacity: index === sections.length - 1 ? 0.3 : 1 }}>↓</button>
+                    <button className="edit-btn" onClick={() => removeSection(section.id)} type="button" aria-label="Remover"><Trash2 size={14} /></button>
                   </div>
                 </div>
               ))}

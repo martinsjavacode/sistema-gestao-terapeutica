@@ -73,7 +73,7 @@ function AppLayout() {
                 <Route path="/clients" element={<ProtectedRoute allowed={can('clients', 'read')} loading={!permissionsLoaded}><ClientsPage /></ProtectedRoute>} />
                 <Route path="/attendances" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><AttendancePage /></ProtectedRoute>} />
                 <Route path="/schedule" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><SchedulePage /></ProtectedRoute>} />
-                <Route path="/protocols" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><ProtocolsPage /></ProtectedRoute>} />
+                <Route path="/templates" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><ProtocolsPage /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute allowed={can('settings', 'read')} loading={!permissionsLoaded}><SettingsPage /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

@@ -27,8 +27,8 @@ describe('Breadcrumbs', () => {
     expect(screen.getByText('Atendimentos')).toBeInTheDocument()
   })
 
-  it('renders breadcrumb for /protocols', () => {
-    renderWithRouter('/protocols')
+  it('renders breadcrumb for /templates', () => {
+    renderWithRouter('/templates')
     expect(screen.getByText('Fichas')).toBeInTheDocument()
   })
 

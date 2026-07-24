@@ -3,20 +3,26 @@ import type { TherapyType } from '../types/database'
 
 // ========== Types ==========
 
-export interface TemplateSection {
+export interface TemplateField {
   id: string
-  type: 'builtin' | 'custom'
-  key: string | null  // SectionKey for builtin, null for custom
   label: string
-  order: number
-  // Custom section field type
-  field_type?: 'text' | 'list' | 'rating' | 'checkbox'
+  field_type: 'text' | 'list' | 'rating' | 'checkbox'
   config?: {
     placeholder?: string
     max_rating?: number       // 10 or 100
     rating_label?: string     // "%" or "/10"
     checkbox_label?: string   // Ex: "Realizado"
   }
+}
+
+export interface TemplateSection {
+  id: string
+  type: 'builtin' | 'custom'
+  key: string | null  // SectionKey for builtin, null for custom
+  label: string
+  order: number
+  // Custom section fields (multiple per section)
+  fields?: TemplateField[]
 }
 
 export interface SessionTemplate {
@@ -126,10 +132,8 @@ export interface CustomSectionValue {
   attendance_id: string
   template_id: string
   section_id: string
-  content: string
-  items: string[] | null
-  rating: number | null
-  checked: boolean | null
+  // Values stored as JSON: { [field_id]: { content?, items?, rating?, checked? } }
+  values: Record<string, { content?: string; items?: string[]; rating?: number; checked?: boolean }>
   created_at: string
   updated_at: string
 }
@@ -142,16 +146,11 @@ export async function fetchCustomSectionValues(attendanceId: string) {
   return { data: (data ?? []) as CustomSectionValue[], error }
 }
 
-export async function upsertCustomSectionValue(attendanceId: string, templateId: string, sectionId: string, values: {
-  content?: string
-  items?: string[]
-  rating?: number
-  checked?: boolean
-}) {
+export async function upsertCustomSectionValue(attendanceId: string, templateId: string, sectionId: string, values: Record<string, { content?: string; items?: string[]; rating?: number; checked?: boolean }>) {
   const { data, error } = await supabase
     .from('custom_section_values')
     .upsert(
-      { attendance_id: attendanceId, template_id: templateId, section_id: sectionId, ...values, updated_at: new Date().toISOString() },
+      { attendance_id: attendanceId, template_id: templateId, section_id: sectionId, values, updated_at: new Date().toISOString() },
       { onConflict: 'attendance_id,section_id' }
     )
     .select()

@@ -103,7 +103,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
   }, [customValues, attendance?.template_id, changeTemplateMut])
 
   const saveCustomSectionMut = useMutation({
-    mutationFn: async ({ sectionId, values }: { sectionId: string; values: { content?: string; items?: string[]; rating?: number; checked?: boolean } }) => {
+    mutationFn: async ({ sectionId, values }: { sectionId: string; values: Record<string, { content?: string; items?: string[]; rating?: number; checked?: boolean }> }) => {
       if (!attendance?.template_id) return
       await upsertCustomSectionValue(attendanceId, attendance.template_id, sectionId, values)
     },
@@ -223,13 +223,15 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
   const totalSections = sections.length + customSections.length
   const customFilledCount = customSections.filter(cs => {
     const val = customValues.find(v => v.section_id === cs.id)
-    if (!val) return false
-    switch (cs.field_type) {
-      case 'list': return val.items && val.items.length > 0
-      case 'rating': return val.rating != null && val.rating > 0
-      case 'checkbox': return val.checked != null
-      default: return val.content?.trim() !== ''
-    }
+    if (!val || !val.values) return false
+    // Section is filled if at least one field has data
+    return Object.values(val.values).some(fv => {
+      if (fv.content?.trim()) return true
+      if (fv.items && fv.items.length > 0) return true
+      if (fv.rating != null && fv.rating > 0) return true
+      if (fv.checked != null) return true
+      return false
+    })
   }).length
   const progressPercent = Math.round(((filledCount + customFilledCount) / totalSections) * 100)
 
@@ -392,7 +394,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
         {customSections.length > 0 && (
           <div className="accordion" style={{ marginTop: 'var(--space-4)' }}>
             {customSections.map(section => {
-              const savedValue = customValues.find(v => v.section_id === section.id)
+              const sectionValue = customValues.find(v => v.section_id === section.id)
               return (
                 <div key={section.id} className="accordion-item expanded">
                   <div className="accordion-header" style={{ cursor: 'default', borderLeftColor: 'var(--gold)' }}>
@@ -405,7 +407,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
                     <div className="accordion-content">
                       <CustomSectionRenderer
                         section={section}
-                        value={savedValue}
+                        sectionValue={sectionValue}
                         onSave={(values) => saveCustomSectionMut.mutate({ sectionId: section.id, values })}
                       />
                     </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchTemplates, insertTemplate, updateTemplate, deleteTemplate, duplicateTemplate, setDefaultTemplate, type SessionTemplate, type TemplateSection } from '../../services/templates'
+import { fetchTemplates, insertTemplate, updateTemplate, deleteTemplate, duplicateTemplate, setDefaultTemplate, type SessionTemplate, type TemplateSection, type TemplateField } from '../../services/templates'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import EmptyState from '../ui/EmptyState'
@@ -172,7 +172,6 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
   )
   const [isDefault, setIsDefault] = useState(template?.is_default ?? false)
   const [newCustomLabel, setNewCustomLabel] = useState('')
-  const [newFieldType, setNewFieldType] = useState<'text' | 'list' | 'rating' | 'checkbox'>('text')
   const [saving, setSaving] = useState(false)
 
   const selectedBuiltinKeys = new Set(sections.filter(s => s.type === 'builtin').map(s => s.key))
@@ -193,22 +192,32 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
 
   const addCustomSection = () => {
     if (!newCustomLabel.trim()) return
-    const section: TemplateSection = {
+    setSections(prev => [...prev, {
       id: crypto.randomUUID(),
       type: 'custom' as const,
       key: null,
       label: newCustomLabel.trim(),
-      order: sections.length + 1,
-      field_type: newFieldType,
-    }
-    if (newFieldType === 'rating') {
-      section.config = { max_rating: 10, rating_label: '/10' }
-    } else if (newFieldType === 'checkbox') {
-      section.config = { checkbox_label: 'Realizado' }
-    }
-    setSections(prev => [...prev, section])
+      order: prev.length + 1,
+      fields: [],
+    }])
     setNewCustomLabel('')
-    setNewFieldType('text')
+  }
+
+  const addField = (sectionId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox') => {
+    setSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s
+      const field: TemplateField = { id: crypto.randomUUID(), label, field_type: fieldType }
+      if (fieldType === 'rating') field.config = { max_rating: 10, rating_label: '/10' }
+      if (fieldType === 'checkbox') field.config = { checkbox_label: label }
+      return { ...s, fields: [...(s.fields ?? []), field] }
+    }))
+  }
+
+  const removeField = (sectionId: string, fieldId: string) => {
+    setSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s
+      return { ...s, fields: (s.fields ?? []).filter(f => f.id !== fieldId) }
+    }))
   }
 
   const removeSection = (id: string) => {
@@ -342,37 +351,27 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
           </div>
         </div>
 
-        {/* Seções custom com tipo de campo */}
+        {/* Seções personalizadas */}
         <div>
           <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 'var(--space-2)' }}>
             Seções personalizadas
           </span>
-          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
             <input
               type="text"
               value={newCustomLabel}
               onChange={e => setNewCustomLabel(e.target.value)}
-              placeholder="Nome do campo"
+              placeholder="Nome da seção"
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomSection() } }}
-              style={{ flex: 1, minWidth: '150px' }}
+              style={{ flex: 1 }}
             />
-            <select
-              value={newFieldType}
-              onChange={e => setNewFieldType(e.target.value as typeof newFieldType)}
-              style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: '0.82rem', color: 'var(--text)' }}
-            >
-              <option value="text">Texto livre</option>
-              <option value="list">Lista de itens</option>
-              <option value="rating">Nota</option>
-              <option value="checkbox">Checkbox</option>
-            </select>
             <Button variant="tab" onClick={addCustomSection} type="button" disabled={!newCustomLabel.trim()}>
-              <Plus size={14} /> Adicionar
+              <Plus size={14} /> Seção
             </Button>
           </div>
         </div>
 
-        {/* Ordenação das seções */}
+        {/* Ordenação das seções + campos dentro das custom */}
         {sections.length > 0 && (
           <div>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 'var(--space-3)' }}>
@@ -380,24 +379,47 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
               {sections.map((section, index) => (
-                <div key={section.id} className="template-step-form">
-                  <div className="template-step-grip">
-                    <GripVertical size={14} />
-                    <span className="template-step-number">{index + 1}</span>
+                <div key={section.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+                  {/* Header da seção */}
+                  <div className="template-step-form" style={{ borderBottom: section.type === 'custom' && section.fields?.length ? '1px solid var(--border)' : 'none' }}>
+                    <div className="template-step-grip">
+                      <GripVertical size={14} />
+                      <span className="template-step-number">{index + 1}</span>
+                    </div>
+                    <div className="template-step-fields" style={{ flex: 1 }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                        {section.label}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: section.type === 'custom' ? 'var(--gold)' : 'var(--text-muted)' }}>
+                        {section.type === 'custom' ? `${section.fields?.length ?? 0} campo(s)` : 'Seção do sistema'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '2px' }}>
+                      <button className="edit-btn" onClick={() => moveSection(section.id, 'up')} disabled={index === 0} type="button" aria-label="Mover para cima" style={{ opacity: index === 0 ? 0.3 : 1 }}>↑</button>
+                      <button className="edit-btn" onClick={() => moveSection(section.id, 'down')} disabled={index === sections.length - 1} type="button" aria-label="Mover para baixo" style={{ opacity: index === sections.length - 1 ? 0.3 : 1 }}>↓</button>
+                      <button className="edit-btn" onClick={() => removeSection(section.id)} type="button" aria-label="Remover"><Trash2 size={14} /></button>
+                    </div>
                   </div>
-                  <div className="template-step-fields" style={{ flex: 1 }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>
-                      {section.label}
-                    </span>
-                    <span style={{ fontSize: '0.7rem', color: section.type === 'custom' ? 'var(--gold)' : 'var(--text-muted)' }}>
-                      {section.type === 'custom' ? FIELD_TYPE_LABELS[section.field_type ?? 'text'] : 'Seção do sistema'}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '2px' }}>
-                    <button className="edit-btn" onClick={() => moveSection(section.id, 'up')} disabled={index === 0} type="button" aria-label="Mover para cima" style={{ opacity: index === 0 ? 0.3 : 1 }}>↑</button>
-                    <button className="edit-btn" onClick={() => moveSection(section.id, 'down')} disabled={index === sections.length - 1} type="button" aria-label="Mover para baixo" style={{ opacity: index === sections.length - 1 ? 0.3 : 1 }}>↓</button>
-                    <button className="edit-btn" onClick={() => removeSection(section.id)} type="button" aria-label="Remover"><Trash2 size={14} /></button>
-                  </div>
+
+                  {/* Campos dentro da seção custom */}
+                  {section.type === 'custom' && (
+                    <div style={{ padding: 'var(--space-3)', paddingLeft: 'var(--space-6)', background: 'var(--surface)' }}>
+                      {(section.fields ?? []).map((field, fi) => (
+                        <div key={field.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: '4px 0', fontSize: '0.82rem' }}>
+                          <span style={{ color: 'var(--text-muted)', width: 20, textAlign: 'right' }}>{fi + 1}.</span>
+                          <span style={{ flex: 1, color: 'var(--text)' }}>{field.label}</span>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--background)', padding: '2px 8px', borderRadius: 12 }}>
+                            {FIELD_TYPE_LABELS[field.field_type]}
+                          </span>
+                          <button className="edit-btn" onClick={() => removeField(section.id, field.id)} type="button" aria-label="Remover campo" style={{ padding: 2 }}>
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      {/* Adicionar campo */}
+                      <AddFieldInline sectionId={section.id} onAdd={addField} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -405,5 +427,45 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
         )}
       </div>
     </Modal>
+  )
+}
+
+// ========== Inline: Adicionar campo dentro de uma seção ==========
+
+function AddFieldInline({ sectionId, onAdd }: { sectionId: string; onAdd: (sectionId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox') => void }) {
+  const [label, setLabel] = useState('')
+  const [fieldType, setFieldType] = useState<'text' | 'list' | 'rating' | 'checkbox'>('text')
+
+  const handleAdd = () => {
+    if (!label.trim()) return
+    onAdd(sectionId, label.trim(), fieldType)
+    setLabel('')
+    setFieldType('text')
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)', alignItems: 'center' }}>
+      <input
+        type="text"
+        value={label}
+        onChange={e => setLabel(e.target.value)}
+        placeholder="Nome do campo"
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
+        style={{ flex: 1, fontSize: '0.82rem', padding: '6px 10px' }}
+      />
+      <select
+        value={fieldType}
+        onChange={e => setFieldType(e.target.value as typeof fieldType)}
+        style={{ padding: '6px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--card)', fontSize: '0.78rem', color: 'var(--text)' }}
+      >
+        <option value="text">Texto</option>
+        <option value="list">Lista</option>
+        <option value="rating">Nota</option>
+        <option value="checkbox">Check</option>
+      </select>
+      <button className="edit-btn" onClick={handleAdd} type="button" disabled={!label.trim()} style={{ padding: '4px 8px', opacity: label.trim() ? 1 : 0.4 }}>
+        <Plus size={14} />
+      </button>
+    </div>
   )
 }

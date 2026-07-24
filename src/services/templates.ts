@@ -9,6 +9,14 @@ export interface TemplateSection {
   key: string | null  // SectionKey for builtin, null for custom
   label: string
   order: number
+  // Custom section field type
+  field_type?: 'text' | 'list' | 'rating' | 'checkbox'
+  config?: {
+    placeholder?: string
+    max_rating?: number       // 10 or 100
+    rating_label?: string     // "%" or "/10"
+    checkbox_label?: string   // Ex: "Realizado"
+  }
 }
 
 export interface SessionTemplate {
@@ -18,6 +26,7 @@ export interface SessionTemplate {
   description: string | null
   therapy_type: TherapyType
   sections: TemplateSection[]
+  is_default: boolean
   active: boolean
   usage_count: number
   created_at: string
@@ -118,6 +127,9 @@ export interface CustomSectionValue {
   template_id: string
   section_id: string
   content: string
+  items: string[] | null
+  rating: number | null
+  checked: boolean | null
   created_at: string
   updated_at: string
 }
@@ -130,14 +142,48 @@ export async function fetchCustomSectionValues(attendanceId: string) {
   return { data: (data ?? []) as CustomSectionValue[], error }
 }
 
-export async function upsertCustomSectionValue(attendanceId: string, templateId: string, sectionId: string, content: string) {
+export async function upsertCustomSectionValue(attendanceId: string, templateId: string, sectionId: string, values: {
+  content?: string
+  items?: string[]
+  rating?: number
+  checked?: boolean
+}) {
   const { data, error } = await supabase
     .from('custom_section_values')
     .upsert(
-      { attendance_id: attendanceId, template_id: templateId, section_id: sectionId, content, updated_at: new Date().toISOString() },
+      { attendance_id: attendanceId, template_id: templateId, section_id: sectionId, ...values, updated_at: new Date().toISOString() },
       { onConflict: 'attendance_id,section_id' }
     )
     .select()
     .single()
   return { data: data as CustomSectionValue | null, error }
+}
+
+// ========== Default Template ==========
+
+export async function setDefaultTemplate(templateId: string) {
+  const { error } = await supabase.rpc('set_default_template', { p_template_id: templateId })
+  return { error }
+}
+
+// ========== Link Template with Snapshot ==========
+
+export async function linkTemplateWithSnapshot(attendanceId: string, templateId: string | null) {
+  if (!templateId) {
+    const { error } = await supabase
+      .from('attendances')
+      .update({ template_id: null, template_snapshot: null })
+      .eq('id', attendanceId)
+    return { error }
+  }
+
+  // Buscar sections da ficha para salvar como snapshot
+  const { data: template } = await fetchTemplate(templateId)
+  if (!template) return { error: new Error('Ficha não encontrada') }
+
+  const { error } = await supabase
+    .from('attendances')
+    .update({ template_id: templateId, template_snapshot: template.sections })
+    .eq('id', attendanceId)
+  return { error }
 }

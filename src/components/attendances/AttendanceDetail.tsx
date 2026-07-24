@@ -89,7 +89,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
   const saveCustomSectionMut = useMutation({
     mutationFn: async ({ sectionId, content }: { sectionId: string; content: string }) => {
       if (!attendance?.template_id) return
-      await upsertCustomSectionValue(attendanceId, attendance.template_id, sectionId, content)
+      await upsertCustomSectionValue(attendanceId, attendance.template_id, sectionId, { content })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['custom-section-values', attendanceId] })

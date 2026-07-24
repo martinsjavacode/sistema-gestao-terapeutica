@@ -14,7 +14,7 @@ import { getActiveTechniques, ALL_SECTIONS } from '../../config/therapy-sections
 import type { SectionKey } from '../../config/therapy-sections'
 import { useTenant } from '../../hooks/useTenant'
 
-export default function ProtocolsPage() {
+export default function TemplatesPage() {
   const qc = useQueryClient()
   const { techniques } = useTenant()
   const activeTechniques = getActiveTechniques(techniques)
@@ -87,18 +87,18 @@ export default function ProtocolsPage() {
           onAction={() => setAdding(true)}
         />
       ) : (
-        <div className="protocols-grid">
+        <div className="templates-grid">
           {templates.map(template => {
             const builtinCount = template.sections.filter(s => s.type === 'builtin').length
             const customCount = template.sections.filter(s => s.type === 'custom').length
 
             return (
-              <div key={template.id} className="protocol-card">
-                <div className="protocol-card-header">
-                  <div className="protocol-card-icon">
+              <div key={template.id} className="template-card">
+                <div className="template-card-header">
+                  <div className="template-card-icon">
                     <BookOpen size={18} />
                   </div>
-                  <div className="protocol-card-actions">
+                  <div className="template-card-actions">
                     {template.is_default && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.7rem', color: 'var(--gold)', fontWeight: 600 }}>
                         <Star size={12} fill="var(--gold)" /> Padrão
@@ -109,27 +109,27 @@ export default function ProtocolsPage() {
                     <button className="edit-btn" onClick={() => handleDelete(template)} title="Arquivar"><Trash2 size={14} /></button>
                   </div>
                 </div>
-                <h3 className="protocol-card-name">{template.name}</h3>
+                <h3 className="template-card-name">{template.name}</h3>
                 {template.description && (
-                  <p className="protocol-card-desc">{template.description}</p>
+                  <p className="template-card-desc">{template.description}</p>
                 )}
-                <div className="protocol-card-steps">
+                <div className="template-card-steps">
                   {template.sections.slice(0, 4).map(section => (
-                    <span key={section.id} className={`protocol-step-pill ${section.type === 'custom' ? 'protocol-step-pill--custom' : ''}`}>
+                    <span key={section.id} className={`template-step-pill ${section.type === 'custom' ? 'template-step-pill--custom' : ''}`}>
                       {section.label}
                     </span>
                   ))}
                   {template.sections.length > 4 && (
-                    <span className="protocol-step-more">+{template.sections.length - 4}</span>
+                    <span className="template-step-more">+{template.sections.length - 4}</span>
                   )}
                 </div>
-                <div className="protocol-card-footer">
+                <div className="template-card-footer">
                   <span className="badge badge-info">{getTherapyLabel(template.therapy_type, techniques)}</span>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                     {builtinCount} seções{customCount > 0 ? ` + ${customCount} custom` : ''}
                   </span>
                   {template.usage_count > 0 && (
-                    <span className="protocol-card-usage"><Hash size={10} /> {template.usage_count}x</span>
+                    <span className="template-card-usage"><Hash size={10} /> {template.usage_count}x</span>
                   )}
                 </div>
               </div>
@@ -140,7 +140,7 @@ export default function ProtocolsPage() {
 
       {/* Modal */}
       {(adding || editing) && (
-        <ProtocolForm
+        <TemplateForm
           template={editing}
           onClose={() => { setAdding(false); setEditing(null) }}
           onSaved={() => { setAdding(false); setEditing(null); qc.invalidateQueries({ queryKey: ['templates'] }) }}
@@ -161,7 +161,7 @@ const FIELD_TYPE_LABELS: Record<string, string> = {
   checkbox: 'Checkbox',
 }
 
-function ProtocolForm({ template, onClose, onSaved }: { template: SessionTemplate | null; onClose: () => void; onSaved: () => void }) {
+function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplate | null; onClose: () => void; onSaved: () => void }) {
   const { techniques } = useTenant()
   const activeTechniques = getActiveTechniques(techniques)
   const [name, setName] = useState(template?.name ?? '')
@@ -380,12 +380,12 @@ function ProtocolForm({ template, onClose, onSaved }: { template: SessionTemplat
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
               {sections.map((section, index) => (
-                <div key={section.id} className="protocol-step-form">
-                  <div className="protocol-step-grip">
+                <div key={section.id} className="template-step-form">
+                  <div className="template-step-grip">
                     <GripVertical size={14} />
-                    <span className="protocol-step-number">{index + 1}</span>
+                    <span className="template-step-number">{index + 1}</span>
                   </div>
-                  <div className="protocol-step-fields" style={{ flex: 1 }}>
+                  <div className="template-step-fields" style={{ flex: 1 }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>
                       {section.label}
                     </span>

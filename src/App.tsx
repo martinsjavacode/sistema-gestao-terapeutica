@@ -20,7 +20,7 @@ const Dashboard = lazy(() => import('./components/dashboard/Dashboard'))
 const ClientsPage = lazy(() => import('./components/clients/ClientsPage'))
 const AttendancePage = lazy(() => import('./components/attendances/AttendancePage'))
 const SchedulePage = lazy(() => import('./components/schedule/SchedulePage'))
-const ProtocolsPage = lazy(() => import('./components/templates/TemplatesPage'))
+const TemplatesPage = lazy(() => import('./components/templates/TemplatesPage'))
 const SettingsPage = lazy(() => import('./components/settings/SettingsPage'))
 const PublicReport = lazy(() => import('./components/report/PublicReport'))
 const ShortLinkResolver = lazy(() => import('./components/report/ShortLinkResolver'))
@@ -73,7 +73,7 @@ function AppLayout() {
                 <Route path="/clients" element={<ProtectedRoute allowed={can('clients', 'read')} loading={!permissionsLoaded}><ClientsPage /></ProtectedRoute>} />
                 <Route path="/attendances" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><AttendancePage /></ProtectedRoute>} />
                 <Route path="/schedule" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><SchedulePage /></ProtectedRoute>} />
-                <Route path="/templates" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><ProtocolsPage /></ProtectedRoute>} />
+                <Route path="/templates" element={<ProtectedRoute allowed={can('attendances', 'read')} loading={!permissionsLoaded}><TemplatesPage /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute allowed={can('settings', 'read')} loading={!permissionsLoaded}><SettingsPage /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

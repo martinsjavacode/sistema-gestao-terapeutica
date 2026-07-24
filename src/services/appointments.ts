@@ -58,7 +58,25 @@ export async function insertAppointment(row: InsertAppointmentPayload) {
     throw new Error('Já existe um agendamento neste horário')
   }
 
-  const { data, error } = await supabase.from('appointments').insert({ ...row, tenant_id }).select('*, clients(name)').single()
+  // 1. Criar atendimento
+  const scheduledDate = new Date(row.scheduled_at)
+  const { data: attendance, error: attError } = await supabase
+    .from('attendances')
+    .insert({
+      client_id: row.client_id,
+      date: scheduledDate.toISOString().slice(0, 10),
+      time: scheduledDate.toTimeString().slice(0, 5),
+      therapy_type: row.therapy_type,
+      objective: row.notes ?? null,
+      tenant_id,
+    })
+    .select()
+    .single()
+
+  if (attError || !attendance) throw attError ?? new Error('Erro ao criar atendimento')
+
+  // 2. Criar appointment vinculado ao attendance
+  const { data, error } = await supabase.from('appointments').insert({ ...row, tenant_id, attendance_id: attendance.id }).select('*, clients(name)').single()
   if (error) throw error
   return { data: data as Appointment | null, error: null }
 }
@@ -73,41 +91,6 @@ export async function deleteAppointment(id: string) {
   return { error }
 }
 
-/**
- * Confirma um agendamento: cria o atendimento automaticamente e linka.
- */
-export async function confirmAppointment(appointment: Appointment) {
-  const tenant_id = await getTenantId()
-
-  // 1. Criar atendimento
-  const scheduledDate = new Date(appointment.scheduled_at)
-  const { data: attendance, error: attError } = await supabase
-    .from('attendances')
-    .insert({
-      client_id: appointment.client_id,
-      date: scheduledDate.toISOString().slice(0, 10),
-      time: scheduledDate.toTimeString().slice(0, 5),
-      therapy_type: appointment.therapy_type,
-      objective: appointment.notes,
-      bovis_frequency: null,
-      notes: null,
-      tenant_id,
-    })
-    .select()
-    .single()
-
-  if (attError || !attendance) return { data: null, error: attError }
-
-  // 2. Atualizar appointment com status confirmed + link ao attendance
-  const { error: updError } = await supabase
-    .from('appointments')
-    .update({ status: 'confirmed', attendance_id: attendance.id })
-    .eq('id', appointment.id)
-
-  if (updError) return { data: null, error: updError }
-
-  return { data: { appointment_id: appointment.id, attendance_id: attendance.id }, error: null }
-}
 
 export async function cancelAppointment(id: string) {
   const { error } = await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', id)

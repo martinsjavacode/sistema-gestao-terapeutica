@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { CHAKRA_LABELS, LIFE_AREA_LABELS, THERAPY_LABELS } from '../../types/database'
+import { CHAKRA_LABELS, LIFE_AREA_LABELS, getTherapyLabel } from '../../types/database'
 import type { ChakraName, LifeAreaType, TherapyType } from '../../types/database'
 import './PublicReport.css'
 
@@ -168,7 +168,7 @@ export default function PublicReport() {
           <h1 className="pr-client-name">{attendance.client_name}</h1>
           <div style={{ display: 'flex', gap: '16px', marginTop: '16px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>📅 {new Date(attendance.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>✨ {THERAPY_LABELS[attendance.therapy_type]}</span>
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>✨ {getTherapyLabel(attendance.therapy_type)}</span>
             {attendance.objective && <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>🎯 {attendance.objective}</span>}
           </div>
         </div>

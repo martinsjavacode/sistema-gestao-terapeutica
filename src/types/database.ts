@@ -1,7 +1,7 @@
 // Domain types — SGT
 
-export type TherapyType = 'radiestesia' | 'mesa_radionica' | 'corte_energetico' | 'numerologia' | 'tarot' | 'reiki' | 'outro'
-export type AppointmentStatus = 'scheduled' | 'confirmed' | 'cancelled' | 'completed'
+export type TherapyType = string
+export type AppointmentStatus = 'confirmed' | 'cancelled' | 'completed'
 export type EnergyFieldType = 'mental' | 'emocional' | 'espiritual' | 'fisico'
 export type ChakraName = 'coronario' | 'frontal' | 'laringeo' | 'cardiaco' | 'plexo_solar' | 'sacral' | 'raiz'
 export type ChakraState = 'equilibrado' | 'desequilibrio'
@@ -177,18 +177,20 @@ export const LIFE_AREA_LABELS: Record<LifeAreaType, string> = {
   missao: 'Missão',
 }
 
-export const THERAPY_LABELS: Record<TherapyType, string> = {
-  radiestesia: 'Radiestesia',
-  mesa_radionica: 'Mesa Radiônica',
-  corte_energetico: 'Corte Energético',
-  numerologia: 'Numerologia',
-  tarot: 'Tarot',
-  reiki: 'Reiki',
-  outro: 'Outro',
+/**
+ * Retorna o label de uma terapia a partir das técnicas carregadas do banco.
+ * Fallback: capitaliza o ID se não encontrar nas técnicas.
+ */
+export function getTherapyLabel(therapyType: string, techniques?: { id: string; name: string }[]): string {
+  if (techniques?.length) {
+    const found = techniques.find(t => t.id === therapyType)
+    if (found) return found.name
+  }
+  // Fallback: formata o ID (ex: corte_energetico → Corte energetico)
+  return therapyType.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())
 }
 
 export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
-  scheduled: 'Agendado',
   confirmed: 'Confirmado',
   cancelled: 'Cancelado',
   completed: 'Concluído',

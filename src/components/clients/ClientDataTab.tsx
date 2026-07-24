@@ -1,20 +1,8 @@
 import type { Client } from '../../types/database'
+import { formatDate, calcAge } from '../../utils/format'
 
 interface Props {
   client: Client
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR')
-}
-
-function calcAge(birthDate: string): number {
-  const birth = new Date(birthDate + 'T12:00:00')
-  const today = new Date()
-  let age = today.getFullYear() - birth.getFullYear()
-  const m = today.getMonth() - birth.getMonth()
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
-  return age
 }
 
 export default function ClientDataTab({ client }: Props) {

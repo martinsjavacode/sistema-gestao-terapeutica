@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { fetchClients } from '../../services/clients'
 import { fetchAttendances } from '../../services/attendances'
+import { useTenant } from '../../hooks/useTenant'
 import { DashboardSkeleton } from '../ui/Skeleton'
 import EmptyState from '../ui/EmptyState'
 import Button from '../ui/Button'
@@ -10,11 +11,12 @@ import {
   Users, ClipboardList, Calendar, TrendingUp, Plus, ArrowRight,
   Clock, FileText, AlertCircle, UserPlus
 } from 'lucide-react'
-import { THERAPY_LABELS } from '../../types/database'
+import { getTherapyLabel } from '../../types/database'
 import type { TherapyType, Attendance } from '../../types/database'
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { techniques } = useTenant()
 
   const { data: clients = [], isLoading: loadingClients } = useQuery({
     queryKey: ['clients'],
@@ -232,7 +234,7 @@ export default function Dashboard() {
                       </span>
                       <span className="dashboard-list-name">{a.clients?.name ?? '—'}</span>
                     </div>
-                    <span className="badge badge-info">{THERAPY_LABELS[a.therapy_type]}</span>
+                    <span className="badge badge-info">{getTherapyLabel(a.therapy_type, techniques)}</span>
                   </div>
                 ))}
               </div>
@@ -343,7 +345,7 @@ function TherapyDistributionChart({ distribution, total }: { distribution: Map<T
           <div key={type} className="distribution-row">
             <div className="distribution-label">
               <span className="distribution-dot" style={{ background: color }} />
-              <span>{THERAPY_LABELS[type]}</span>
+              <span>{getTherapyLabel(type)}</span>
             </div>
             <div className="distribution-bar-wrapper">
               <div className="distribution-bar" style={{ width: `${percent}%`, background: color }} />

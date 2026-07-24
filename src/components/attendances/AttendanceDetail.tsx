@@ -5,9 +5,10 @@ import { fetchAttendance, updateAttendance, fetchEnergyAssessments, fetchChakras
 import { TableSkeleton } from '../ui/Skeleton'
 import Button from '../ui/Button'
 import { ArrowLeft, ChevronRight, ChevronDown, Check, Youtube, StickyNote, Copy, CheckCircle2, FileCheck } from 'lucide-react'
-import { THERAPY_LABELS } from '../../types/database'
+import { getTherapyLabel } from '../../types/database'
 import { getSectionsForTherapy } from '../../config/therapy-sections'
 import type { SectionKey } from '../../config/therapy-sections'
+import { useTenant } from '../../hooks/useTenant'
 import EnergyAssessmentTab from './tabs/EnergyAssessmentTab'
 import ChakrasTab from './tabs/ChakrasTab'
 import AuraFieldTab from './tabs/AuraFieldTab'
@@ -26,6 +27,7 @@ interface Props {
 export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { techniques } = useTenant()
   const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(new Set(['assessment']))
   const [showSummary, setShowSummary] = useState(false)
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -62,12 +64,12 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
 
   const handleFinalize = useCallback(async () => {
     if (!attendance) return
-    const allKeys = getSectionsForTherapy(attendance.therapy_type).map(s => s.key)
+    const allKeys = getSectionsForTherapy(attendance.therapy_type, techniques).map(s => s.key)
     await updateAttendance(attendanceId, { completed_sections: allKeys })
     qc.invalidateQueries({ queryKey: ['attendance', attendanceId] })
     qc.invalidateQueries({ queryKey: ['attendances'] })
     setShowSummary(true)
-  }, [attendanceId, attendance, qc])
+  }, [attendanceId, attendance, qc, techniques])
 
   const { data: assessments = [] } = useQuery({
     queryKey: ['energy-assessments', attendanceId],
@@ -130,10 +132,29 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
     report: attendance?.report_content ? 'Preenchido' : 'Não preenchido',
   }
 
+  // Sincronizar completed_sections no banco quando seções são preenchidas
+  const filledKeys = Object.entries(filledSections)
+    .filter(([, filled]) => filled)
+    .map(([key]) => key)
+    .sort()
+  const storedKeys = [...(attendance?.completed_sections ?? [])].sort()
+
+  useEffect(() => {
+    if (!attendance || isLoading) return
+    // Só atualiza se há seções preenchidas que não estão no banco
+    const newKeys = filledKeys.filter(k => !storedKeys.includes(k))
+    if (newKeys.length === 0) return
+
+    const merged = [...new Set([...storedKeys, ...filledKeys])].sort()
+    updateAttendance(attendanceId, { completed_sections: merged })
+      .then(() => qc.invalidateQueries({ queryKey: ['attendance', attendanceId] }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filledKeys.join(',')])
+
   if (isLoading) return <TableSkeleton />
   if (!attendance) return <p>Atendimento não encontrado.</p>
 
-  const sections = getSectionsForTherapy(attendance.therapy_type)
+  const sections = getSectionsForTherapy(attendance.therapy_type, techniques)
   const filledCount = sections.filter(s => filledSections[s.key]).length
   const progressPercent = Math.round((filledCount / sections.length) * 100)
 
@@ -190,7 +211,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
                 <span className={status.className}>{status.icon} {status.label}</span>
               </div>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                {new Date(attendance.date + 'T12:00:00').toLocaleDateString('pt-BR')} • {THERAPY_LABELS[attendance.therapy_type]}
+                {new Date(attendance.date + 'T12:00:00').toLocaleDateString('pt-BR')} • {getTherapyLabel(attendance.therapy_type, techniques)}
                 {attendance.objective && ` • ${attendance.objective}`}
               </p>
             </div>
@@ -302,7 +323,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
           sectionSummaries={sectionSummaries}
           clientName={attendance.clients?.name ?? ''}
           date={new Date(attendance.date + 'T12:00:00').toLocaleDateString('pt-BR')}
-          therapyType={THERAPY_LABELS[attendance.therapy_type]}
+          therapyType={getTherapyLabel(attendance.therapy_type, techniques)}
           onClose={() => setShowSummary(false)}
         />
       )}

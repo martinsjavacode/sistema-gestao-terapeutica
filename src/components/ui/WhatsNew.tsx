@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Sparkles, TrendingUp, BookOpen, Bookmark, Zap, BarChart3 } from 'lucide-react'
+import { X, Sparkles, TrendingUp, BookOpen, Bookmark, Zap, BarChart3, CalendarClock, Mail, Link2 } from 'lucide-react'
 
 interface Release {
   version: string
@@ -8,6 +8,16 @@ interface Release {
 }
 
 const RELEASES: Release[] = [
+  {
+    version: '2.1',
+    date: 'Julho 2026',
+    features: [
+      { icon: <CalendarClock size={16} />, title: 'Agendamento Online', description: 'Seus clientes agora podem agendar diretamente pelo link público, estilo Calendly.' },
+      { icon: <Link2 size={16} />, title: 'Link personalizado', description: 'Compartilhe seu link de agendamento: /agendar/seu-consultorio.' },
+      { icon: <Mail size={16} />, title: 'Emails automáticos', description: 'Confirmação e cancelamento enviados automaticamente para você e o cliente.' },
+      { icon: <Sparkles size={16} />, title: 'Seleção de terapia no onboarding', description: 'Novos terapeutas escolhem suas técnicas ao criar a conta.' },
+    ],
+  },
   {
     version: '2.0',
     date: 'Julho 2026',

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { fetchAttendance, updateAttendance, fetchEnergyAssessments, fetchChakras, fetchAuraField, fetchLifeAreas, fetchEmotions, fetchLimitingBeliefs, fetchEnergyDivorces, fetchTreatment } from '../../services/attendances'
-import { fetchTemplates, linkTemplateToAttendance, fetchCustomSectionValues, upsertCustomSectionValue, incrementTemplateUsage } from '../../services/templates'
+import { fetchTemplates, linkTemplateWithSnapshot, fetchCustomSectionValues, upsertCustomSectionValue, incrementTemplateUsage, type TemplateSection } from '../../services/templates'
 import { TableSkeleton } from '../ui/Skeleton'
 import Button from '../ui/Button'
 import { ArrowLeft, ChevronRight, ChevronDown, Check, Youtube, StickyNote, Copy, CheckCircle2, FileCheck, BookOpen } from 'lucide-react'
@@ -20,6 +20,8 @@ import DivorcesTab from './tabs/DivorcesTab'
 import TreatmentTab from './tabs/TreatmentTab'
 import ReportTab from './tabs/ReportTab'
 import TextAreaWithSnippets from '../ui/TextAreaWithSnippets'
+import CustomSectionRenderer from './CustomSectionRenderer'
+import { confirm } from '../../lib/confirm'
 
 interface Props {
   attendanceId: string
@@ -74,22 +76,36 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
     },
   })
 
-  const selectedTemplate = templates.find(p => p.id === attendance?.template_id) ?? null
-
   const changeTemplateMut = useMutation({
     mutationFn: async (templateId: string | null) => {
-      await linkTemplateToAttendance(attendanceId, templateId)
+      await linkTemplateWithSnapshot(attendanceId, templateId)
       if (templateId) await incrementTemplateUsage(templateId)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['attendance', attendanceId] })
+      qc.invalidateQueries({ queryKey: ['custom-section-values', attendanceId] })
     },
   })
 
+  const handleChangeTemplate = useCallback(async (templateId: string | null) => {
+    // Se já tem dados preenchidos, confirmar
+    const hasData = customValues.length > 0
+    if (hasData && attendance?.template_id) {
+      const ok = await confirm({
+        message: 'Trocar ficha?',
+        details: 'Dados já preenchidos em seções personalizadas serão mantidos mas podem não aparecer na nova ficha.',
+        confirmLabel: 'Trocar',
+        variant: 'primary',
+      })
+      if (!ok) return
+    }
+    changeTemplateMut.mutate(templateId)
+  }, [customValues, attendance?.template_id, changeTemplateMut])
+
   const saveCustomSectionMut = useMutation({
-    mutationFn: async ({ sectionId, content }: { sectionId: string; content: string }) => {
+    mutationFn: async ({ sectionId, values }: { sectionId: string; values: { content?: string; items?: string[]; rating?: number; checked?: boolean } }) => {
       if (!attendance?.template_id) return
-      await upsertCustomSectionValue(attendanceId, attendance.template_id, sectionId, { content })
+      await upsertCustomSectionValue(attendanceId, attendance.template_id, sectionId, values)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['custom-section-values', attendanceId] })
@@ -196,15 +212,25 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
   if (isLoading) return <TableSkeleton />
   if (!attendance) return <p>Atendimento não encontrado.</p>
 
-  const sections = selectedTemplate
-    ? selectedTemplate.sections.filter(s => s.type === 'builtin').map(s => ({ key: s.key as SectionKey, label: s.label }))
+  const snapshotSections = (attendance.template_snapshot as TemplateSection[] | null) ?? null
+  const sections = snapshotSections
+    ? snapshotSections.filter(s => s.type === 'builtin').map(s => ({ key: s.key as SectionKey, label: s.label }))
     : getSectionsForTherapy(attendance.therapy_type, techniques)
-  const customSections = selectedTemplate
-    ? selectedTemplate.sections.filter(s => s.type === 'custom')
+  const customSections: TemplateSection[] = snapshotSections
+    ? snapshotSections.filter(s => s.type === 'custom')
     : []
   const filledCount = sections.filter(s => filledSections[s.key]).length
   const totalSections = sections.length + customSections.length
-  const customFilledCount = customSections.filter(cs => customValues.some(v => v.section_id === cs.id && v.content.trim()))?.length ?? 0
+  const customFilledCount = customSections.filter(cs => {
+    const val = customValues.find(v => v.section_id === cs.id)
+    if (!val) return false
+    switch (cs.field_type) {
+      case 'list': return val.items && val.items.length > 0
+      case 'rating': return val.rating != null && val.rating > 0
+      case 'checkbox': return val.checked != null
+      default: return val.content?.trim() !== ''
+    }
+  }).length
   const progressPercent = Math.round(((filledCount + customFilledCount) / totalSections) * 100)
 
   const getStatusBadge = () => {
@@ -287,7 +313,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
             <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)', flexShrink: 0 }}>Ficha:</span>
             <select
               value={attendance.template_id ?? ''}
-              onChange={e => changeTemplateMut.mutate(e.target.value || null)}
+              onChange={e => handleChangeTemplate(e.target.value || null)}
               style={{ flex: 1, padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--card)', fontSize: '0.85rem', color: 'var(--text)' }}
             >
               <option value="">Padrão (todas as seções da terapia)</option>
@@ -366,7 +392,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
         {customSections.length > 0 && (
           <div className="accordion" style={{ marginTop: 'var(--space-4)' }}>
             {customSections.map(section => {
-              const savedValue = customValues.find(v => v.section_id === section.id)?.content ?? ''
+              const savedValue = customValues.find(v => v.section_id === section.id)
               return (
                 <div key={section.id} className="accordion-item expanded">
                   <div className="accordion-header" style={{ cursor: 'default', borderLeftColor: 'var(--gold)' }}>
@@ -377,10 +403,10 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
                   </div>
                   <div className="accordion-panel">
                     <div className="accordion-content">
-                      <CustomSectionField
-                        sectionId={section.id}
-                        initialValue={savedValue}
-                        onSave={(content) => saveCustomSectionMut.mutate({ sectionId: section.id, content })}
+                      <CustomSectionRenderer
+                        section={section}
+                        value={savedValue}
+                        onSave={(values) => saveCustomSectionMut.mutate({ sectionId: section.id, values })}
                       />
                     </div>
                   </div>
@@ -476,38 +502,6 @@ function AttendanceSummaryModal({ sections, filledSections, sectionSummaries, cl
         </div>
       </div>
     </div>
-  )
-}
-
-// ========== Seção Customizada (texto livre com auto-save) ==========
-
-function CustomSectionField({ initialValue, onSave }: {
-  sectionId: string
-  initialValue: string
-  onSave: (content: string) => void
-}) {
-  const [value, setValue] = useState(initialValue)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
-
-  // Sync when initialValue changes (e.g., first load)
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => { setValue(initialValue) }, [initialValue])
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  const handleChange = useCallback((v: string) => {
-    setValue(v)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => onSave(v), 1500)
-  }, [onSave])
-
-  return (
-    <TextAreaWithSnippets
-      value={value}
-      onChange={handleChange}
-      placeholder="Digite aqui... (/ para snippets)"
-      rows={4}
-      allowSave={false}
-    />
   )
 }
 

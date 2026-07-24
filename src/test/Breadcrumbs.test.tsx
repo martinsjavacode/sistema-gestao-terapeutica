@@ -29,7 +29,7 @@ describe('Breadcrumbs', () => {
 
   it('renders breadcrumb for /protocols', () => {
     renderWithRouter('/protocols')
-    expect(screen.getByText('Protocolos')).toBeInTheDocument()
+    expect(screen.getByText('Fichas')).toBeInTheDocument()
   })
 
   it('renders home icon link', () => {

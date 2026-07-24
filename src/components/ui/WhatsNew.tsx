@@ -23,7 +23,7 @@ const RELEASES: Release[] = [
     date: 'Julho 2026',
     features: [
       { icon: <TrendingUp size={16} />, title: 'Evolução Energética', description: 'Gráficos de radar, sparklines e comparativo primeira vs última sessão.' },
-      { icon: <BookOpen size={16} />, title: 'Protocolos de Tratamento', description: 'Crie templates reutilizáveis com etapas para padronizar seus atendimentos.' },
+      { icon: <BookOpen size={16} />, title: 'Fichas de Atendimento', description: 'Crie fichas personalizáveis com as seções que você precisa para cada tipo de sessão.' },
       { icon: <Bookmark size={16} />, title: 'Snippets', description: 'Salve trechos frequentes e insira com / nos campos de texto.' },
       { icon: <Zap size={16} />, title: 'Ações Rápidas', description: 'Finalizar atendimento, duplicar sessão, templates de sessão.' },
       { icon: <BarChart3 size={16} />, title: 'Dashboard Avançado', description: 'Métricas, próximas ações, distribuição por terapia e sparklines.' },

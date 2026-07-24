@@ -388,7 +388,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
           })}
         </div>
 
-        {/* Seções customizadas do protocolo */}
+        {/* Seções customizadas da ficha */}
         {customSections.length > 0 && (
           <div className="accordion" style={{ marginTop: 'var(--space-4)' }}>
             {customSections.map(section => {

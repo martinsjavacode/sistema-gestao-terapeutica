@@ -45,7 +45,7 @@ export default function Sidebar({ can, collapsed, onToggleCollapse, draftCount =
     { to: '/schedule', icon: <Calendar size={20} />, label: 'Agenda', resource: 'attendances' },
     { to: '/attendances', icon: <ClipboardList size={20} />, label: draftCount > 0 ? `Atendimentos (${draftCount})` : 'Atendimentos', resource: 'attendances' },
     { to: '/clients', icon: <Users size={20} />, label: 'Clientes', resource: 'clients' },
-    { to: '/protocols', icon: <BookOpen size={20} />, label: 'Protocolos', resource: 'attendances' },
+    { to: '/protocols', icon: <BookOpen size={20} />, label: 'Fichas', resource: 'attendances' },
   ]
 
   const systemLinks: NavItem[] = [

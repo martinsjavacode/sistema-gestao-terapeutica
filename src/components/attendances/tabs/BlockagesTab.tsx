@@ -5,6 +5,7 @@ import { toast } from '../../../lib/toast'
 import { confirm } from '../../../lib/confirm'
 import Button from '../../ui/Button'
 import Input from '../../ui/Input'
+import TextAreaWithSnippets from '../../ui/TextAreaWithSnippets'
 import { Plus, Trash2 } from 'lucide-react'
 
 export default function BlockagesTab({ attendanceId }: { attendanceId: string }) {
@@ -66,7 +67,7 @@ export default function BlockagesTab({ attendanceId }: { attendanceId: string })
             <Input label="Origem" value={origin} onChange={e => setOrigin(e.target.value)} />
             <Input label="Intensidade" value={intensity} onChange={e => setIntensity(e.target.value)} />
           </div>
-          <label className="form-label" style={{ marginTop: 'var(--space-3)' }}>Observações<textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} /></label>
+          <label className="form-label" style={{ marginTop: 'var(--space-3)' }}>Observações<TextAreaWithSnippets value={notes} onChange={v => setNotes(v)} rows={2} placeholder="Observações..." allowSave={false} /></label>
           <div className="form-actions">
             <Button variant="tab" onClick={() => setAdding(false)}>Cancelar</Button>
             <Button onClick={add} disabled={!type.trim()}>Salvar</Button>

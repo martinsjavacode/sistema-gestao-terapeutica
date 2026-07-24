@@ -238,7 +238,7 @@ export async function fetchBookingSettings() {
 
   const { data, error } = await supabase
     .from('tenants')
-    .select('slug, booking_enabled, booking_cancellation_hours, booking_min_notice_hours, booking_future_months')
+    .select('slug, booking_enabled, booking_cancellation_hours, booking_min_notice_hours, booking_future_months, booking_bio, booking_location, booking_modality')
     .eq('id', tenant_id)
     .single()
 
@@ -250,6 +250,9 @@ export async function updateBookingSettings(updates: {
   booking_cancellation_hours?: number
   booking_min_notice_hours?: number
   booking_future_months?: number
+  booking_bio?: string | null
+  booking_location?: string | null
+  booking_modality?: string | null
 }) {
   const tenant_id = await getTenantId()
 
@@ -257,7 +260,7 @@ export async function updateBookingSettings(updates: {
     .from('tenants')
     .update(updates)
     .eq('id', tenant_id)
-    .select('slug, booking_enabled, booking_cancellation_hours, booking_min_notice_hours, booking_future_months')
+    .select('slug, booking_enabled, booking_cancellation_hours, booking_min_notice_hours, booking_future_months, booking_bio, booking_location, booking_modality')
     .single()
 
   return { data, error }

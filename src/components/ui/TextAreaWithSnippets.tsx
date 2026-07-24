@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { searchSnippets, fetchSnippets, incrementSnippetUsage, type SnippetCategory, type Snippet } from '../../services/snippets'
+import { searchSnippets, fetchSnippets, incrementSnippetUsage, type Snippet } from '../../services/snippets'
 import { Bookmark, Save } from 'lucide-react'
 
 interface Props {
@@ -8,7 +8,6 @@ interface Props {
   onChange: (value: string) => void
   placeholder?: string
   rows?: number
-  category?: SnippetCategory
   /** Se true, mostra botão para salvar como snippet */
   allowSave?: boolean
   onSaveSnippet?: (text: string) => void
@@ -19,7 +18,6 @@ export default function TextAreaWithSnippets({
   onChange,
   placeholder,
   rows = 4,
-  category,
   allowSave = true,
   onSaveSnippet,
 }: Props) {
@@ -32,13 +30,13 @@ export default function TextAreaWithSnippets({
 
   // Fetch snippets based on search
   const { data: snippets = [] } = useQuery({
-    queryKey: ['snippets-search', searchTerm, category],
+    queryKey: ['snippets-search', searchTerm],
     queryFn: async () => {
       if (searchTerm) {
-        const { data } = await searchSnippets(searchTerm, category)
+        const { data } = await searchSnippets(searchTerm)
         return data
       }
-      const { data } = await fetchSnippets(category)
+      const { data } = await fetchSnippets()
       return data.slice(0, 8)
     },
     enabled: showPicker,

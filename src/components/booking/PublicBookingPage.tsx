@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { fetchAvailableSlots, createPublicBooking, sendBookingEmail, fetchTenantTherapies, type AvailableSlot, type TenantTherapy } from '../../services/availability'
-import { ChevronLeft, ChevronRight, Clock, Check, Globe, User } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Check, Globe, User, MapPin, Video, CalendarDays } from 'lucide-react'
 import { getCalendarDays, isSameDay } from '../../utils/date'
 import { maskDate, maskPhone, parseDateBR } from '../../utils/masks'
 import './PublicBooking.css'
@@ -17,6 +17,9 @@ interface TenantInfo {
   logo_url: string | null
   booking_enabled: boolean
   booking_future_months: number
+  booking_bio: string | null
+  booking_location: string | null
+  booking_modality: 'online' | 'presencial' | 'ambos' | null
 }
 
 export default function PublicBookingPage() {
@@ -33,7 +36,7 @@ export default function PublicBookingPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tenants')
-        .select('id, name, slug, logo_url, booking_enabled, booking_future_months')
+        .select('id, name, slug, logo_url, booking_enabled, booking_future_months, booking_bio, booking_location, booking_modality')
         .eq('slug', slug!)
         .eq('active', true)
         .single()
@@ -137,6 +140,40 @@ function PageShell({ children }: { children: React.ReactNode }) {
 }
 
 // ============================================================
+// Sidebar Info — Bio, localização e modalidade (reutilizado nas views)
+// ============================================================
+
+const MODALITY_LABELS: Record<string, string> = {
+  online: 'Online',
+  presencial: 'Presencial',
+  ambos: 'Online e Presencial',
+}
+
+function SidebarInfo({ tenant }: { tenant: TenantInfo }) {
+  const hasMeta = tenant.booking_bio || tenant.booking_location || tenant.booking_modality
+
+  if (!hasMeta) return null
+
+  return (
+    <div className="booking-sidebar-info">
+      {tenant.booking_bio && (
+        <p className="booking-sidebar-bio">{tenant.booking_bio}</p>
+      )}
+      {tenant.booking_location && (
+        <span className="booking-meta-item">
+          <MapPin size={14} /> {tenant.booking_location}
+        </span>
+      )}
+      {tenant.booking_modality && (
+        <span className="booking-meta-item">
+          <Video size={14} /> {MODALITY_LABELS[tenant.booking_modality] ?? tenant.booking_modality}
+        </span>
+      )}
+    </div>
+  )
+}
+
+// ============================================================
 // Therapy Select View — Escolha do tipo de terapia
 // ============================================================
 
@@ -158,6 +195,7 @@ function TherapySelectView({ tenant, therapies, onSelect }: TherapySelectViewPro
           </div>
         )}
         <h1 className="booking-host-name">{tenant.name}</h1>
+        <SidebarInfo tenant={tenant} />
       </div>
 
       <div className="booking-main">
@@ -287,9 +325,11 @@ function CalendarView({ tenant, selectedTherapy, selectedDate, onSelectDate, onS
         <h2 className="booking-event-title">{selectedTherapy.name}</h2>
         <div className="booking-event-meta">
           <span className="booking-meta-item">
-            <Clock size={16} /> {slots.length > 0 ? slots[0]!.duration_minutes : 60} min
+            <Clock size={16} />
+            <span className="booking-meta-label">Duração:</span> {slots.length > 0 ? slots[0]!.duration_minutes : 60} min
           </span>
         </div>
+        <SidebarInfo tenant={tenant} />
       </div>
 
       {/* Área principal — Calendário */}
@@ -484,18 +524,25 @@ function FormView({ tenant, slot, selectedTherapy, formData, setFormData, onBack
           </div>
         )}
         <h1 className="booking-host-name">{tenant.name}</h1>
-        <h2 className="booking-event-title">Sessão Terapêutica</h2>
+        <h2 className="booking-event-title">{selectedTherapy?.name ?? 'Sessão Terapêutica'}</h2>
         <div className="booking-event-meta">
           <span className="booking-meta-item">
-            <Clock size={14} /> {slot.duration_minutes} min
+            <Clock size={14} />
+            <span className="booking-meta-label">Duração:</span> {slot.duration_minutes} min
           </span>
           <span className="booking-meta-item booking-meta-item--highlight">
-            <Clock size={14} /> {time}, <span style={{ textTransform: 'capitalize' }}>{dateLabel}</span>
+            <CalendarDays size={14} />
+            <span style={{ textTransform: 'capitalize' }}>{dateLabel}</span>
+          </span>
+          <span className="booking-meta-item booking-meta-item--highlight">
+            <Clock size={14} />
+            <span className="booking-meta-label">Horário:</span> {time}
           </span>
           <span className="booking-meta-item">
-            <Globe size={14} /> Horário de Brasília
+            <Globe size={14} /> Brasília (GMT-3)
           </span>
         </div>
+        <SidebarInfo tenant={tenant} />
       </div>
 
       {/* Formulário */}

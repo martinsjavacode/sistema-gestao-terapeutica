@@ -5,6 +5,7 @@ import { toast } from '../../../lib/toast'
 import { LIFE_AREA_LABELS } from '../../../types/database'
 import type { LifeAreaType } from '../../../types/database'
 import SaveStatus from '../../ui/SaveStatus'
+import TextAreaWithSnippets from '../../ui/TextAreaWithSnippets'
 
 const AREAS: LifeAreaType[] = ['financeiro', 'profissional', 'amoroso', 'familiar', 'missao']
 
@@ -66,7 +67,7 @@ function AreaCard({ area, initial, onSave }: { area: LifeAreaType; initial?: { p
       </div>
       <label className="form-label" style={{ marginTop: 'var(--space-3)' }}>
         Observações
-        <textarea value={notes} onChange={e => { setNotes(e.target.value); change() }} rows={2} placeholder="Observações sobre esta área..." />
+        <TextAreaWithSnippets value={notes} onChange={v => { setNotes(v); change() }} rows={2} placeholder="Observações sobre esta área..." allowSave={false} />
       </label>
     </div>
   )

@@ -6,6 +6,7 @@ import { CHAKRA_ORDER, CHAKRA_LABELS } from '../../../types/database'
 import type { ChakraName, ChakraState, ChakraActivity } from '../../../types/database'
 import Select from '../../ui/Select'
 import SaveStatus from '../../ui/SaveStatus'
+import TextAreaWithSnippets from '../../ui/TextAreaWithSnippets'
 
 const ACTIVITIES: { value: ChakraActivity; label: string }[] = [
   { value: 'hipoativo', label: 'Hipoativo' },
@@ -79,7 +80,7 @@ function ChakraCard({ name, initial, onSave }: { name: ChakraName; initial?: { a
       </div>
       <label className="form-label" style={{ marginTop: 'var(--space-3)' }}>
         Observações
-        <textarea value={notes} onChange={e => { setNotes(e.target.value); change() }} rows={2} placeholder="Observações sobre este chakra..." />
+        <TextAreaWithSnippets value={notes} onChange={v => { setNotes(v); change() }} rows={2} placeholder="Observações sobre este chakra..." allowSave={false} />
       </label>
     </div>
   )

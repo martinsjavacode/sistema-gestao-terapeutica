@@ -375,6 +375,7 @@ tbody tr:hover { background: var(--surface-hover); }
 }
 .accordion-item.expanded {
   border-color: rgba(139, 92, 246, 0.3);
+  overflow: visible;
 }
 
 .accordion-header {
@@ -441,8 +442,7 @@ tbody tr:hover { background: var(--surface-hover); }
 }
 
 .accordion-panel {
-  overflow: hidden;
-  transition: max-height 0.3s ease;
+  overflow: visible;
 }
 .accordion-panel[hidden] {
   display: none;

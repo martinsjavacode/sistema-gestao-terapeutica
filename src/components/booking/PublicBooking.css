@@ -173,6 +173,28 @@ body:has(.booking-page) {
   font-weight: 500;
 }
 
+.booking-meta-label {
+  font-weight: 600;
+  color: var(--booking-text);
+}
+
+/* Sidebar info (bio, localização, modalidade) */
+.booking-sidebar-info {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--booking-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.booking-sidebar-bio {
+  font-size: 0.82rem;
+  color: var(--booking-muted);
+  line-height: 1.5;
+  margin: 0 0 4px;
+}
+
 /* Área principal (direita) */
 .booking-main {
   flex: 1;

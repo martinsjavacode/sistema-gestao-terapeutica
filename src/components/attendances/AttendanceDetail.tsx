@@ -18,6 +18,7 @@ import BeliefsTab from './tabs/BeliefsTab'
 import DivorcesTab from './tabs/DivorcesTab'
 import TreatmentTab from './tabs/TreatmentTab'
 import ReportTab from './tabs/ReportTab'
+import TextAreaWithSnippets from '../ui/TextAreaWithSnippets'
 
 interface Props {
   attendanceId: string
@@ -446,13 +447,15 @@ function AttendanceExtraFields({ attendanceId, youtubeUrl, internalNotes, object
           <StickyNote size={14} color="var(--gold)" /> Observação interna
           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 400 }}>(não aparece no relatório)</span>
         </span>
-        <textarea
-          placeholder="Anotações internas sobre a sessão..."
-          value={notes}
-          onChange={e => { setNotes(e.target.value); save('internal_notes', e.target.value) }}
-          rows={3}
-          style={{ marginTop: 'var(--space-2)' }}
-        />
+        <div style={{ marginTop: 'var(--space-2)' }}>
+          <TextAreaWithSnippets
+            value={notes}
+            onChange={v => { setNotes(v); save('internal_notes', v) }}
+            placeholder="Anotações internas sobre a sessão..."
+            rows={3}
+            allowSave={false}
+          />
+        </div>
       </label>
     </div>
   )

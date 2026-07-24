@@ -26,6 +26,7 @@ export default function AvailabilitySettings() {
   return (
     <>
       <BookingToggle />
+      <BookingProfile />
       <WeeklySchedule />
       <Overrides />
       <BookingLink />
@@ -130,6 +131,109 @@ function BookingToggle() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ============================================================
+// Perfil exibido na página de agendamento
+// ============================================================
+
+function BookingProfile() {
+  const qc = useQueryClient()
+
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ['booking-settings'],
+    queryFn: async () => {
+      const { data, error } = await fetchBookingSettings()
+      if (error) throw error
+      return data
+    },
+  })
+
+  const updateMut = useMutation({
+    mutationFn: updateBookingSettings,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['booking-settings'] })
+      toast('Perfil atualizado')
+    },
+    onError: () => toast('Erro ao atualizar', 'error'),
+  })
+
+  const [bio, setBio] = useState('')
+  const [location, setLocation] = useState('')
+  const [modality, setModality] = useState('presencial')
+  const [loaded, setLoaded] = useState(false)
+
+  if (settings && !loaded) {
+    setBio(settings.booking_bio ?? '')
+    setLocation(settings.booking_location ?? '')
+    setModality(settings.booking_modality ?? 'presencial')
+    setLoaded(true)
+  }
+
+  if (isLoading || !settings) return null
+  if (!settings.booking_enabled) return null
+
+  const handleSave = () => {
+    updateMut.mutate({
+      booking_bio: bio.trim() || null,
+      booking_location: location.trim() || null,
+      booking_modality: modality || null,
+    })
+  }
+
+  return (
+    <div className="card" style={{ marginTop: 'var(--space-4)' }}>
+      <h2 style={{ fontSize: '1.1rem', marginBottom: 'var(--space-2)' }}>Perfil na Página de Agendamento</h2>
+      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
+        Essas informações aparecem no sidebar da página pública de agendamento.
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+        <label className="form-label">
+          <span>Bio / Apresentação</span>
+          <textarea
+            value={bio}
+            onChange={e => setBio(e.target.value)}
+            placeholder="Ex: Terapeuta holística especializada em radiestesia e cura energética. Atendimento acolhedor e personalizado."
+            rows={3}
+            maxLength={300}
+            style={{ resize: 'vertical' }}
+          />
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', alignSelf: 'flex-end' }}>{bio.length}/300</span>
+        </label>
+
+        <label className="form-label">
+          <span>Localização</span>
+          <input
+            type="text"
+            value={location}
+            onChange={e => setLocation(e.target.value)}
+            placeholder="Ex: São Paulo, SP — Pinheiros"
+            maxLength={100}
+          />
+        </label>
+
+        <label className="form-label">
+          <span>Modalidade de atendimento</span>
+          <select
+            value={modality}
+            onChange={e => setModality(e.target.value)}
+            style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: '0.88rem' }}
+          >
+            <option value="presencial">Presencial</option>
+            <option value="online">Online</option>
+            <option value="ambos">Online e Presencial</option>
+          </select>
+        </label>
+
+        <div style={{ marginTop: 'var(--space-2)' }}>
+          <Button onClick={handleSave} disabled={updateMut.isPending}>
+            {updateMut.isPending ? 'Salvando...' : 'Salvar perfil'}
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

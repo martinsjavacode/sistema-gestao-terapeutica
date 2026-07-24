@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchEnergyAssessments, upsertEnergyAssessment } from '../../../services/attendances'
 import { toast } from '../../../lib/toast'
 import SaveStatus from '../../ui/SaveStatus'
+import TextAreaWithSnippets from '../../ui/TextAreaWithSnippets'
 import type { EnergyFieldType } from '../../../types/database'
 
 const FIELDS: { type: EnergyFieldType; label: string }[] = [
@@ -69,7 +70,7 @@ function FieldCard({ label, initial, onSave }: { label: string; initial?: { perc
       </label>
       <label className="form-label" style={{ margin: 0 }}>
         Observações
-        <textarea value={notes} onChange={e => { setNotes(e.target.value); change() }} rows={2} placeholder="Observações sobre este campo..." />
+        <TextAreaWithSnippets value={notes} onChange={v => { setNotes(v); change() }} rows={2} placeholder="Observações sobre este campo..." allowSave={false} />
       </label>
     </div>
   )

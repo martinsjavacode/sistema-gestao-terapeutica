@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchLimitingBeliefs, insertLimitingBelief, deleteLimitingBelief } from '../../../services/attendances'
 import { toast } from '../../../lib/toast'
 import Button from '../../ui/Button'
+import Input from '../../ui/Input'
 import { Plus, X, Check, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface BeliefCategory {
@@ -139,8 +140,10 @@ export default function BeliefsTab({ attendanceId }: { attendanceId: string }) {
       )}
 
       {/* Campo livre */}
-      <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
-        <input className="search-input" style={{ maxWidth: '100%' }} value={newBelief} onChange={e => setNewBelief(e.target.value)} placeholder="Adicionar crença personalizada..." onKeyDown={e => { if (e.key === 'Enter') addCustom() }} />
+      <div className="form-row" style={{ gap: 'var(--space-3)', marginBottom: 'var(--space-5)', alignItems: 'flex-end' }}>
+        <div style={{ flex: 1 }}>
+          <Input value={newBelief} onChange={e => setNewBelief(e.target.value)} placeholder="Adicionar crença personalizada..." onKeyDown={e => { if (e.key === 'Enter') addCustom() }} />
+        </div>
         <Button onClick={addCustom} disabled={!newBelief.trim()}><Plus size={16} /></Button>
       </div>
 

@@ -4,6 +4,7 @@ import { fetchLifeAreas, upsertLifeArea } from '../../../services/attendances'
 import { toast } from '../../../lib/toast'
 import { LIFE_AREA_LABELS } from '../../../types/database'
 import type { LifeAreaType } from '../../../types/database'
+import Input from '../../ui/Input'
 import SaveStatus from '../../ui/SaveStatus'
 import TextAreaWithSnippets from '../../ui/TextAreaWithSnippets'
 
@@ -60,10 +61,15 @@ function AreaCard({ area, initial, onSave }: { area: LifeAreaType; initial?: { p
         <SaveStatus status={saveStatus} />
       </div>
       <div className="form-row">
-        <label className="form-label">
-          Percentual (%)
-          <input type="number" min="0" max="100" step="0.1" value={percentage} onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setPercentage(v); change() }} />
-        </label>
+        <Input
+          label="Percentual (%)"
+          type="number"
+          min={0}
+          max={100}
+          step={0.1}
+          value={percentage}
+          onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setPercentage(v); change() }}
+        />
       </div>
       <label className="form-label" style={{ marginTop: 'var(--space-3)' }}>
         Observações

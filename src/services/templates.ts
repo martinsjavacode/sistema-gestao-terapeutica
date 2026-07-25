@@ -8,6 +8,8 @@ export interface TemplateField {
   label: string
   field_type: 'text' | 'list' | 'rating' | 'checkbox'
   config?: {
+    // Layout
+    width?: 'full' | 'half' | 'third'  // largura do campo na seção
     // Text
     placeholder?: string
     // List: opções pré-definidas para seleção

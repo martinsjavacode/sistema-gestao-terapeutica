@@ -720,3 +720,65 @@
   .pr-treatment-item p { font-size: 0.88rem; line-height: 1.8; }
   .pr-footer { padding: 32px 16px; }
 }
+
+
+/* ========== Custom Sections ========== */
+.pr-custom-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pr-custom-field {
+  padding: 16px 20px;
+  background: rgba(99, 102, 241, 0.03);
+  border: 1px solid rgba(99, 102, 241, 0.08);
+  border-radius: 12px;
+}
+
+.pr-custom-field-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0 0 10px 0;
+}
+
+.pr-custom-field-text {
+  font-size: 0.92rem;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.pr-custom-field-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pr-custom-field-chip {
+  display: inline-block;
+  padding: 6px 14px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: #c4b5fd;
+}
+
+.pr-custom-field-rating {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pr-custom-field-rating-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.pr-custom-field-checkbox {
+  font-size: 0.92rem;
+  color: #94a3b8;
+}

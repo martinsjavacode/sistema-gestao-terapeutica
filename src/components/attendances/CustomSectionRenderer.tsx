@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { Plus, X } from 'lucide-react'
 import TextAreaWithSnippets from '../ui/TextAreaWithSnippets'
+import SaveStatus from '../ui/SaveStatus'
+import Select from '../ui/Select'
 import type { TemplateSection, TemplateField, CustomSectionValue } from '../../services/templates'
 
 interface Props {
@@ -14,7 +16,7 @@ export default function CustomSectionRenderer({ section, sectionValue, onSave }:
   const currentValues = sectionValue?.values ?? {}
 
   if (fields.length === 0) {
-    return <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textAlign: 'center' }}>Nenhum campo configurado nesta seção.</p>
+    return <p className="text-muted text-center" style={{ fontSize: '0.82rem' }}>Nenhum campo configurado nesta seção.</p>
   }
 
   const handleFieldSave = (fieldId: string, fieldValue: { content?: string; items?: string[]; rating?: number; checked?: boolean }) => {
@@ -22,20 +24,68 @@ export default function CustomSectionRenderer({ section, sectionValue, onSave }:
     onSave(updated)
   }
 
+  // Calcular grid columns baseado na largura dos campos
+  // Grid de 6 colunas: full=6, half=3, third=2
+  const getGridColumn = (width?: 'full' | 'half' | 'third') => {
+    switch (width) {
+      case 'third': return 'span 2'
+      case 'half': return 'span 3'
+      case 'full':
+      default: return 'span 6'
+    }
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: 'repeat(6, 1fr)', 
+      gap: 'var(--space-4)',
+    }}>
       {fields.map(field => (
-        <div key={field.id}>
-          <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 'var(--space-2)' }}>
-            {field.label}
-          </label>
-          <FieldRenderer
+        <div 
+          key={field.id} 
+          style={{ 
+            gridColumn: getGridColumn(field.config?.width),
+            minWidth: 0, // Permite que o conteúdo encolha
+          }}
+        >
+          <FieldCard
             field={field}
             value={currentValues[field.id]}
             onSave={val => handleFieldSave(field.id, val)}
           />
         </div>
       ))}
+    </div>
+  )
+}
+
+// ========== Field Card (wrapper com estilo consistente) ==========
+
+function FieldCard({ field, value, onSave }: {
+  field: TemplateField
+  value: { content?: string; items?: string[]; rating?: number; checked?: boolean } | undefined
+  onSave: (val: { content?: string; items?: string[]; rating?: number; checked?: boolean }) => void
+}) {
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  const handleSave = useCallback((val: { content?: string; items?: string[]; rating?: number; checked?: boolean }) => {
+    setSaveStatus('saving')
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    timeoutRef.current = setTimeout(() => {
+      onSave(val)
+      setSaveStatus('saved')
+    }, 1500)
+  }, [onSave])
+
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+        <h3 style={{ fontSize: '0.95rem', color: 'var(--violet-light)' }}>{field.label}</h3>
+        <SaveStatus status={saveStatus} />
+      </div>
+      <FieldRenderer field={field} value={value} onSave={handleSave} />
     </div>
   )
 }
@@ -65,7 +115,6 @@ function FieldRenderer({ field, value, onSave }: {
 
 function TextField({ initialValue, placeholder, onSave }: { initialValue: string; placeholder?: string; onSave: (v: string) => void }) {
   const [value, setValue] = useState(initialValue)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => { setValue(initialValue) }, [initialValue])
@@ -73,8 +122,7 @@ function TextField({ initialValue, placeholder, onSave }: { initialValue: string
 
   const handleChange = useCallback((v: string) => {
     setValue(v)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => onSave(v), 1500)
+    onSave(v)
   }, [onSave])
 
   return (
@@ -93,6 +141,7 @@ function TextField({ initialValue, placeholder, onSave }: { initialValue: string
 function ListField({ initialItems, options, onSave }: { initialItems: string[]; options?: string[]; onSave: (items: string[]) => void }) {
   const [items, setItems] = useState<string[]>(initialItems)
   const [newItem, setNewItem] = useState('')
+  const [selectValue, setSelectValue] = useState('')
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => { setItems(initialItems) }, [initialItems])
@@ -104,6 +153,7 @@ function ListField({ initialItems, options, onSave }: { initialItems: string[]; 
     const updated = [...items, value]
     setItems(updated)
     setNewItem('')
+    setSelectValue('')
     onSave(updated)
   }
 
@@ -113,59 +163,58 @@ function ListField({ initialItems, options, onSave }: { initialItems: string[]; 
     onSave(updated)
   }
 
+  const handleSelectChange = (value: string) => {
+    if (value) {
+      addItem(value)
+    }
+  }
+
+  // Opções disponíveis (excluindo as já selecionadas)
+  const availableOptions = options?.filter(opt => !items.includes(opt)).map(opt => ({ value: opt, label: opt })) ?? []
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-      {/* Opções pré-definidas como chips selecionáveis */}
-      {options && options.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-          {options.map(opt => {
-            const isSelected = items.includes(opt)
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => isSelected ? removeItem(items.indexOf(opt)) : addItem(opt)}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: '16px',
-                  border: isSelected ? '2px solid var(--violet)' : '1px solid var(--border)',
-                  background: isSelected ? 'rgba(139, 92, 246, 0.1)' : 'var(--surface)',
-                  color: isSelected ? 'var(--violet)' : 'var(--text-muted)',
-                  fontWeight: isSelected ? 600 : 400,
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {opt}
-              </button>
-            )
-          })}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+      {/* Select para escolher opções */}
+      {options && options.length > 0 && availableOptions.length > 0 && (
+        <div style={{ maxWidth: '300px' }}>
+          <Select
+            value={selectValue}
+            onChange={handleSelectChange}
+            options={availableOptions}
+            placeholder="Selecione uma opção..."
+          />
         </div>
       )}
 
-      {/* Input para adicionar item livre */}
-      <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-        <input
-          type="text"
-          value={newItem}
-          onChange={e => setNewItem(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
-          placeholder={options?.length ? 'Ou adicione outro...' : 'Adicionar item...'}
-          style={{ flex: 1 }}
-        />
-        <button onClick={() => addItem()} disabled={!newItem.trim()} className="edit-btn" style={{ padding: '6px 10px', opacity: newItem.trim() ? 1 : 0.4 }} type="button" aria-label="Adicionar">
-          <Plus size={16} />
-        </button>
-      </div>
+      {/* Mensagem quando todas as opções já foram selecionadas */}
+      {options && options.length > 0 && availableOptions.length === 0 && items.length > 0 && (
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Todas as opções foram selecionadas</p>
+      )}
 
-      {/* Itens selecionados (só mostra os que não vieram das opções pré-definidas) */}
-      {items.length > 0 && (!options || options.length === 0) && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+      {/* Input para adicionar item livre (quando não há opções) */}
+      {(!options || options.length === 0) && (
+        <div className="form-row" style={{ gap: 'var(--space-2)' }}>
+          <input
+            type="text"
+            value={newItem}
+            onChange={e => setNewItem(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
+            placeholder="Adicionar item..."
+            style={{ flex: 1 }}
+          />
+          <button onClick={() => addItem()} disabled={!newItem.trim()} className="edit-btn" style={{ padding: '6px 10px', opacity: newItem.trim() ? 1 : 0.4 }} type="button" aria-label="Adicionar">
+            <Plus size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Itens selecionados */}
+      {items.length > 0 && (
+        <div className="chips-grid">
           {items.map((item, index) => (
-            <span key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', fontSize: '0.82rem', color: 'var(--text)' }}>
+            <span key={index} className="chip chip-selected" style={{ paddingRight: '8px' }}>
               {item}
-              <button onClick={() => removeItem(index)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, lineHeight: 1 }} aria-label={`Remover ${item}`} type="button">
+              <button onClick={() => removeItem(index)} className="chip-remove" aria-label={`Remover ${item}`} type="button">
                 <X size={12} />
               </button>
             </span>
@@ -193,25 +242,36 @@ function RatingField({ initialValue, maxRating, label, inputType, onSave }: { in
 
   if (inputType === 'input') {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-        <input
-          type="number"
-          min={0}
-          max={maxRating}
-          step={maxRating <= 10 ? 0.5 : 1}
-          value={value}
-          onChange={e => handleChange(Number(e.target.value))}
-          style={{ width: '80px', textAlign: 'center', fontSize: '1rem', fontWeight: 600 }}
-        />
-        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{label}</span>
+      <div className="form-row" style={{ alignItems: 'center', gap: 'var(--space-3)' }}>
+        <label className="form-label" style={{ margin: 0, maxWidth: '100px' }}>
+          Valor
+          <input
+            type="number"
+            min={0}
+            max={maxRating}
+            step={maxRating <= 10 ? 0.5 : 1}
+            value={value}
+            onChange={e => handleChange(Number(e.target.value))}
+            style={{ textAlign: 'center' }}
+          />
+        </label>
+        <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: 'var(--space-4)' }}>{label}</span>
       </div>
     )
   }
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-      <input type="range" min={0} max={maxRating} step={maxRating <= 10 ? 1 : 5} value={value} onChange={e => handleChange(Number(e.target.value))} style={{ flex: 1, accentColor: 'var(--violet)' }} />
-      <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)', minWidth: '50px', textAlign: 'right' }}>
+      <input 
+        type="range" 
+        min={0} 
+        max={maxRating} 
+        step={maxRating <= 10 ? 1 : 5} 
+        value={value} 
+        onChange={e => handleChange(Number(e.target.value))} 
+        style={{ flex: 1, accentColor: 'var(--violet)' }} 
+      />
+      <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)', minWidth: '60px', textAlign: 'right' }}>
         {value}{label}
       </span>
     </div>
@@ -228,9 +288,6 @@ function CheckboxField({ initialValue, label, options, onSave }: { initialValue:
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Se tem opções múltiplas, renderiza como lista de checkboxes
-  // Os valores são salvos como string serializada no campo checked (true = todos marcados)
-  // Para simplicidade, usamos o campo items no parent se necessário
-  // Porém como o tipo salva apenas boolean, para múltiplas opções usamos toggle simples por opção
   if (options && options.length > 0) {
     return <MultiCheckboxField options={options} label={label} onSave={onSave} initialChecked={initialValue} />
   }
@@ -241,8 +298,13 @@ function CheckboxField({ initialValue, label, options, onSave }: { initialValue:
   }
 
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', cursor: 'pointer', padding: 'var(--space-2) 0' }}>
-      <input type="checkbox" checked={checked} onChange={e => handleChange(e.target.checked)} style={{ width: 20, height: 20, accentColor: 'var(--violet)' }} />
+    <label className="checkbox-label">
+      <input 
+        type="checkbox" 
+        checked={checked} 
+        onChange={e => handleChange(e.target.checked)} 
+        style={{ width: 20, height: 20, accentColor: 'var(--violet)' }} 
+      />
       <span style={{ fontSize: '0.92rem', fontWeight: 500, color: checked ? 'var(--text)' : 'var(--text-muted)' }}>
         {label}
       </span>
@@ -267,8 +329,13 @@ function MultiCheckboxField({ options, onSave }: { options: string[]; label: str
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
       {options.map(opt => (
-        <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', cursor: 'pointer', padding: '4px 0' }}>
-          <input type="checkbox" checked={selected.has(opt)} onChange={() => toggle(opt)} style={{ width: 18, height: 18, accentColor: 'var(--violet)' }} />
+        <label key={opt} className="checkbox-label">
+          <input 
+            type="checkbox" 
+            checked={selected.has(opt)} 
+            onChange={() => toggle(opt)} 
+            style={{ width: 18, height: 18, accentColor: 'var(--violet)' }} 
+          />
           <span style={{ fontSize: '0.88rem', color: selected.has(opt) ? 'var(--text)' : 'var(--text-muted)' }}>{opt}</span>
         </label>
       ))}

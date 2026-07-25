@@ -2101,6 +2101,7 @@ tbody tr:hover { background: var(--surface-hover); }
 .attendance-footer-actions {
   display: flex;
   justify-content: center;
+  gap: var(--space-4);
   margin-top: var(--space-5);
   padding-top: var(--space-4);
   border-top: 1px solid var(--border);

@@ -4,6 +4,7 @@ import { fetchChakras, upsertChakra } from '../../../services/attendances'
 import { toast } from '../../../lib/toast'
 import { CHAKRA_ORDER, CHAKRA_LABELS } from '../../../types/database'
 import type { ChakraName, ChakraState, ChakraActivity } from '../../../types/database'
+import Input from '../../ui/Input'
 import Select from '../../ui/Select'
 import SaveStatus from '../../ui/SaveStatus'
 import TextAreaWithSnippets from '../../ui/TextAreaWithSnippets'
@@ -73,10 +74,15 @@ function ChakraCard({ name, initial, onSave }: { name: ChakraName; initial?: { a
           onChange={v => { setActivity(v as ChakraActivity); change() }}
           options={ACTIVITIES}
         />
-        <label className="form-label">
-          Percentual (%)
-          <input type="number" min="0" max="100" step="0.1" value={percentage} onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setPercentage(v); change() }} />
-        </label>
+        <Input
+          label="Percentual (%)"
+          type="number"
+          min={0}
+          max={100}
+          step={0.1}
+          value={percentage}
+          onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setPercentage(v); change() }}
+        />
       </div>
       <label className="form-label" style={{ marginTop: 'var(--space-3)' }}>
         Observações

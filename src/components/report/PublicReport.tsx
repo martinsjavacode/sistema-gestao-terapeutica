@@ -111,6 +111,7 @@ interface ReportData {
     youtube_url: string | null
     report_content: string | null
     client_name: string
+    template_snapshot: TemplateSection[] | null
   }
   assessments: { field_type: string; has_imbalance: boolean; percentage: number | null; notes: string | null }[]
   chakras: { name: ChakraName; state: string; activity: string; percentage: number | null; notes: string | null }[]
@@ -121,6 +122,28 @@ interface ReportData {
   blockages: { type: string; origin: string | null; intensity: string | null; notes: string | null }[]
   divorces: { what: string; reason: string | null; percentage: number | null; result: string | null; notes: string | null }[]
   treatment: { techniques: string | null; charts: string | null; recommendations: string | null; frequencies: string | null; exercises: string | null } | null
+  custom_section_values: { section_id: string; values: Record<string, { content?: string; items?: string[]; rating?: number; checked?: boolean }> }[]
+}
+
+interface TemplateSection {
+  id: string
+  type: 'builtin' | 'custom'
+  key: string | null
+  label: string
+  order: number
+  fields?: TemplateField[]
+}
+
+interface TemplateField {
+  id: string
+  label: string
+  field_type: 'text' | 'list' | 'rating' | 'checkbox'
+  config?: {
+    width?: 'full' | 'half' | 'third'
+    is_percentage?: boolean
+    max_rating?: number
+    rating_label?: string
+  }
 }
 
 export default function PublicReport() {
@@ -148,8 +171,22 @@ export default function PublicReport() {
   if (error) return <div className="report-error"><p>🔮</p><h2>Relatório não disponível</h2><p>{error}</p></div>
   if (!data) return null
 
-  const { attendance, tenant, assessments, chakras, aura, life_areas, emotions, beliefs, divorces, treatment } = data
+  const { attendance, tenant, assessments, chakras, aura, life_areas, emotions, beliefs, divorces, treatment, custom_section_values } = data
   const fieldLabels: Record<string, string> = { mental: 'Mental', emocional: 'Emocional', espiritual: 'Espiritual', fisico: 'Físico' }
+
+  // Extrair seções customizadas do template_snapshot
+  const customSections = (attendance.template_snapshot ?? []).filter(s => s.type === 'custom')
+  const filledCustomSections = customSections.filter(cs => {
+    const sectionValue = custom_section_values?.find(v => v.section_id === cs.id)
+    if (!sectionValue?.values) return false
+    return Object.values(sectionValue.values).some(fv => {
+      if (fv.content?.trim()) return true
+      if (fv.items && fv.items.length > 0) return true
+      if (fv.rating != null && fv.rating > 0) return true
+      if (fv.checked != null) return true
+      return false
+    })
+  })
 
   return (
     <div className="public-report">
@@ -343,6 +380,86 @@ export default function PublicReport() {
           </div>
         </CollapsibleSection>
       )}
+
+      {/* Seções Customizadas */}
+      {filledCustomSections.map(section => {
+        const sectionValue = custom_section_values?.find(v => v.section_id === section.id)
+        if (!sectionValue?.values) return null
+
+        // Função para calcular grid column baseado na largura
+        const getGridColumn = (width?: 'full' | 'half' | 'third') => {
+          switch (width) {
+            case 'third': return 'span 2'
+            case 'half': return 'span 3'
+            case 'full':
+            default: return 'span 6'
+          }
+        }
+        
+        return (
+          <CollapsibleSection key={section.id} icon="◈" title={section.label}>
+            <div className="pr-custom-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px' }}>
+              {section.fields?.map(field => {
+                const fieldValue = sectionValue.values[field.id]
+                if (!fieldValue) return null
+                
+                // Verificar se tem valor
+                const hasValue = fieldValue.content?.trim() || 
+                  (fieldValue.items && fieldValue.items.length > 0) ||
+                  (fieldValue.rating != null && fieldValue.rating > 0) ||
+                  fieldValue.checked != null
+                
+                if (!hasValue) return null
+
+                return (
+                  <div key={field.id} className="pr-custom-field" style={{ gridColumn: getGridColumn(field.config?.width) }}>
+                    <h4 className="pr-custom-field-label">{field.label}</h4>
+                    
+                    {/* Text field */}
+                    {field.field_type === 'text' && fieldValue.content && (
+                      <p className="pr-custom-field-text" style={{ whiteSpace: 'pre-line' }}>{fieldValue.content}</p>
+                    )}
+                    
+                    {/* List field */}
+                    {field.field_type === 'list' && fieldValue.items && fieldValue.items.length > 0 && (
+                      <div className="pr-custom-field-list">
+                        {fieldValue.items.map((item, i) => (
+                          <span key={i} className="pr-custom-field-chip">{item}</span>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Rating field */}
+                    {field.field_type === 'rating' && fieldValue.rating != null && (
+                      <div className="pr-custom-field-rating">
+                        <div className="pr-chakra-bar" style={{ maxWidth: '200px' }}>
+                          <div 
+                            className="pr-chakra-bar-fill" 
+                            style={{ 
+                              width: `${(fieldValue.rating / (field.config?.max_rating ?? 100)) * 100}%`,
+                              background: fieldValue.rating >= (field.config?.max_rating ?? 100) ? '#38bdf8' : '#f97316'
+                            }} 
+                          />
+                        </div>
+                        <span className="pr-custom-field-rating-value">
+                          {fieldValue.rating}{field.config?.rating_label ?? (field.config?.is_percentage ? '%' : '/10')}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Checkbox field */}
+                    {field.field_type === 'checkbox' && fieldValue.checked != null && (
+                      <span className="pr-custom-field-checkbox">
+                        {fieldValue.checked ? '✓ Sim' : '✗ Não'}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </CollapsibleSection>
+        )
+      })}
 
       {/* Recomendações */}
       {treatment?.recommendations && (

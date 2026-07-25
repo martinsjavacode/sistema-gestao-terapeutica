@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchEnergyAssessments, upsertEnergyAssessment } from '../../../services/attendances'
 import { toast } from '../../../lib/toast'
+import Input from '../../ui/Input'
 import SaveStatus from '../../ui/SaveStatus'
 import TextAreaWithSnippets from '../../ui/TextAreaWithSnippets'
 import type { EnergyFieldType } from '../../../types/database'
@@ -64,10 +65,17 @@ function FieldCard({ label, initial, onSave }: { label: string; initial?: { perc
         <h3 style={{ fontSize: '0.95rem', color: 'var(--violet-light)' }}>{label}</h3>
         <SaveStatus status={saveStatus} />
       </div>
-      <label className="form-label" style={{ margin: 0, marginBottom: 'var(--space-3)', maxWidth: '140px' }}>
-        Percentual (%)
-        <input type="number" min="0" max="100" step="0.1" value={percentage} onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setPercentage(v); change() }} />
-      </label>
+      <div style={{ marginBottom: 'var(--space-3)', maxWidth: '140px' }}>
+        <Input
+          label="Percentual (%)"
+          type="number"
+          min={0}
+          max={100}
+          step={0.1}
+          value={percentage}
+          onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setPercentage(v); change() }}
+        />
+      </div>
       <label className="form-label" style={{ margin: 0 }}>
         Observações
         <TextAreaWithSnippets value={notes} onChange={v => { setNotes(v); change() }} rows={2} placeholder="Observações sobre este campo..." allowSave={false} />

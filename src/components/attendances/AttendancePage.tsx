@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchAttendances, insertAttendance, deleteAttendance } from '../../services/attendances'
 import Button from '../ui/Button'
+import Input from '../ui/Input'
 import Select from '../ui/Select'
 import { TableSkeleton } from '../ui/Skeleton'
 import { confirm } from '../../lib/confirm'
@@ -129,13 +130,12 @@ export default function AttendancePage() {
 
       <div className="filters">
         <div style={{ position: 'relative', flex: 1, maxWidth: '360px' }}>
-          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input
+          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', zIndex: 1 }} />
+          <Input
             type="search"
             placeholder="Buscar por cliente, terapia ou data..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="search-input"
             style={{ paddingLeft: '36px', maxWidth: '100%' }}
           />
         </div>
@@ -195,23 +195,23 @@ export default function AttendancePage() {
               </span>
               <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                 {SESSION_TEMPLATES.map(t => (
-                  <button
+                  <Button
                     key={t.id}
-                    className={`tab-nav-btn ${selectedTemplate === t.id ? 'active' : ''}`}
+                    variant={selectedTemplate === t.id ? 'primary' : 'tab'}
                     onClick={() => applyTemplate(t.id)}
                     style={{ fontSize: '0.78rem', padding: '6px 12px' }}
                   >
                     {t.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
 
             <div className="form-grid">
-              <label className="form-label">
+              <div className="form-label">
                 Cliente
                 <ClientSelect value={newClientId} onChange={setNewClientId} />
-              </label>
+              </div>
               <Select
                 label="Tipo de terapia"
                 value={newTherapy}
@@ -219,10 +219,12 @@ export default function AttendancePage() {
                 options={activeTechniques.map(t => ({ value: t.id, label: t.name }))}
               />
             </div>
-            <label className="form-label" style={{ marginTop: 'var(--space-4)' }}>
-              Objetivo da sessão
-              <textarea value={newObjective} onChange={e => setNewObjective(e.target.value)} placeholder="Descreva o objetivo..." />
-            </label>
+            <div style={{ marginTop: 'var(--space-4)' }}>
+              <label className="form-label">
+                Objetivo da sessão
+                <textarea value={newObjective} onChange={e => setNewObjective(e.target.value)} placeholder="Descreva o objetivo..." />
+              </label>
+            </div>
             <div className="form-actions">
               <Button variant="tab" onClick={() => setAdding(false)}>Cancelar</Button>
               <Button onClick={handleCreate} disabled={!newClientId}>Criar</Button>

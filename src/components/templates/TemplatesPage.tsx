@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchTemplates, insertTemplate, updateTemplate, deleteTemplate, duplicateTemplate, setDefaultTemplate, type SessionTemplate, type TemplateSection, type TemplateField } from '../../services/templates'
 import Button from '../ui/Button'
+import Input from '../ui/Input'
 import Modal from '../ui/Modal'
 import EmptyState from '../ui/EmptyState'
 import Select from '../ui/Select'
@@ -59,22 +60,22 @@ export default function TemplatesPage() {
 
       {/* Filtros */}
       <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-5)', flexWrap: 'wrap' }}>
-        <button
-          className={`tab-nav-btn ${filterTherapy === 'all' ? 'active' : ''}`}
+        <Button
+          variant={filterTherapy === 'all' ? 'primary' : 'tab'}
           onClick={() => setFilterTherapy('all')}
           style={{ fontSize: '0.78rem', padding: '6px 12px' }}
         >
           Todos
-        </button>
+        </Button>
         {activeTechniques.map(t => (
-          <button
+          <Button
             key={t.id}
-            className={`tab-nav-btn ${filterTherapy === t.id ? 'active' : ''}`}
+            variant={filterTherapy === t.id ? 'primary' : 'tab'}
             onClick={() => setFilterTherapy(t.id as TherapyType)}
             style={{ fontSize: '0.78rem', padding: '6px 12px' }}
           >
             {t.name}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -107,9 +108,9 @@ export default function TemplatesPage() {
                         <Star size={12} fill="var(--gold)" /> Padrão
                       </span>
                     )}
-                    <button className="edit-btn" onClick={() => handleDuplicate(template)} title="Duplicar"><Copy size={14} /></button>
-                    <button className="edit-btn" onClick={() => setEditing(template)} title="Editar"><Pencil size={14} /></button>
-                    <button className="edit-btn" onClick={() => handleDelete(template)} title="Arquivar"><Trash2 size={14} /></button>
+                    <Button variant="icon" onClick={() => handleDuplicate(template)} title="Duplicar"><Copy size={14} /></Button>
+                    <Button variant="icon" onClick={() => setEditing(template)} title="Editar"><Pencil size={14} /></Button>
+                    <Button variant="icon" onClick={() => handleDelete(template)} title="Arquivar"><Trash2 size={14} /></Button>
                   </div>
                 </div>
                 <h3 className="template-card-name">{template.name}</h3>
@@ -300,10 +301,13 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         <div className="form-grid">
-          <label className="form-label">
-            Nome da ficha
-            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Limpeza de Chakras" autoFocus />
-          </label>
+          <Input
+            label="Nome da ficha"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="Ex: Limpeza de Chakras"
+            autoFocus
+          />
           <Select
             label="Tipo de terapia"
             value={therapyType}
@@ -312,10 +316,12 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
           />
         </div>
 
-        <label className="form-label">
-          Descrição (opcional)
-          <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="Breve descrição da ficha..." />
-        </label>
+        <Input
+          label="Descrição (opcional)"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          placeholder="Breve descrição da ficha..."
+        />
 
         {/* Toggle ficha padrão */}
         <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', cursor: 'pointer', padding: 'var(--space-3)', background: isDefault ? 'rgba(234, 179, 8, 0.08)' : 'var(--surface)', borderRadius: 'var(--radius-sm)', border: isDefault ? '1px solid var(--gold)' : '1px solid var(--border)', transition: 'all 0.15s' }}>
@@ -372,15 +378,15 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
           <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 'var(--space-2)' }}>
             Seções personalizadas
           </span>
-          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-            <input
-              type="text"
-              value={newCustomLabel}
-              onChange={e => setNewCustomLabel(e.target.value)}
-              placeholder="Nome da seção"
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomSection() } }}
-              style={{ flex: 1 }}
-            />
+          <div className="form-row" style={{ gap: 'var(--space-2)', alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <Input
+                value={newCustomLabel}
+                onChange={e => setNewCustomLabel(e.target.value)}
+                placeholder="Nome da seção"
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomSection() } }}
+              />
+            </div>
             <Button variant="tab" onClick={addCustomSection} type="button" disabled={!newCustomLabel.trim()}>
               <Plus size={14} /> Seção
             </Button>
@@ -422,15 +428,15 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
 function AddFieldInline({ sectionId, onAdd }: { sectionId: string; onAdd: (sectionId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox', config?: TemplateField['config']) => void }) {
   const [label, setLabel] = useState('')
   const [fieldType, setFieldType] = useState<'text' | 'list' | 'rating' | 'checkbox'>('text')
-  const [showConfig, setShowConfig] = useState(false)
   // Config states
   const [options, setOptions] = useState('')       // Lista e checkbox: opções separadas por vírgula
   const [inputType, setInputType] = useState<'slider' | 'input'>('slider')
   const [isPercentage, setIsPercentage] = useState(false)
+  const [width, setWidth] = useState<'full' | 'half' | 'third'>('full')
 
   const handleAdd = () => {
     if (!label.trim()) return
-    const config: TemplateField['config'] = {}
+    const config: TemplateField['config'] = { width }
     if (fieldType === 'list') {
       config.options = options.split(',').map(o => o.trim()).filter(Boolean)
     } else if (fieldType === 'rating') {
@@ -445,66 +451,139 @@ function AddFieldInline({ sectionId, onAdd }: { sectionId: string; onAdd: (secti
     onAdd(sectionId, label.trim(), fieldType, config)
     setLabel('')
     setOptions('')
-    setShowConfig(false)
     setInputType('slider')
     setIsPercentage(false)
+    setWidth('full')
   }
 
   const handleTypeChange = (type: typeof fieldType) => {
     setFieldType(type)
-    setShowConfig(type !== 'text')
     setOptions('')
   }
 
   return (
     <div style={{ marginTop: 'var(--space-3)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-3)' }}>
-      <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-        <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="Nome do campo" onKeyDown={e => { if (e.key === 'Enter' && !showConfig) { e.preventDefault(); handleAdd() } }} style={{ flex: 1, fontSize: '0.82rem', padding: '6px 10px' }} />
-        <select value={fieldType} onChange={e => handleTypeChange(e.target.value as typeof fieldType)} style={{ padding: '6px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--card)', fontSize: '0.78rem', color: 'var(--text)' }}>
-          <option value="text">Texto</option>
-          <option value="list">Lista</option>
-          <option value="rating">Nota</option>
-          <option value="checkbox">Checkbox</option>
-        </select>
-        <button className="edit-btn" onClick={handleAdd} type="button" disabled={!label.trim()} style={{ padding: '4px 8px', opacity: label.trim() ? 1 : 0.4 }}>
-          <Plus size={14} />
-        </button>
+      {/* Linha principal: nome + tipo + botão */}
+      <div className="form-row" style={{ gap: 'var(--space-3)', alignItems: 'flex-end' }}>
+        <div style={{ flex: 1 }}>
+          <Input
+            label="Nome do campo"
+            value={label}
+            onChange={e => setLabel(e.target.value)}
+            placeholder="Ex: Intensidade, Cristais usados..."
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
+          />
+        </div>
+        <div style={{ width: '160px' }}>
+          <Select
+            label="Tipo"
+            value={fieldType}
+            onChange={v => handleTypeChange(v as typeof fieldType)}
+            options={[
+              { value: 'text', label: '📝 Texto' },
+              { value: 'list', label: '📋 Lista' },
+              { value: 'rating', label: '⭐ Nota' },
+              { value: 'checkbox', label: '☑️ Checkbox' },
+            ]}
+          />
+        </div>
+        <Button onClick={handleAdd} type="button" disabled={!label.trim()} style={{ marginBottom: '1px' }}>
+          <Plus size={14} /> Adicionar
+        </Button>
       </div>
 
-      {/* Config específica por tipo */}
-      {showConfig && label.trim() && (
-        <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-2) var(--space-3)', background: 'var(--background)', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem' }}>
-          {fieldType === 'list' && (
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Opções (separadas por vírgula)</span>
-              <input type="text" value={options} onChange={e => setOptions(e.target.value)} placeholder="Ex: Ametista, Quartzo Rosa, Turmalina" style={{ fontSize: '0.78rem', padding: '5px 8px' }} />
-            </label>
-          )}
-
-          {fieldType === 'rating' && (
-            <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'center', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Formato:</span>
-                <select value={inputType} onChange={e => setInputType(e.target.value as 'slider' | 'input')} style={{ padding: '4px 6px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--card)', fontSize: '0.78rem' }}>
-                  <option value="slider">Slider</option>
-                  <option value="input">Campo numérico</option>
-                </select>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                <input type="checkbox" checked={isPercentage} onChange={e => setIsPercentage(e.target.checked)} style={{ accentColor: 'var(--violet)' }} />
-                <span style={{ color: 'var(--text-muted)' }}>Porcentagem (0-100%)</span>
-              </label>
-            </div>
-          )}
-
-          {fieldType === 'checkbox' && (
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Opções (separadas por vírgula, vazio = toggle simples)</span>
-              <input type="text" value={options} onChange={e => setOptions(e.target.value)} placeholder="Ex: Banho de ervas, Meditação, Exercício" style={{ fontSize: '0.78rem', padding: '5px 8px' }} />
-            </label>
-          )}
+      {/* Configurações sempre visíveis */}
+      <div className="card" style={{ marginTop: 'var(--space-3)', padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+        {/* Largura do campo - sempre visível */}
+        <div>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 'var(--space-2)' }}>Largura do campo</span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {(['full', 'half', 'third'] as const).map(w => (
+              <button
+                key={w}
+                type="button"
+                onClick={() => setWidth(w)}
+                className={`chip ${width === w ? 'chip-selected' : ''}`}
+              >
+                {w === 'full' ? '▣ Inteira' : w === 'half' ? '◧ Metade' : '⫿ Terço'}
+              </button>
+            ))}
+          </div>
+          {/* Preview visual da largura */}
+          <div style={{ display: 'flex', gap: '4px', marginTop: 'var(--space-2)' }}>
+            <div style={{ 
+              flex: width === 'full' ? 1 : width === 'half' ? 0.5 : 0.33, 
+              height: '8px', 
+              background: 'var(--violet)', 
+              borderRadius: '4px',
+              transition: 'flex 0.2s'
+            }} />
+            {width !== 'full' && (
+              <div style={{ 
+                flex: width === 'half' ? 0.5 : 0.67, 
+                height: '8px', 
+                background: 'var(--border)', 
+                borderRadius: '4px',
+                transition: 'flex 0.2s'
+              }} />
+            )}
+          </div>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 'var(--space-1)' }}>
+            {width === 'full' && 'O campo ocupa toda a largura da seção'}
+            {width === 'half' && 'Permite 2 campos lado a lado na mesma linha'}
+            {width === 'third' && 'Permite 3 campos lado a lado na mesma linha'}
+          </p>
         </div>
-      )}
+
+        {/* Opções específicas por tipo */}
+        {fieldType === 'list' && (
+          <div>
+            <Input
+              label="Opções pré-definidas"
+              value={options}
+              onChange={e => setOptions(e.target.value)}
+              placeholder="Separe por vírgula: Ametista, Quartzo Rosa, Turmalina"
+            />
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>Deixe vazio para permitir apenas texto livre</span>
+          </div>
+        )}
+
+        {fieldType === 'rating' && (
+          <div className="form-row" style={{ gap: 'var(--space-4)', alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <Select
+                label="Formato de entrada"
+                value={inputType}
+                onChange={v => setInputType(v as 'slider' | 'input')}
+                options={[
+                  { value: 'slider', label: '🎚️ Slider (arraste)' },
+                  { value: 'input', label: '🔢 Campo numérico' },
+                ]}
+              />
+            </div>
+            <label className="checkbox-label" style={{ marginBottom: 'var(--space-2)' }}>
+              <input 
+                type="checkbox" 
+                checked={isPercentage} 
+                onChange={e => setIsPercentage(e.target.checked)} 
+              />
+              Porcentagem (0-100%)
+            </label>
+          </div>
+        )}
+
+        {fieldType === 'checkbox' && (
+          <div>
+            <Input
+              label="Opções múltiplas (opcional)"
+              value={options}
+              onChange={e => setOptions(e.target.value)}
+              placeholder="Separe por vírgula: Banho de ervas, Meditação, Exercício"
+            />
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>Deixe vazio para um toggle simples (Sim/Não)</span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -544,9 +623,9 @@ function SortableSectionItem({ section, sensors, onRemove, onAddField, onRemoveF
             {section.type === 'custom' ? `${fields.length} campo(s)` : 'Seção do sistema'}
           </span>
         </div>
-        <button className="edit-btn" onClick={onRemove} type="button" aria-label="Remover seção">
+        <Button variant="icon" onClick={onRemove} type="button" aria-label="Remover seção">
           <Trash2 size={14} />
-        </button>
+        </Button>
       </div>
 
       {section.type === 'custom' && (
@@ -571,6 +650,12 @@ function SortableSectionItem({ section, sensors, onRemove, onAddField, onRemoveF
 
 // ========== Sortable Field Item ==========
 
+const WIDTH_LABELS: Record<string, string> = {
+  full: '100%',
+  half: '50%',
+  third: '33%',
+}
+
 function SortableFieldItem({ field, onRemove }: { field: TemplateField; onRemove: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id })
 
@@ -585,6 +670,8 @@ function SortableFieldItem({ field, onRemove }: { field: TemplateField; onRemove
     fontSize: '0.82rem',
   }
 
+  const width = field.config?.width ?? 'full'
+
   return (
     <div ref={setNodeRef} style={style}>
       <span {...attributes} {...listeners} style={{ cursor: 'grab', color: 'var(--text-muted)' }}>
@@ -594,9 +681,12 @@ function SortableFieldItem({ field, onRemove }: { field: TemplateField; onRemove
       <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--background)', padding: '2px 8px', borderRadius: 12 }}>
         {FIELD_TYPE_LABELS[field.field_type]}
       </span>
-      <button className="edit-btn" onClick={onRemove} type="button" aria-label="Remover campo" style={{ padding: 2 }}>
+      <span style={{ fontSize: '0.65rem', color: 'var(--violet)', background: 'rgba(139, 92, 246, 0.1)', padding: '2px 6px', borderRadius: 8 }}>
+        {WIDTH_LABELS[width]}
+      </span>
+      <Button variant="icon" onClick={onRemove} type="button" aria-label="Remover campo" style={{ padding: 2 }}>
         <Trash2 size={12} />
-      </button>
+      </Button>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown } from 'lucide-react'
 import './Select.css'
 
@@ -20,7 +21,9 @@ interface Props {
 export default function Select({ label, value, options, onChange, placeholder = 'Selecione', error, disabled }: Props) {
   const [open, setOpen] = useState(false)
   const [focusIndex, setFocusIndex] = useState(-1)
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0 })
   const ref = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
 
   const selected = options.find(o => o.value === value)
@@ -30,14 +33,41 @@ export default function Select({ label, value, options, onChange, placeholder = 
     setFocusIndex(-1)
   }, [])
 
+  // Calcular posição do menu quando abrir
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      setMenuPosition({
+        top: rect.bottom + 6,
+        left: rect.left,
+        width: rect.width,
+      })
+    }
+  }, [open])
+
+  // Fechar ao clicar fora
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) close()
+      if (ref.current && !ref.current.contains(e.target as Node) && 
+          listRef.current && !listRef.current.contains(e.target as Node)) {
+        close()
+      }
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [close])
 
+  // Fechar ao rolar a página/modal
+  useEffect(() => {
+    if (!open) return
+    function handleScroll() {
+      close()
+    }
+    window.addEventListener('scroll', handleScroll, true)
+    return () => window.removeEventListener('scroll', handleScroll, true)
+  }, [open, close])
+
+  // Scroll para item focado
   useEffect(() => {
     if (open && listRef.current && focusIndex >= 0) {
       const items = listRef.current.querySelectorAll('li')
@@ -85,6 +115,7 @@ export default function Select({ label, value, options, onChange, placeholder = 
     <div className="form-label" ref={ref}>
       {label && <span id={`${id}-label`}>{label}</span>}
       <div
+        ref={triggerRef}
         className={`select-trigger${open ? ' select-trigger--open' : ''}${disabled ? ' select-trigger--disabled' : ''}`}
         role="combobox"
         aria-expanded={open}
@@ -101,12 +132,17 @@ export default function Select({ label, value, options, onChange, placeholder = 
         <ChevronDown size={16} className={`select-chevron${open ? ' select-chevron--open' : ''}`} />
       </div>
 
-      {open && (
+      {open && createPortal(
         <ul
-          className="select-menu"
+          className="select-menu select-menu--portal"
           role="listbox"
           ref={listRef}
           aria-labelledby={label ? `${id}-label` : undefined}
+          style={{
+            top: menuPosition.top,
+            left: menuPosition.left,
+            width: menuPosition.width,
+          }}
         >
           {options.map((opt, i) => (
             <li
@@ -120,7 +156,8 @@ export default function Select({ label, value, options, onChange, placeholder = 
               {opt.label}
             </li>
           ))}
-        </ul>
+        </ul>,
+        document.body
       )}
 
       {error && <span className="form-error">{error}</span>}

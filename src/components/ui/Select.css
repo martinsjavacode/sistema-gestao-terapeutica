@@ -74,6 +74,11 @@
   animation: select-menu-in 0.15s ease-out;
 }
 
+.select-menu--portal {
+  position: fixed;
+  z-index: 9999;
+}
+
 @keyframes select-menu-in {
   from {
     opacity: 0;

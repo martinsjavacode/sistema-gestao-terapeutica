@@ -5,6 +5,8 @@ import { fetchAttendance, updateAttendance, fetchEnergyAssessments, fetchChakras
 import { fetchTemplates, linkTemplateWithSnapshot, fetchCustomSectionValues, upsertCustomSectionValue, incrementTemplateUsage, type TemplateSection } from '../../services/templates'
 import { TableSkeleton } from '../ui/Skeleton'
 import Button from '../ui/Button'
+import Input from '../ui/Input'
+import Select from '../ui/Select'
 import { ArrowLeft, ChevronRight, ChevronDown, Check, Youtube, StickyNote, Copy, CheckCircle2, FileCheck, BookOpen } from 'lucide-react'
 import { getTherapyLabel } from '../../types/database'
 import { getSectionsForTherapy } from '../../config/therapy-sections'
@@ -33,6 +35,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
   const qc = useQueryClient()
   const { techniques } = useTenant()
   const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(new Set(['assessment']))
+  const [expandedCustomSections, setExpandedCustomSections] = useState<Set<string>>(new Set())
   const [showSummary, setShowSummary] = useState(false)
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
@@ -41,6 +44,15 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
       else next.add(key)
+      return next
+    })
+  }, [])
+
+  const toggleCustomSection = useCallback((id: string) => {
+    setExpandedCustomSections(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }, [])
@@ -213,14 +225,24 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
   if (!attendance) return <p>Atendimento não encontrado.</p>
 
   const snapshotSections = (attendance.template_snapshot as TemplateSection[] | null) ?? null
-  const sections = snapshotSections
-    ? snapshotSections.filter(s => s.type === 'builtin').map(s => ({ key: s.key as SectionKey, label: s.label }))
-    : getSectionsForTherapy(attendance.therapy_type, techniques)
-  const customSections: TemplateSection[] = snapshotSections
-    ? snapshotSections.filter(s => s.type === 'custom')
-    : []
-  const filledCount = sections.filter(s => filledSections[s.key]).length
-  const totalSections = sections.length + customSections.length
+  
+  // Seções ordenadas pelo campo order do template
+  const allSections: TemplateSection[] = snapshotSections
+    ? [...snapshotSections].sort((a, b) => a.order - b.order)
+    : getSectionsForTherapy(attendance.therapy_type, techniques).map((s, i) => ({
+        id: s.key,
+        type: 'builtin' as const,
+        key: s.key,
+        label: s.label,
+        order: i,
+      }))
+  
+  // Para compatibilidade com filledSections (seções builtin)
+  const builtinSections = allSections.filter(s => s.type === 'builtin')
+  const customSections = allSections.filter(s => s.type === 'custom')
+  
+  const filledCount = builtinSections.filter(s => filledSections[s.key as SectionKey]).length
+  const totalSections = allSections.length
   const customFilledCount = customSections.filter(cs => {
     const val = customValues.find(v => v.section_id === cs.id)
     if (!val || !val.values) return false
@@ -243,6 +265,19 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
 
   const status = getStatusBadge()
 
+  // Helper para verificar se seção custom está preenchida
+  const isCustomSectionFilled = (sectionId: string) => {
+    const sectionValue = customValues.find(v => v.section_id === sectionId)
+    if (!sectionValue?.values) return false
+    return Object.values(sectionValue.values).some(fv => {
+      if (fv.content?.trim()) return true
+      if (fv.items && fv.items.length > 0) return true
+      if (fv.rating != null && fv.rating > 0) return true
+      if (fv.checked != null) return true
+      return false
+    })
+  }
+
   return (
     <div className="attendance-detail-layout">
       {/* Mini-map lateral (desktop only) */}
@@ -255,19 +290,47 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
           <div className="minimap-progress-fill" style={{ width: `${progressPercent}%` }} />
         </div>
         <nav className="minimap-nav">
-          {sections.map(section => (
-            <button
-              key={section.key}
-              className={`minimap-item ${expandedSections.has(section.key) ? 'active' : ''} ${filledSections[section.key] ? 'filled' : ''}`}
-              onClick={() => scrollToSection(section.key)}
-              title={section.label}
-            >
-              <span className={`minimap-dot ${filledSections[section.key] ? 'filled' : ''}`}>
-                {filledSections[section.key] && <Check size={8} />}
-              </span>
-              <span className="minimap-label">{section.label}</span>
-            </button>
-          ))}
+          {allSections.map(section => {
+            if (section.type === 'builtin') {
+              const sectionKey = section.key as SectionKey
+              const isFilled = filledSections[sectionKey]
+              return (
+                <button
+                  key={section.id}
+                  className={`minimap-item ${expandedSections.has(sectionKey) ? 'active' : ''} ${isFilled ? 'filled' : ''}`}
+                  onClick={() => scrollToSection(sectionKey)}
+                  title={section.label}
+                >
+                  <span className={`minimap-dot ${isFilled ? 'filled' : ''}`}>
+                    {isFilled && <Check size={8} />}
+                  </span>
+                  <span className="minimap-label">{section.label}</span>
+                </button>
+              )
+            } else {
+              const isFilled = isCustomSectionFilled(section.id)
+              return (
+                <button
+                  key={section.id}
+                  className={`minimap-item ${expandedCustomSections.has(section.id) ? 'active' : ''} ${isFilled ? 'filled' : ''}`}
+                  onClick={() => {
+                    const el = sectionRefs.current[`custom-${section.id}`]
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      setExpandedCustomSections(prev => new Set([...prev, section.id]))
+                    }
+                  }}
+                  title={section.label}
+                  style={{ borderLeftColor: 'var(--gold)' }}
+                >
+                  <span className={`minimap-dot ${isFilled ? 'filled' : ''}`} style={{ borderColor: 'var(--gold)' }}>
+                    {isFilled && <Check size={8} />}
+                  </span>
+                  <span className="minimap-label">{section.label}</span>
+                </button>
+              )
+            }
+          })}
         </nav>
         {filledCount > 0 && (
           <button className="minimap-summary-btn" onClick={() => setShowSummary(true)}>
@@ -313,97 +376,131 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-4)', padding: 'var(--space-3) var(--space-4)', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
             <BookOpen size={16} style={{ color: 'var(--violet-light)', flexShrink: 0 }} />
             <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)', flexShrink: 0 }}>Ficha:</span>
-            <select
-              value={attendance.template_id ?? ''}
-              onChange={e => handleChangeTemplate(e.target.value || null)}
-              style={{ flex: 1, padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--card)', fontSize: '0.85rem', color: 'var(--text)' }}
-            >
-              <option value="">Padrão (todas as seções da terapia)</option>
-              {templates.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+            <div style={{ flex: 1 }}>
+              <Select
+                value={attendance.template_id ?? ''}
+                onChange={v => handleChangeTemplate(v || null)}
+                options={[
+                  { value: '', label: 'Padrão (todas as seções da terapia)' },
+                  ...templates.map(p => ({ value: p.id, label: p.name }))
+                ]}
+              />
+            </div>
           </div>
         )}
 
         {/* YouTube + Observação interna */}
         <AttendanceExtraFields attendanceId={attendanceId} youtubeUrl={attendance.youtube_url} internalNotes={attendance.internal_notes} objective={attendance.objective} />
 
-        {/* Accordion de seções */}
+        {/* Accordion de seções (unificado e ordenado) */}
         <div className="accordion">
-          {sections.map(section => {
-            const isExpanded = expandedSections.has(section.key)
-            const isFilled = filledSections[section.key]
+          {allSections.map(section => {
+            if (section.type === 'builtin') {
+              const sectionKey = section.key as SectionKey
+              const isExpanded = expandedSections.has(sectionKey)
+              const isFilled = filledSections[sectionKey]
 
-            return (
-              <div
-                key={section.key}
-                ref={el => { sectionRefs.current[section.key] = el }}
-                className={`accordion-item ${isExpanded ? 'expanded' : ''}`}
-              >
-                <button
-                  className="accordion-header"
-                  onClick={() => toggleSection(section.key)}
-                  aria-expanded={isExpanded}
-                  aria-controls={`accordion-panel-${section.key}`}
-                >
-                  <div className="accordion-header-left">
-                    <span className="accordion-chevron">
-                      {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    </span>
-                    <span className="accordion-title">{section.label}</span>
-                    <span className={`accordion-indicator ${isFilled ? 'filled' : ''}`}>
-                      {isFilled ? <Check size={12} /> : null}
-                    </span>
-                  </div>
-                  <span className="accordion-summary">{sectionSummaries[section.key]}</span>
-                </button>
-                <div
-                  id={`accordion-panel-${section.key}`}
-                  className="accordion-panel"
-                  role="region"
-                  aria-labelledby={`accordion-header-${section.key}`}
-                  hidden={!isExpanded}
-                >
-                  <div className="accordion-content">
-                    {section.key === 'assessment' && <EnergyAssessmentTab attendanceId={attendanceId} />}
-                    {section.key === 'chakras' && <ChakrasTab attendanceId={attendanceId} />}
-                    {section.key === 'aura' && <AuraFieldTab attendanceId={attendanceId} />}
-                    {section.key === 'life-areas' && <LifeAreasTab attendanceId={attendanceId} />}
-                    {section.key === 'emotions' && <EmotionsTab attendanceId={attendanceId} />}
-                    {section.key === 'beliefs' && <BeliefsTab attendanceId={attendanceId} />}
-                    {section.key === 'divorces' && <DivorcesTab attendanceId={attendanceId} />}
-                    {section.key === 'treatment' && <TreatmentTab attendanceId={attendanceId} />}
-                    {section.key === 'report' && <ReportTab attendanceId={attendanceId} />}
-                    {section.key !== 'report' && !isFilled && (
-                      <button
-                        className="btn-complete-section"
-                        onClick={(e) => { e.stopPropagation(); markSectionComplete(section.key) }}
-                      >
-                        <Check size={14} /> Sem alteração
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Seções customizadas da ficha */}
-        {customSections.length > 0 && (
-          <div className="accordion" style={{ marginTop: 'var(--space-4)' }}>
-            {customSections.map(section => {
-              const sectionValue = customValues.find(v => v.section_id === section.id)
               return (
-                <div key={section.id} className="accordion-item expanded">
-                  <div className="accordion-header" style={{ cursor: 'default', borderLeftColor: 'var(--gold)' }}>
+                <div
+                  key={section.id}
+                  ref={el => { sectionRefs.current[sectionKey] = el }}
+                  className={`accordion-item ${isExpanded ? 'expanded' : ''}`}
+                >
+                  <button
+                    className="accordion-header"
+                    onClick={() => toggleSection(sectionKey)}
+                    aria-expanded={isExpanded}
+                    aria-controls={`accordion-panel-${sectionKey}`}
+                  >
                     <div className="accordion-header-left">
+                      <span className="accordion-chevron">
+                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      </span>
                       <span className="accordion-title">{section.label}</span>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--gold)', marginLeft: 'var(--space-2)' }}>personalizado</span>
+                      <span className={`accordion-indicator ${isFilled ? 'filled' : ''}`}>
+                        {isFilled ? <Check size={12} /> : null}
+                      </span>
+                    </div>
+                    <span className="accordion-summary">{sectionSummaries[sectionKey]}</span>
+                  </button>
+                  <div
+                    id={`accordion-panel-${sectionKey}`}
+                    className="accordion-panel"
+                    role="region"
+                    aria-labelledby={`accordion-header-${sectionKey}`}
+                    hidden={!isExpanded}
+                  >
+                    <div className="accordion-content">
+                      {sectionKey === 'assessment' && <EnergyAssessmentTab attendanceId={attendanceId} />}
+                      {sectionKey === 'chakras' && <ChakrasTab attendanceId={attendanceId} />}
+                      {sectionKey === 'aura' && <AuraFieldTab attendanceId={attendanceId} />}
+                      {sectionKey === 'life-areas' && <LifeAreasTab attendanceId={attendanceId} />}
+                      {sectionKey === 'emotions' && <EmotionsTab attendanceId={attendanceId} />}
+                      {sectionKey === 'beliefs' && <BeliefsTab attendanceId={attendanceId} />}
+                      {sectionKey === 'divorces' && <DivorcesTab attendanceId={attendanceId} />}
+                      {sectionKey === 'treatment' && <TreatmentTab attendanceId={attendanceId} />}
+                      {sectionKey === 'report' && <ReportTab attendanceId={attendanceId} />}
+                      {sectionKey !== 'report' && !isFilled && (
+                        <button
+                          className="btn-complete-section"
+                          onClick={(e) => { e.stopPropagation(); markSectionComplete(sectionKey) }}
+                        >
+                          <Check size={14} /> Sem alteração
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="accordion-panel">
+                </div>
+              )
+            } else {
+              // Custom section
+              const sectionValue = customValues.find(v => v.section_id === section.id)
+              const isExpanded = expandedCustomSections.has(section.id)
+              const isFilled = (() => {
+                if (!sectionValue?.values) return false
+                return Object.values(sectionValue.values).some(fv => {
+                  if (fv.content?.trim()) return true
+                  if (fv.items && fv.items.length > 0) return true
+                  if (fv.rating != null && fv.rating > 0) return true
+                  if (fv.checked != null) return true
+                  return false
+                })
+              })()
+
+              return (
+                <div
+                  key={section.id}
+                  ref={el => { sectionRefs.current[`custom-${section.id}`] = el }}
+                  className={`accordion-item ${isExpanded ? 'expanded' : ''}`}
+                >
+                  <button
+                    className="accordion-header"
+                    onClick={() => toggleCustomSection(section.id)}
+                    aria-expanded={isExpanded}
+                    aria-controls={`accordion-panel-custom-${section.id}`}
+                    style={{ borderLeftColor: 'var(--gold)' }}
+                  >
+                    <div className="accordion-header-left">
+                      <span className="accordion-chevron">
+                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      </span>
+                      <span className="accordion-title">{section.label}</span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--gold)', marginLeft: 'var(--space-2)' }}>personalizado</span>
+                      <span className={`accordion-indicator ${isFilled ? 'filled' : ''}`}>
+                        {isFilled ? <Check size={12} /> : null}
+                      </span>
+                    </div>
+                    <span className="accordion-summary">
+                      {isFilled ? 'Preenchido' : 'Não preenchido'}
+                    </span>
+                  </button>
+                  <div
+                    id={`accordion-panel-custom-${section.id}`}
+                    className="accordion-panel"
+                    role="region"
+                    aria-labelledby={`accordion-header-custom-${section.id}`}
+                    hidden={!isExpanded}
+                  >
                     <div className="accordion-content">
                       <CustomSectionRenderer
                         section={section}
@@ -414,12 +511,12 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
                   </div>
                 </div>
               )
-            })}
-          </div>
-        )}
+            }
+          })}
+        </div>
 
         {/* Ações finais */}
-        {filledCount > 0 && (
+        {(filledCount > 0 || customFilledCount > 0) && (
           <div className="attendance-footer-actions">
             <Button variant="tab" onClick={() => setShowSummary(true)}>
               <FileCheck size={14} /> Ver resumo final
@@ -441,7 +538,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
       {/* Modal de Resumo */}
       {showSummary && (
         <AttendanceSummaryModal
-          sections={sections}
+          sections={builtinSections.map(s => ({ key: s.key as SectionKey, label: s.label }))}
           filledSections={filledSections}
           sectionSummaries={sectionSummaries}
           clientName={attendance.clients?.name ?? ''}
@@ -540,30 +637,27 @@ function AttendanceExtraFields({ attendanceId, youtubeUrl, internalNotes, object
 
   return (
     <div className="card" style={{ padding: 'var(--space-4)', marginBottom: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-      <label className="form-label" style={{ margin: 0 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          🎯 Objetivo da sessão
-        </span>
-        <input
-          type="text"
-          placeholder="Ex: Limpeza energética, alinhamento de chakras..."
-          value={obj}
-          onChange={e => { setObj(e.target.value); save('objective', e.target.value) }}
-          style={{ marginTop: 'var(--space-2)' }}
-        />
-      </label>
-      <label className="form-label" style={{ margin: 0 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          <Youtube size={14} color="var(--red)" /> Link do YouTube
-        </span>
-        <input
-          type="url"
-          placeholder="https://youtube.com/watch?v=..."
-          value={youtube}
-          onChange={e => { setYoutube(e.target.value); save('youtube_url', e.target.value) }}
-          style={{ marginTop: 'var(--space-2)' }}
-        />
-      </label>
+      <Input
+        label={
+          <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            🎯 Objetivo da sessão
+          </span>
+        }
+        placeholder="Ex: Limpeza energética, alinhamento de chakras..."
+        value={obj}
+        onChange={e => { setObj(e.target.value); save('objective', e.target.value) }}
+      />
+      <Input
+        label={
+          <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <Youtube size={14} color="var(--red)" /> Link do YouTube
+          </span>
+        }
+        type="url"
+        placeholder="https://youtube.com/watch?v=..."
+        value={youtube}
+        onChange={e => { setYoutube(e.target.value); save('youtube_url', e.target.value) }}
+      />
       <label className="form-label" style={{ margin: 0 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           <StickyNote size={14} color="var(--gold)" /> Observação interna

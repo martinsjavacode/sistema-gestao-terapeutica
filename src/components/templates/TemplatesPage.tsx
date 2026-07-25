@@ -13,6 +13,9 @@ import type { TherapyType } from '../../types/database'
 import { getActiveTechniques, ALL_SECTIONS } from '../../config/therapy-sections'
 import type { SectionKey } from '../../config/therapy-sections'
 import { useTenant } from '../../hooks/useTenant'
+import { DndContext, closestCenter, type DragEndEvent, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 export default function TemplatesPage() {
   const qc = useQueryClient()
@@ -174,6 +177,11 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
   const [newCustomLabel, setNewCustomLabel] = useState('')
   const [saving, setSaving] = useState(false)
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
   const selectedBuiltinKeys = new Set(sections.filter(s => s.type === 'builtin').map(s => s.key))
 
   const toggleBuiltin = (key: SectionKey) => {
@@ -224,16 +232,26 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
     setSections(prev => prev.filter(s => s.id !== id).map((s, i) => ({ ...s, order: i + 1 })))
   }
 
-  const moveSection = (id: string, direction: 'up' | 'down') => {
+  const handleSectionDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
     setSections(prev => {
-      const idx = prev.findIndex(s => s.id === id)
-      if (idx < 0) return prev
-      const target = direction === 'up' ? idx - 1 : idx + 1
-      if (target < 0 || target >= prev.length) return prev
-      const newArr = [...prev]
-      ;[newArr[idx], newArr[target]] = [newArr[target]!, newArr[idx]!]
-      return newArr.map((s, i) => ({ ...s, order: i + 1 }))
+      const oldIndex = prev.findIndex(s => s.id === active.id)
+      const newIndex = prev.findIndex(s => s.id === over.id)
+      return arrayMove(prev, oldIndex, newIndex).map((s, i) => ({ ...s, order: i + 1 }))
     })
+  }
+
+  const handleFieldDragEnd = (sectionId: string, event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s
+      const fields = s.fields ?? []
+      const oldIndex = fields.findIndex(f => f.id === active.id)
+      const newIndex = fields.findIndex(f => f.id === over.id)
+      return { ...s, fields: arrayMove(fields, oldIndex, newIndex) }
+    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -371,58 +389,29 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
           </div>
         </div>
 
-        {/* Ordenação das seções + campos dentro das custom */}
+        {/* Drag and drop editor de seções */}
         {sections.length > 0 && (
           <div>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 'var(--space-3)' }}>
               Ordem das seções ({sections.length})
             </span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              {sections.map((section, index) => (
-                <div key={section.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
-                  {/* Header da seção */}
-                  <div className="template-step-form" style={{ borderBottom: section.type === 'custom' && section.fields?.length ? '1px solid var(--border)' : 'none' }}>
-                    <div className="template-step-grip">
-                      <GripVertical size={14} />
-                      <span className="template-step-number">{index + 1}</span>
-                    </div>
-                    <div className="template-step-fields" style={{ flex: 1 }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>
-                        {section.label}
-                      </span>
-                      <span style={{ fontSize: '0.7rem', color: section.type === 'custom' ? 'var(--gold)' : 'var(--text-muted)' }}>
-                        {section.type === 'custom' ? `${section.fields?.length ?? 0} campo(s)` : 'Seção do sistema'}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '2px' }}>
-                      <button className="edit-btn" onClick={() => moveSection(section.id, 'up')} disabled={index === 0} type="button" aria-label="Mover para cima" style={{ opacity: index === 0 ? 0.3 : 1 }}>↑</button>
-                      <button className="edit-btn" onClick={() => moveSection(section.id, 'down')} disabled={index === sections.length - 1} type="button" aria-label="Mover para baixo" style={{ opacity: index === sections.length - 1 ? 0.3 : 1 }}>↓</button>
-                      <button className="edit-btn" onClick={() => removeSection(section.id)} type="button" aria-label="Remover"><Trash2 size={14} /></button>
-                    </div>
-                  </div>
-
-                  {/* Campos dentro da seção custom */}
-                  {section.type === 'custom' && (
-                    <div style={{ padding: 'var(--space-3)', paddingLeft: 'var(--space-6)', background: 'var(--surface)' }}>
-                      {(section.fields ?? []).map((field, fi) => (
-                        <div key={field.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: '4px 0', fontSize: '0.82rem' }}>
-                          <span style={{ color: 'var(--text-muted)', width: 20, textAlign: 'right' }}>{fi + 1}.</span>
-                          <span style={{ flex: 1, color: 'var(--text)' }}>{field.label}</span>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--background)', padding: '2px 8px', borderRadius: 12 }}>
-                            {FIELD_TYPE_LABELS[field.field_type]}
-                          </span>
-                          <button className="edit-btn" onClick={() => removeField(section.id, field.id)} type="button" aria-label="Remover campo" style={{ padding: 2 }}>
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      ))}
-                      {/* Adicionar campo */}
-                      <AddFieldInline sectionId={section.id} onAdd={addField} />
-                    </div>
-                  )}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+              <SortableContext items={sections.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  {sections.map(section => (
+                    <SortableSectionItem
+                      key={section.id}
+                      section={section}
+                      sensors={sensors}
+                      onRemove={() => removeSection(section.id)}
+                      onAddField={addField}
+                      onRemoveField={removeField}
+                      onFieldDragEnd={(event) => handleFieldDragEnd(section.id, event)}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           </div>
         )}
       </div>
@@ -465,6 +454,98 @@ function AddFieldInline({ sectionId, onAdd }: { sectionId: string; onAdd: (secti
       </select>
       <button className="edit-btn" onClick={handleAdd} type="button" disabled={!label.trim()} style={{ padding: '4px 8px', opacity: label.trim() ? 1 : 0.4 }}>
         <Plus size={14} />
+      </button>
+    </div>
+  )
+}
+
+// ========== Sortable Section Item ==========
+
+function SortableSectionItem({ section, sensors, onRemove, onAddField, onRemoveField, onFieldDragEnd }: {
+  section: TemplateSection
+  sensors: ReturnType<typeof useSensors>
+  onRemove: () => void
+  onAddField: (sectionId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox') => void
+  onRemoveField: (sectionId: string, fieldId: string) => void
+  onFieldDragEnd: (event: DragEndEvent) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)',
+    overflow: 'hidden' as const,
+  }
+
+  const fields = section.fields ?? []
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div className="template-step-form" style={{ borderBottom: section.type === 'custom' && fields.length ? '1px solid var(--border)' : 'none' }}>
+        <div className="template-step-grip" {...attributes} {...listeners} style={{ cursor: 'grab' }}>
+          <GripVertical size={14} />
+        </div>
+        <div className="template-step-fields" style={{ flex: 1 }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{section.label}</span>
+          <span style={{ fontSize: '0.7rem', color: section.type === 'custom' ? 'var(--gold)' : 'var(--text-muted)' }}>
+            {section.type === 'custom' ? `${fields.length} campo(s)` : 'Seção do sistema'}
+          </span>
+        </div>
+        <button className="edit-btn" onClick={onRemove} type="button" aria-label="Remover seção">
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {section.type === 'custom' && (
+        <div style={{ padding: 'var(--space-3)', paddingLeft: 'var(--space-6)', background: 'var(--surface)' }}>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onFieldDragEnd}>
+            <SortableContext items={fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
+              {fields.map(field => (
+                <SortableFieldItem
+                  key={field.id}
+                  field={field}
+                  onRemove={() => onRemoveField(section.id, field.id)}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+          <AddFieldInline sectionId={section.id} onAdd={onAddField} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ========== Sortable Field Item ==========
+
+function SortableFieldItem({ field, onRemove }: { field: TemplateField; onRemove: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--space-2)',
+    padding: '4px 0',
+    fontSize: '0.82rem',
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <span {...attributes} {...listeners} style={{ cursor: 'grab', color: 'var(--text-muted)' }}>
+        <GripVertical size={12} />
+      </span>
+      <span style={{ flex: 1, color: 'var(--text)' }}>{field.label}</span>
+      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--background)', padding: '2px 8px', borderRadius: 12 }}>
+        {FIELD_TYPE_LABELS[field.field_type]}
+      </span>
+      <button className="edit-btn" onClick={onRemove} type="button" aria-label="Remover campo" style={{ padding: 2 }}>
+        <Trash2 size={12} />
       </button>
     </div>
   )

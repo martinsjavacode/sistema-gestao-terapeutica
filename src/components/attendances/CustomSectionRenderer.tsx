@@ -51,11 +51,11 @@ function FieldRenderer({ field, value, onSave }: {
     case 'text':
       return <TextField initialValue={value?.content ?? ''} placeholder={field.config?.placeholder} onSave={v => onSave({ content: v })} />
     case 'list':
-      return <ListField initialItems={value?.items ?? []} onSave={items => onSave({ items })} />
+      return <ListField initialItems={value?.items ?? []} options={field.config?.options} onSave={items => onSave({ items })} />
     case 'rating':
-      return <RatingField initialValue={value?.rating ?? null} maxRating={field.config?.max_rating ?? 10} label={field.config?.rating_label ?? '/10'} onSave={v => onSave({ rating: v })} />
+      return <RatingField initialValue={value?.rating ?? null} maxRating={field.config?.max_rating ?? (field.config?.is_percentage ? 100 : 10)} label={field.config?.rating_label ?? (field.config?.is_percentage ? '%' : '/10')} inputType={field.config?.input_type ?? 'slider'} onSave={v => onSave({ rating: v })} />
     case 'checkbox':
-      return <CheckboxField initialValue={value?.checked ?? false} label={field.config?.checkbox_label ?? field.label} onSave={v => onSave({ checked: v })} />
+      return <CheckboxField initialValue={value?.checked ?? false} label={field.label} options={field.config?.checkbox_options} onSave={v => onSave({ checked: v })} />
     default:
       return <TextField initialValue={value?.content ?? ''} onSave={v => onSave({ content: v })} />
   }
@@ -90,7 +90,7 @@ function TextField({ initialValue, placeholder, onSave }: { initialValue: string
 
 // ========== List Field ==========
 
-function ListField({ initialItems, onSave }: { initialItems: string[]; onSave: (items: string[]) => void }) {
+function ListField({ initialItems, options, onSave }: { initialItems: string[]; options?: string[]; onSave: (items: string[]) => void }) {
   const [items, setItems] = useState<string[]>(initialItems)
   const [newItem, setNewItem] = useState('')
 
@@ -98,9 +98,10 @@ function ListField({ initialItems, onSave }: { initialItems: string[]; onSave: (
   useEffect(() => { setItems(initialItems) }, [initialItems])
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const addItem = () => {
-    if (!newItem.trim()) return
-    const updated = [...items, newItem.trim()]
+  const addItem = (item?: string) => {
+    const value = item ?? newItem.trim()
+    if (!value || items.includes(value)) return
+    const updated = [...items, value]
     setItems(updated)
     setNewItem('')
     onSave(updated)
@@ -114,20 +115,52 @@ function ListField({ initialItems, onSave }: { initialItems: string[]; onSave: (
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+      {/* Opções pré-definidas como chips selecionáveis */}
+      {options && options.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          {options.map(opt => {
+            const isSelected = items.includes(opt)
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => isSelected ? removeItem(items.indexOf(opt)) : addItem(opt)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '16px',
+                  border: isSelected ? '2px solid var(--violet)' : '1px solid var(--border)',
+                  background: isSelected ? 'rgba(139, 92, 246, 0.1)' : 'var(--surface)',
+                  color: isSelected ? 'var(--violet)' : 'var(--text-muted)',
+                  fontWeight: isSelected ? 600 : 400,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {opt}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Input para adicionar item livre */}
       <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
         <input
           type="text"
           value={newItem}
           onChange={e => setNewItem(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
-          placeholder="Adicionar item..."
+          placeholder={options?.length ? 'Ou adicione outro...' : 'Adicionar item...'}
           style={{ flex: 1 }}
         />
-        <button onClick={addItem} disabled={!newItem.trim()} className="edit-btn" style={{ padding: '6px 10px', opacity: newItem.trim() ? 1 : 0.4 }} type="button" aria-label="Adicionar">
+        <button onClick={() => addItem()} disabled={!newItem.trim()} className="edit-btn" style={{ padding: '6px 10px', opacity: newItem.trim() ? 1 : 0.4 }} type="button" aria-label="Adicionar">
           <Plus size={16} />
         </button>
       </div>
-      {items.length > 0 && (
+
+      {/* Itens selecionados (só mostra os que não vieram das opções pré-definidas) */}
+      {items.length > 0 && (!options || options.length === 0) && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           {items.map((item, index) => (
             <span key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', fontSize: '0.82rem', color: 'var(--text)' }}>
@@ -145,7 +178,7 @@ function ListField({ initialItems, onSave }: { initialItems: string[]; onSave: (
 
 // ========== Rating Field ==========
 
-function RatingField({ initialValue, maxRating, label, onSave }: { initialValue: number | null; maxRating: number; label: string; onSave: (v: number) => void }) {
+function RatingField({ initialValue, maxRating, label, inputType, onSave }: { initialValue: number | null; maxRating: number; label: string; inputType: 'slider' | 'input'; onSave: (v: number) => void }) {
   const [value, setValue] = useState<number>(initialValue ?? 0)
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -153,8 +186,26 @@ function RatingField({ initialValue, maxRating, label, onSave }: { initialValue:
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleChange = (newVal: number) => {
-    setValue(newVal)
-    onSave(newVal)
+    const clamped = Math.max(0, Math.min(maxRating, newVal))
+    setValue(clamped)
+    onSave(clamped)
+  }
+
+  if (inputType === 'input') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        <input
+          type="number"
+          min={0}
+          max={maxRating}
+          step={maxRating <= 10 ? 0.5 : 1}
+          value={value}
+          onChange={e => handleChange(Number(e.target.value))}
+          style={{ width: '80px', textAlign: 'center', fontSize: '1rem', fontWeight: 600 }}
+        />
+        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{label}</span>
+      </div>
+    )
   }
 
   return (
@@ -169,12 +220,20 @@ function RatingField({ initialValue, maxRating, label, onSave }: { initialValue:
 
 // ========== Checkbox Field ==========
 
-function CheckboxField({ initialValue, label, onSave }: { initialValue: boolean; label: string; onSave: (v: boolean) => void }) {
+function CheckboxField({ initialValue, label, options, onSave }: { initialValue: boolean; label: string; options?: string[]; onSave: (v: boolean) => void }) {
   const [checked, setChecked] = useState(initialValue)
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => { setChecked(initialValue) }, [initialValue])
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Se tem opções múltiplas, renderiza como lista de checkboxes
+  // Os valores são salvos como string serializada no campo checked (true = todos marcados)
+  // Para simplicidade, usamos o campo items no parent se necessário
+  // Porém como o tipo salva apenas boolean, para múltiplas opções usamos toggle simples por opção
+  if (options && options.length > 0) {
+    return <MultiCheckboxField options={options} label={label} onSave={onSave} initialChecked={initialValue} />
+  }
 
   const handleChange = (v: boolean) => {
     setChecked(v)
@@ -188,5 +247,31 @@ function CheckboxField({ initialValue, label, onSave }: { initialValue: boolean;
         {label}
       </span>
     </label>
+  )
+}
+
+// Múltiplas opções de checkbox (salva true quando pelo menos 1 está marcado)
+function MultiCheckboxField({ options, onSave }: { options: string[]; label: string; initialChecked: boolean; onSave: (v: boolean) => void }) {
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+
+  const toggle = (opt: string) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(opt)) next.delete(opt)
+      else next.add(opt)
+      onSave(next.size > 0)
+      return next
+    })
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+      {options.map(opt => (
+        <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', cursor: 'pointer', padding: '4px 0' }}>
+          <input type="checkbox" checked={selected.has(opt)} onChange={() => toggle(opt)} style={{ width: 18, height: 18, accentColor: 'var(--violet)' }} />
+          <span style={{ fontSize: '0.88rem', color: selected.has(opt) ? 'var(--text)' : 'var(--text-muted)' }}>{opt}</span>
+        </label>
+      ))}
+    </div>
   )
 }

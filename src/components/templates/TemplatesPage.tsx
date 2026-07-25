@@ -211,12 +211,10 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
     setNewCustomLabel('')
   }
 
-  const addField = (sectionId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox') => {
+  const addField = (sectionId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox', config?: TemplateField['config']) => {
     setSections(prev => prev.map(s => {
       if (s.id !== sectionId) return s
-      const field: TemplateField = { id: crypto.randomUUID(), label, field_type: fieldType }
-      if (fieldType === 'rating') field.config = { max_rating: 10, rating_label: '/10' }
-      if (fieldType === 'checkbox') field.config = { checkbox_label: label }
+      const field: TemplateField = { id: crypto.randomUUID(), label, field_type: fieldType, config }
       return { ...s, fields: [...(s.fields ?? []), field] }
     }))
   }
@@ -421,40 +419,92 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
 
 // ========== Inline: Adicionar campo dentro de uma seção ==========
 
-function AddFieldInline({ sectionId, onAdd }: { sectionId: string; onAdd: (sectionId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox') => void }) {
+function AddFieldInline({ sectionId, onAdd }: { sectionId: string; onAdd: (sectionId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox', config?: TemplateField['config']) => void }) {
   const [label, setLabel] = useState('')
   const [fieldType, setFieldType] = useState<'text' | 'list' | 'rating' | 'checkbox'>('text')
+  const [showConfig, setShowConfig] = useState(false)
+  // Config states
+  const [options, setOptions] = useState('')       // Lista e checkbox: opções separadas por vírgula
+  const [inputType, setInputType] = useState<'slider' | 'input'>('slider')
+  const [isPercentage, setIsPercentage] = useState(false)
 
   const handleAdd = () => {
     if (!label.trim()) return
-    onAdd(sectionId, label.trim(), fieldType)
+    const config: TemplateField['config'] = {}
+    if (fieldType === 'list') {
+      config.options = options.split(',').map(o => o.trim()).filter(Boolean)
+    } else if (fieldType === 'rating') {
+      config.input_type = inputType
+      config.is_percentage = isPercentage
+      config.max_rating = isPercentage ? 100 : 10
+      config.rating_label = isPercentage ? '%' : '/10'
+    } else if (fieldType === 'checkbox') {
+      const opts = options.split(',').map(o => o.trim()).filter(Boolean)
+      config.checkbox_options = opts.length > 0 ? opts : undefined
+    }
+    onAdd(sectionId, label.trim(), fieldType, config)
     setLabel('')
-    setFieldType('text')
+    setOptions('')
+    setShowConfig(false)
+    setInputType('slider')
+    setIsPercentage(false)
+  }
+
+  const handleTypeChange = (type: typeof fieldType) => {
+    setFieldType(type)
+    setShowConfig(type !== 'text')
+    setOptions('')
   }
 
   return (
-    <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)', alignItems: 'center' }}>
-      <input
-        type="text"
-        value={label}
-        onChange={e => setLabel(e.target.value)}
-        placeholder="Nome do campo"
-        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
-        style={{ flex: 1, fontSize: '0.82rem', padding: '6px 10px' }}
-      />
-      <select
-        value={fieldType}
-        onChange={e => setFieldType(e.target.value as typeof fieldType)}
-        style={{ padding: '6px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--card)', fontSize: '0.78rem', color: 'var(--text)' }}
-      >
-        <option value="text">Texto</option>
-        <option value="list">Lista</option>
-        <option value="rating">Nota</option>
-        <option value="checkbox">Check</option>
-      </select>
-      <button className="edit-btn" onClick={handleAdd} type="button" disabled={!label.trim()} style={{ padding: '4px 8px', opacity: label.trim() ? 1 : 0.4 }}>
-        <Plus size={14} />
-      </button>
+    <div style={{ marginTop: 'var(--space-3)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-3)' }}>
+      <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+        <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="Nome do campo" onKeyDown={e => { if (e.key === 'Enter' && !showConfig) { e.preventDefault(); handleAdd() } }} style={{ flex: 1, fontSize: '0.82rem', padding: '6px 10px' }} />
+        <select value={fieldType} onChange={e => handleTypeChange(e.target.value as typeof fieldType)} style={{ padding: '6px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--card)', fontSize: '0.78rem', color: 'var(--text)' }}>
+          <option value="text">Texto</option>
+          <option value="list">Lista</option>
+          <option value="rating">Nota</option>
+          <option value="checkbox">Checkbox</option>
+        </select>
+        <button className="edit-btn" onClick={handleAdd} type="button" disabled={!label.trim()} style={{ padding: '4px 8px', opacity: label.trim() ? 1 : 0.4 }}>
+          <Plus size={14} />
+        </button>
+      </div>
+
+      {/* Config específica por tipo */}
+      {showConfig && label.trim() && (
+        <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-2) var(--space-3)', background: 'var(--background)', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem' }}>
+          {fieldType === 'list' && (
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Opções (separadas por vírgula)</span>
+              <input type="text" value={options} onChange={e => setOptions(e.target.value)} placeholder="Ex: Ametista, Quartzo Rosa, Turmalina" style={{ fontSize: '0.78rem', padding: '5px 8px' }} />
+            </label>
+          )}
+
+          {fieldType === 'rating' && (
+            <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'center', flexWrap: 'wrap' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Formato:</span>
+                <select value={inputType} onChange={e => setInputType(e.target.value as 'slider' | 'input')} style={{ padding: '4px 6px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--card)', fontSize: '0.78rem' }}>
+                  <option value="slider">Slider</option>
+                  <option value="input">Campo numérico</option>
+                </select>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                <input type="checkbox" checked={isPercentage} onChange={e => setIsPercentage(e.target.checked)} style={{ accentColor: 'var(--violet)' }} />
+                <span style={{ color: 'var(--text-muted)' }}>Porcentagem (0-100%)</span>
+              </label>
+            </div>
+          )}
+
+          {fieldType === 'checkbox' && (
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Opções (separadas por vírgula, vazio = toggle simples)</span>
+              <input type="text" value={options} onChange={e => setOptions(e.target.value)} placeholder="Ex: Banho de ervas, Meditação, Exercício" style={{ fontSize: '0.78rem', padding: '5px 8px' }} />
+            </label>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -465,7 +515,7 @@ function SortableSectionItem({ section, sensors, onRemove, onAddField, onRemoveF
   section: TemplateSection
   sensors: ReturnType<typeof useSensors>
   onRemove: () => void
-  onAddField: (sectionId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox') => void
+  onAddField: (sectionId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox', config?: TemplateField['config']) => void
   onRemoveField: (sectionId: string, fieldId: string) => void
   onFieldDragEnd: (event: DragEndEvent) => void
 }) {

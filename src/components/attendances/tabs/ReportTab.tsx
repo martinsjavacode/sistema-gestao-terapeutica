@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchEnergyAssessments, fetchChakras, fetchAuraField, fetchLifeAreas, fetchEmotions, fetchLimitingBeliefs, fetchBlockages, fetchEnergyDivorces, fetchTreatment, updateAttendance } from '../../../services/attendances'
+import { fetchEnergyAssessments, fetchChakras, fetchAuraField, fetchLifeAreas, fetchEmotions, fetchLimitingBeliefs, fetchBlockages, fetchEnergyDivorces, fetchTreatment, updateAttendance, fetchAttendance } from '../../../services/attendances'
+import { fetchCustomSectionValues, type TemplateSection } from '../../../services/templates'
 import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
 import Button from '../../ui/Button'
@@ -43,7 +44,20 @@ export default function ReportTab({ attendanceId }: { attendanceId: string }) {
     queryFn: async () => { const { data } = await fetchTreatment(attendanceId); return data },
   })
 
-  const hasData = assessments.length > 0 || chakras.length > 0 || (aura && (aura.state || aura.predominant_color)) || lifeAreas.length > 0 || emotions.length > 0 || beliefs.length > 0 || blockages.length > 0 || divorces.length > 0 || (treatment && (treatment.techniques || treatment.recommendations))
+  const { data: attendance } = useQuery({
+    queryKey: ['attendance', attendanceId],
+    queryFn: async () => { const { data } = await fetchAttendance(attendanceId); return data },
+  })
+
+  const { data: customValues = [] } = useQuery({
+    queryKey: ['custom-section-values', attendanceId],
+    queryFn: async () => { const { data } = await fetchCustomSectionValues(attendanceId); return data },
+  })
+
+  const customSections = ((attendance?.template_snapshot ?? []) as TemplateSection[]).filter(s => s.type === 'custom')
+  const filledCustomSections = customSections.filter(cs => customValues.some(v => v.section_id === cs.id && v.values && Object.keys(v.values).length > 0))
+
+  const hasData = assessments.length > 0 || chakras.length > 0 || (aura && (aura.state || aura.predominant_color)) || lifeAreas.length > 0 || emotions.length > 0 || beliefs.length > 0 || blockages.length > 0 || divorces.length > 0 || (treatment && (treatment.techniques || treatment.recommendations)) || filledCustomSections.length > 0
 
   const copyLink = async () => {
     // Salvar report_content para que o link público funcione
@@ -87,6 +101,9 @@ export default function ReportTab({ attendanceId }: { attendanceId: string }) {
             {blockages.length > 0 && <div className="report-preview-item">🚧 Bloqueios — {blockages.length}</div>}
             {divorces.length > 0 && <div className="report-preview-item">✂️ Divórcios Energéticos — {divorces.length}</div>}
             {treatment && (treatment.techniques || treatment.recommendations) && <div className="report-preview-item">💎 Tratamento</div>}
+            {filledCustomSections.map(cs => (
+              <div key={cs.id} className="report-preview-item">📄 {cs.label}</div>
+            ))}
           </div>
         </div>
       )}

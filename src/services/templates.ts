@@ -8,10 +8,17 @@ export interface TemplateField {
   label: string
   field_type: 'text' | 'list' | 'rating' | 'checkbox'
   config?: {
+    // Text
     placeholder?: string
-    max_rating?: number       // 10 or 100
-    rating_label?: string     // "%" or "/10"
-    checkbox_label?: string   // Ex: "Realizado"
+    // List: opções pré-definidas para seleção
+    options?: string[]
+    // Rating
+    input_type?: 'input' | 'slider'   // input numérico ou slider
+    is_percentage?: boolean            // true = 0-100%, false = nota (0-10 default)
+    max_rating?: number                // default 10 (ou 100 se percentage)
+    rating_label?: string              // "/10" ou "%"
+    // Checkbox: múltiplas opções
+    checkbox_options?: string[]        // se vazio, é um toggle simples
   }
 }
 

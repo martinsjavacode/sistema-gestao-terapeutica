@@ -32,14 +32,11 @@ export default function ChakrasTab({ attendanceId }: { attendanceId: string }) {
   }
 
   return (
-    <div>
-      <h2 style={{ fontSize: '1.1rem', marginBottom: 'var(--space-4)' }}>Chakras</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        {CHAKRA_ORDER.map(name => {
-          const c = getChakra(name)
-          return <ChakraCard key={name} name={name} initial={c} onSave={(a, p, n) => save(name, a, p, n)} />
-        })}
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {CHAKRA_ORDER.map(name => {
+        const c = getChakra(name)
+        return <ChakraCard key={name} name={name} initial={c} onSave={(a, p, n) => save(name, a, p, n)} />
+      })}
     </div>
   )
 }

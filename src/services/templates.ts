@@ -24,14 +24,21 @@ export interface TemplateField {
   }
 }
 
+export interface TemplateFieldGroup {
+  id: string
+  label?: string  // título do card (opcional)
+  fields: TemplateField[]
+}
+
 export interface TemplateSection {
   id: string
   type: 'builtin' | 'custom'
   key: string | null  // SectionKey for builtin, null for custom
   label: string
   order: number
-  // Custom section fields (multiple per section)
-  fields?: TemplateField[]
+  // Custom section fields - pode ser flat (fields) ou agrupado (groups)
+  fields?: TemplateField[]  // campos soltos (cada um em seu card) - compatibilidade
+  groups?: TemplateFieldGroup[]  // campos agrupados em cards
 }
 
 export interface SessionTemplate {

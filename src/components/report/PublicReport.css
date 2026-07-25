@@ -724,9 +724,9 @@
 
 /* ========== Custom Sections ========== */
 .pr-custom-section {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
 }
 
 .pr-custom-field {
@@ -734,6 +734,7 @@
   background: rgba(99, 102, 241, 0.03);
   border: 1px solid rgba(99, 102, 241, 0.08);
   border-radius: 12px;
+  min-width: 0;
 }
 
 .pr-custom-field-label {
@@ -781,4 +782,23 @@
 .pr-custom-field-checkbox {
   font-size: 0.92rem;
   color: #94a3b8;
+}
+
+/* Responsividade para seções customizadas */
+@media (max-width: 768px) {
+  .pr-custom-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .pr-custom-field {
+    grid-column: span 2 !important; /* Todos full width em tablet */
+  }
+}
+
+@media (max-width: 480px) {
+  .pr-custom-section {
+    grid-template-columns: 1fr;
+  }
+  .pr-custom-field {
+    grid-column: span 1 !important;
+  }
 }

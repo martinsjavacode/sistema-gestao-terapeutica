@@ -31,14 +31,11 @@ export default function EnergyAssessmentTab({ attendanceId }: { attendanceId: st
   }
 
   return (
-    <div>
-      <h2 style={{ fontSize: '1.1rem', marginBottom: 'var(--space-4)' }}>Avaliação Energética</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        {FIELDS.map(f => {
-          const a = getAssessment(f.type)
-          return <FieldCard key={f.type} label={f.label} initial={a} onSave={(p, n) => save(f.type, p, n)} />
-        })}
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {FIELDS.map(f => {
+        const a = getAssessment(f.type)
+        return <FieldCard key={f.type} label={f.label} initial={a} onSave={(p, n) => save(f.type, p, n)} />
+      })}
     </div>
   )
 }

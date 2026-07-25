@@ -398,7 +398,7 @@ export default function PublicReport() {
         
         return (
           <CollapsibleSection key={section.id} icon="◈" title={section.label}>
-            <div className="pr-custom-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px' }}>
+            <div className="pr-custom-section">
               {section.fields?.map(field => {
                 const fieldValue = sectionValue.values[field.id]
                 if (!fieldValue) return null

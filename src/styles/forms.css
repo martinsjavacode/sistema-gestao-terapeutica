@@ -159,3 +159,37 @@
 .chip-remove:hover {
   color: var(--red);
 }
+
+
+/* ========== Custom Fields Grid ========== */
+.custom-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-4);
+}
+
+.custom-field-full { grid-column: span 6; }
+.custom-field-half { grid-column: span 3; }
+.custom-field-third { grid-column: span 2; }
+
+@media (max-width: 768px) {
+  .custom-fields-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .custom-field-full,
+  .custom-field-half,
+  .custom-field-third {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .custom-fields-grid {
+    grid-template-columns: 1fr;
+  }
+  .custom-field-full,
+  .custom-field-half,
+  .custom-field-third {
+    grid-column: span 1;
+  }
+}

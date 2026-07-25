@@ -74,11 +74,8 @@ export default function ReportTab({ attendanceId }: { attendanceId: string }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-        <h2 style={{ fontSize: '1.1rem' }}>Relatório</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-          <Button variant="tab" onClick={copyLink} disabled={!hasData}><Link2 size={16} /> Copiar link</Button>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-4)' }}>
+        <Button variant="tab" onClick={copyLink} disabled={!hasData}><Link2 size={16} /> Copiar link</Button>
       </div>
 
       {!hasData ? (

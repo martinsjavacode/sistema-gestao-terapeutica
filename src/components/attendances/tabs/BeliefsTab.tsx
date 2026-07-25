@@ -122,7 +122,6 @@ export default function BeliefsTab({ attendanceId }: { attendanceId: string }) {
 
   return (
     <div>
-      <h2 style={{ fontSize: '1.1rem', marginBottom: 'var(--space-2)' }}>Crenças Limitantes</h2>
       <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
         Selecione as crenças identificadas ou adicione uma personalizada.
       </p>

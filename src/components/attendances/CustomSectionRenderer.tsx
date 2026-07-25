@@ -13,9 +13,11 @@ interface Props {
 
 export default function CustomSectionRenderer({ section, sectionValue, onSave }: Props) {
   const fields = section.fields ?? []
+  const groups = section.groups ?? []
   const currentValues = sectionValue?.values ?? {}
+  const hasGroups = groups.length > 0
 
-  if (fields.length === 0) {
+  if (fields.length === 0 && groups.length === 0) {
     return <p className="text-muted text-center" style={{ fontSize: '0.82rem' }}>Nenhum campo configurado nesta seção.</p>
   }
 
@@ -24,35 +26,43 @@ export default function CustomSectionRenderer({ section, sectionValue, onSave }:
     onSave(updated)
   }
 
-  // Calcular grid columns baseado na largura dos campos
-  // Grid de 6 colunas: full=6, half=3, third=2
-  const getGridColumn = (width?: 'full' | 'half' | 'third') => {
+  // Classe CSS baseada na largura
+  const getWidthClass = (width?: 'full' | 'half' | 'third') => {
     switch (width) {
-      case 'third': return 'span 2'
-      case 'half': return 'span 3'
+      case 'third': return 'custom-field-third'
+      case 'half': return 'custom-field-half'
       case 'full':
-      default: return 'span 6'
+      default: return 'custom-field-full'
     }
   }
 
+  // Se tem grupos, renderiza cards agrupados
+  if (hasGroups) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        {groups.map(group => (
+          <GroupFieldsCard
+            key={group.id}
+            group={group}
+            values={currentValues}
+            onSave={handleFieldSave}
+            getWidthClass={getWidthClass}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  // Campos soltos - cada um em seu próprio card
   return (
-    <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: 'repeat(6, 1fr)', 
-      gap: 'var(--space-4)',
-    }}>
+    <div className="custom-fields-grid">
       {fields.map(field => (
-        <div 
-          key={field.id} 
-          style={{ 
-            gridColumn: getGridColumn(field.config?.width),
-            minWidth: 0, // Permite que o conteúdo encolha
-          }}
-        >
+        <div key={field.id} className={getWidthClass(field.config?.width)}>
           <FieldCard
             field={field}
             value={currentValues[field.id]}
             onSave={val => handleFieldSave(field.id, val)}
+            hideTitle={fields.length === 1 || field.label === section.label}
           />
         </div>
       ))}
@@ -62,10 +72,11 @@ export default function CustomSectionRenderer({ section, sectionValue, onSave }:
 
 // ========== Field Card (wrapper com estilo consistente) ==========
 
-function FieldCard({ field, value, onSave }: {
+function FieldCard({ field, value, onSave, hideTitle }: {
   field: TemplateField
   value: { content?: string; items?: string[]; rating?: number; checked?: boolean } | undefined
   onSave: (val: { content?: string; items?: string[]; rating?: number; checked?: boolean }) => void
+  hideTitle?: boolean
 }) {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -81,8 +92,8 @@ function FieldCard({ field, value, onSave }: {
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
-        <h3 style={{ fontSize: '0.95rem', color: 'var(--violet-light)' }}>{field.label}</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: hideTitle ? 0 : 'var(--space-3)' }}>
+        {!hideTitle && <h3 style={{ fontSize: '0.95rem', color: 'var(--violet-light)' }}>{field.label}</h3>}
         <SaveStatus status={saveStatus} />
       </div>
       <FieldRenderer field={field} value={value} onSave={handleSave} />
@@ -339,6 +350,54 @@ function MultiCheckboxField({ options, onSave }: { options: string[]; label: str
           <span style={{ fontSize: '0.88rem', color: selected.has(opt) ? 'var(--text)' : 'var(--text-muted)' }}>{opt}</span>
         </label>
       ))}
+    </div>
+  )
+}
+
+// ========== Group Fields Card (card com campos agrupados) ==========
+
+import type { TemplateFieldGroup } from '../../services/templates'
+
+function GroupFieldsCard({ group, values, onSave, getWidthClass }: {
+  group: TemplateFieldGroup
+  values: Record<string, { content?: string; items?: string[]; rating?: number; checked?: boolean }>
+  onSave: (fieldId: string, val: { content?: string; items?: string[]; rating?: number; checked?: boolean }) => void
+  getWidthClass: (width?: 'full' | 'half' | 'third') => string
+}) {
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  const handleSave = useCallback((fieldId: string, val: { content?: string; items?: string[]; rating?: number; checked?: boolean }) => {
+    setSaveStatus('saving')
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    timeoutRef.current = setTimeout(() => {
+      onSave(fieldId, val)
+      setSaveStatus('saved')
+    }, 1500)
+  }, [onSave])
+
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+        {group.label && <h3 style={{ fontSize: '0.95rem', color: 'var(--violet-light)', margin: 0 }}>{group.label}</h3>}
+        <SaveStatus status={saveStatus} />
+      </div>
+      <div className="custom-fields-grid">
+        {group.fields.map(field => (
+          <div key={field.id} className={getWidthClass(field.config?.width)}>
+            <label className="form-label" style={{ margin: 0 }}>
+              {field.label}
+            </label>
+            <div style={{ marginTop: 'var(--space-2)' }}>
+              <FieldRenderer 
+                field={field} 
+                value={values[field.id]} 
+                onSave={val => handleSave(field.id, val)} 
+              />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

@@ -38,8 +38,7 @@ export default function BlockagesTab({ attendanceId }: { attendanceId: string })
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-        <h2 style={{ fontSize: '1.1rem' }}>Bloqueios</h2>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-4)' }}>
         <Button onClick={() => setAdding(true)}><Plus size={16} /> Adicionar</Button>
       </div>
 

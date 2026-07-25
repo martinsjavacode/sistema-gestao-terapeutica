@@ -91,8 +91,7 @@ export default function AuraFieldTab({ attendanceId }: { attendanceId: string })
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-        <h2 style={{ fontSize: '1.1rem' }}>Campo Áurico</h2>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-4)' }}>
         <SaveStatus status={saveStatus} />
       </div>
 

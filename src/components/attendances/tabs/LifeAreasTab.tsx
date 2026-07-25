@@ -26,14 +26,11 @@ export default function LifeAreasTab({ attendanceId }: { attendanceId: string })
   }
 
   return (
-    <div>
-      <h2 style={{ fontSize: '1.1rem', marginBottom: 'var(--space-4)' }}>Áreas da Vida</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        {AREAS.map(area => {
-          const a = getArea(area)
-          return <AreaCard key={area} area={area} initial={a} onSave={(p, n) => save(area, p, n)} />
-        })}
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {AREAS.map(area => {
+        const a = getArea(area)
+        return <AreaCard key={area} area={area} initial={a} onSave={(p, n) => save(area, p, n)} />
+      })}
     </div>
   )
 }

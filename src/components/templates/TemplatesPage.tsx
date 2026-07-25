@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchTemplates, insertTemplate, updateTemplate, deleteTemplate, duplicateTemplate, setDefaultTemplate, type SessionTemplate, type TemplateSection, type TemplateField } from '../../services/templates'
+import { fetchTemplates, insertTemplate, updateTemplate, deleteTemplate, duplicateTemplate, setDefaultTemplate, type SessionTemplate, type TemplateSection, type TemplateField, type TemplateFieldGroup } from '../../services/templates'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 import Modal from '../ui/Modal'
@@ -216,14 +216,94 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
     setSections(prev => prev.map(s => {
       if (s.id !== sectionId) return s
       const field: TemplateField = { id: crypto.randomUUID(), label, field_type: fieldType, config }
-      return { ...s, fields: [...(s.fields ?? []), field] }
+      // Se não tem grupos, adiciona ao fields (compatibilidade)
+      if (!s.groups || s.groups.length === 0) {
+        return { ...s, fields: [...(s.fields ?? []), field] }
+      }
+      // Se tem grupos, adiciona ao último grupo
+      const groups = [...s.groups]
+      const lastGroup = groups[groups.length - 1]
+      if (lastGroup) {
+        groups[groups.length - 1] = { ...lastGroup, fields: [...lastGroup.fields, field] }
+      }
+      return { ...s, groups }
+    }))
+  }
+
+  const addFieldToGroup = (sectionId: string, groupId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox', config?: TemplateField['config']) => {
+    setSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s
+      const field: TemplateField = { id: crypto.randomUUID(), label, field_type: fieldType, config }
+      const groups = (s.groups ?? []).map(g => 
+        g.id === groupId ? { ...g, fields: [...g.fields, field] } : g
+      )
+      return { ...s, groups }
+    }))
+  }
+
+  const addGroup = (sectionId: string, groupLabel?: string) => {
+    setSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s
+      const newGroup: TemplateFieldGroup = { id: crypto.randomUUID(), label: groupLabel, fields: [] }
+      return { ...s, groups: [...(s.groups ?? []), newGroup] }
+    }))
+  }
+
+  const updateGroup = (sectionId: string, groupId: string, updates: Partial<TemplateFieldGroup>) => {
+    setSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s
+      const groups = (s.groups ?? []).map(g => 
+        g.id === groupId ? { ...g, ...updates } : g
+      )
+      return { ...s, groups }
+    }))
+  }
+
+  const removeGroup = (sectionId: string, groupId: string) => {
+    setSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s
+      return { ...s, groups: (s.groups ?? []).filter(g => g.id !== groupId) }
+    }))
+  }
+
+  const updateField = (sectionId: string, fieldId: string, updates: Partial<TemplateField>) => {
+    setSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s
+      // Tenta atualizar em fields
+      if (s.fields?.some(f => f.id === fieldId)) {
+        return { 
+          ...s, 
+          fields: s.fields.map(f => {
+            if (f.id !== fieldId) return f
+            return { ...f, ...updates, config: { ...f.config, ...updates.config } }
+          })
+        }
+      }
+      // Tenta atualizar em groups
+      const groups = (s.groups ?? []).map(g => ({
+        ...g,
+        fields: g.fields.map(f => {
+          if (f.id !== fieldId) return f
+          return { ...f, ...updates, config: { ...f.config, ...updates.config } }
+        })
+      }))
+      return { ...s, groups }
     }))
   }
 
   const removeField = (sectionId: string, fieldId: string) => {
     setSections(prev => prev.map(s => {
       if (s.id !== sectionId) return s
-      return { ...s, fields: (s.fields ?? []).filter(f => f.id !== fieldId) }
+      // Remove de fields
+      if (s.fields?.some(f => f.id === fieldId)) {
+        return { ...s, fields: s.fields.filter(f => f.id !== fieldId) }
+      }
+      // Remove de groups
+      const groups = (s.groups ?? []).map(g => ({
+        ...g,
+        fields: g.fields.filter(f => f.id !== fieldId)
+      }))
+      return { ...s, groups }
     }))
   }
 
@@ -409,6 +489,11 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
                       sensors={sensors}
                       onRemove={() => removeSection(section.id)}
                       onAddField={addField}
+                      onAddFieldToGroup={addFieldToGroup}
+                      onAddGroup={addGroup}
+                      onUpdateGroup={updateGroup}
+                      onRemoveGroup={removeGroup}
+                      onUpdateField={updateField}
                       onRemoveField={removeField}
                       onFieldDragEnd={(event) => handleFieldDragEnd(section.id, event)}
                     />
@@ -590,15 +675,21 @@ function AddFieldInline({ sectionId, onAdd }: { sectionId: string; onAdd: (secti
 
 // ========== Sortable Section Item ==========
 
-function SortableSectionItem({ section, sensors, onRemove, onAddField, onRemoveField, onFieldDragEnd }: {
+function SortableSectionItem({ section, sensors, onRemove, onAddField, onAddFieldToGroup, onAddGroup, onUpdateGroup, onRemoveGroup, onUpdateField, onRemoveField, onFieldDragEnd }: {
   section: TemplateSection
   sensors: ReturnType<typeof useSensors>
   onRemove: () => void
   onAddField: (sectionId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox', config?: TemplateField['config']) => void
+  onAddFieldToGroup: (sectionId: string, groupId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox', config?: TemplateField['config']) => void
+  onAddGroup: (sectionId: string, groupLabel?: string) => void
+  onUpdateGroup: (sectionId: string, groupId: string, updates: Partial<TemplateFieldGroup>) => void
+  onRemoveGroup: (sectionId: string, groupId: string) => void
+  onUpdateField: (sectionId: string, fieldId: string, updates: Partial<TemplateField>) => void
   onRemoveField: (sectionId: string, fieldId: string) => void
   onFieldDragEnd: (event: DragEndEvent) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id })
+  const [newGroupLabel, setNewGroupLabel] = useState('')
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -610,17 +701,29 @@ function SortableSectionItem({ section, sensors, onRemove, onAddField, onRemoveF
   }
 
   const fields = section.fields ?? []
+  const groups = section.groups ?? []
+  const hasGroups = groups.length > 0
+  const totalFields = fields.length + groups.reduce((acc, g) => acc + g.fields.length, 0)
+
+  const handleAddGroup = () => {
+    onAddGroup(section.id, newGroupLabel.trim() || undefined)
+    setNewGroupLabel('')
+  }
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div className="template-step-form" style={{ borderBottom: section.type === 'custom' && fields.length ? '1px solid var(--border)' : 'none' }}>
+      <div className="template-step-form" style={{ borderBottom: section.type === 'custom' && totalFields > 0 ? '1px solid var(--border)' : 'none' }}>
         <div className="template-step-grip" {...attributes} {...listeners} style={{ cursor: 'grab' }}>
           <GripVertical size={14} />
         </div>
         <div className="template-step-fields" style={{ flex: 1 }}>
           <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{section.label}</span>
           <span style={{ fontSize: '0.7rem', color: section.type === 'custom' ? 'var(--gold)' : 'var(--text-muted)' }}>
-            {section.type === 'custom' ? `${fields.length} campo(s)` : 'Seção do sistema'}
+            {section.type === 'custom' 
+              ? hasGroups 
+                ? `${groups.length} card(s), ${totalFields} campo(s)` 
+                : `${fields.length} campo(s)` 
+              : 'Seção do sistema'}
           </span>
         </div>
         <Button variant="icon" onClick={onRemove} type="button" aria-label="Remover seção">
@@ -629,21 +732,161 @@ function SortableSectionItem({ section, sensors, onRemove, onAddField, onRemoveF
       </div>
 
       {section.type === 'custom' && (
-        <div style={{ padding: 'var(--space-3)', paddingLeft: 'var(--space-6)', background: 'var(--surface)' }}>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onFieldDragEnd}>
-            <SortableContext items={fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
-              {fields.map(field => (
-                <SortableFieldItem
-                  key={field.id}
-                  field={field}
-                  onRemove={() => onRemoveField(section.id, field.id)}
+        <div style={{ padding: 'var(--space-3)', background: 'var(--surface)' }}>
+          {/* Se não tem grupos, mostra campos soltos com opção de adicionar */}
+          {!hasGroups && (
+            <>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onFieldDragEnd}>
+                <SortableContext items={fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
+                  {fields.map(field => (
+                    <SortableFieldItem
+                      key={field.id}
+                      field={field}
+                      onUpdate={(updates) => onUpdateField(section.id, field.id, updates)}
+                      onRemove={() => onRemoveField(section.id, field.id)}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+              <AddFieldInline sectionId={section.id} onAdd={onAddField} />
+              
+              {/* Opção para converter para grupos */}
+              <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-3)', borderTop: '1px dashed var(--border)' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: 'var(--space-2)' }}>
+                  Ou organize em cards:
+                </span>
+                <div className="form-row" style={{ gap: 'var(--space-2)', alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <Input
+                      placeholder="Nome do card (opcional)"
+                      value={newGroupLabel}
+                      onChange={e => setNewGroupLabel(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddGroup() } }}
+                    />
+                  </div>
+                  <Button variant="tab" onClick={handleAddGroup} type="button">
+                    <Plus size={14} /> Card
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Se tem grupos, mostra cards */}
+          {hasGroups && (
+            <>
+              {groups.map(group => (
+                <GroupCard
+                  key={group.id}
+                  group={group}
+                  sectionId={section.id}
+                  onAddField={(label, fieldType, config) => onAddFieldToGroup(section.id, group.id, label, fieldType, config)}
+                  onUpdateField={(fieldId, updates) => onUpdateField(section.id, fieldId, updates)}
+                  onRemoveField={(fieldId) => onRemoveField(section.id, fieldId)}
+                  onUpdateGroup={(updates) => onUpdateGroup(section.id, group.id, updates)}
+                  onRemoveGroup={() => onRemoveGroup(section.id, group.id)}
                 />
               ))}
-            </SortableContext>
-          </DndContext>
-          <AddFieldInline sectionId={section.id} onAdd={onAddField} />
+              
+              {/* Adicionar novo card */}
+              <div style={{ marginTop: 'var(--space-3)' }}>
+                <div className="form-row" style={{ gap: 'var(--space-2)', alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <Input
+                      placeholder="Nome do novo card (opcional)"
+                      value={newGroupLabel}
+                      onChange={e => setNewGroupLabel(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddGroup() } }}
+                    />
+                  </div>
+                  <Button variant="tab" onClick={handleAddGroup} type="button">
+                    <Plus size={14} /> Card
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ========== Group Card (card dentro de uma seção) ==========
+
+function GroupCard({ group, sectionId, onAddField, onUpdateField, onRemoveField, onUpdateGroup, onRemoveGroup }: {
+  group: TemplateFieldGroup
+  sectionId: string
+  onAddField: (label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox', config?: TemplateField['config']) => void
+  onUpdateField: (fieldId: string, updates: Partial<TemplateField>) => void
+  onRemoveField: (fieldId: string) => void
+  onUpdateGroup: (updates: Partial<TemplateFieldGroup>) => void
+  onRemoveGroup: () => void
+}) {
+  const [editingLabel, setEditingLabel] = useState(false)
+  const [label, setLabel] = useState(group.label ?? '')
+
+  const handleSaveLabel = () => {
+    onUpdateGroup({ label: label.trim() || undefined })
+    setEditingLabel(false)
+  }
+
+  return (
+    <div style={{ 
+      border: '1px solid var(--border)', 
+      borderRadius: 'var(--radius-sm)', 
+      marginBottom: 'var(--space-3)',
+      background: 'var(--card)'
+    }}>
+      {/* Header do card */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 'var(--space-2)', 
+        padding: 'var(--space-2) var(--space-3)',
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--surface)'
+      }}>
+        <span style={{ fontSize: '0.9rem' }}>📦</span>
+        {editingLabel ? (
+          <Input
+            value={label}
+            onChange={e => setLabel(e.target.value)}
+            onBlur={handleSaveLabel}
+            onKeyDown={e => { if (e.key === 'Enter') handleSaveLabel() }}
+            placeholder="Nome do card"
+            autoFocus
+            style={{ flex: 1 }}
+          />
+        ) : (
+          <span 
+            style={{ flex: 1, fontSize: '0.85rem', fontWeight: 500, cursor: 'pointer', color: group.label ? 'var(--text)' : 'var(--text-muted)' }}
+            onClick={() => setEditingLabel(true)}
+          >
+            {group.label || 'Card sem título'}
+          </span>
+        )}
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{group.fields.length} campo(s)</span>
+        <Button variant="icon" onClick={onRemoveGroup} type="button" aria-label="Remover card" style={{ padding: 2 }}>
+          <Trash2 size={12} />
+        </Button>
+      </div>
+
+      {/* Campos do card */}
+      <div style={{ padding: 'var(--space-3)' }}>
+        {group.fields.map(field => (
+          <SortableFieldItem
+            key={field.id}
+            field={field}
+            onUpdate={(updates) => onUpdateField(field.id, updates)}
+            onRemove={() => onRemoveField(field.id)}
+          />
+        ))}
+        <AddFieldInline 
+          sectionId={sectionId} 
+          onAdd={(_, label, fieldType, config) => onAddField(label, fieldType, config)} 
+        />
+      </div>
     </div>
   )
 }
@@ -656,37 +899,103 @@ const WIDTH_LABELS: Record<string, string> = {
   third: '33%',
 }
 
-function SortableFieldItem({ field, onRemove }: { field: TemplateField; onRemove: () => void }) {
+function SortableFieldItem({ field, onUpdate, onRemove }: { field: TemplateField; onUpdate: (updates: Partial<TemplateField>) => void; onRemove: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id })
+  const [expanded, setExpanded] = useState(false)
+  const [label, setLabel] = useState(field.label)
+  const [width, setWidth] = useState<'full' | 'half' | 'third'>(field.config?.width ?? 'full')
+  const [options, setOptions] = useState(field.config?.options?.join(', ') ?? field.config?.checkbox_options?.join(', ') ?? '')
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 'var(--space-2)',
-    padding: '4px 0',
-    fontSize: '0.82rem',
   }
 
-  const width = field.config?.width ?? 'full'
+  const handleClose = () => {
+    // Aplica as mudanças ao fechar
+    const updates: Partial<TemplateField> = {
+      label: label.trim() || field.label,
+      config: { ...field.config, width }
+    }
+    if (field.field_type === 'list') {
+      updates.config!.options = options.split(',').map(o => o.trim()).filter(Boolean)
+    } else if (field.field_type === 'checkbox') {
+      updates.config!.checkbox_options = options.split(',').map(o => o.trim()).filter(Boolean)
+    }
+    onUpdate(updates)
+    setExpanded(false)
+  }
 
   return (
     <div ref={setNodeRef} style={style}>
-      <span {...attributes} {...listeners} style={{ cursor: 'grab', color: 'var(--text-muted)' }}>
-        <GripVertical size={12} />
-      </span>
-      <span style={{ flex: 1, color: 'var(--text)' }}>{field.label}</span>
-      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--background)', padding: '2px 8px', borderRadius: 12 }}>
-        {FIELD_TYPE_LABELS[field.field_type]}
-      </span>
-      <span style={{ fontSize: '0.65rem', color: 'var(--violet)', background: 'rgba(139, 92, 246, 0.1)', padding: '2px 6px', borderRadius: 8 }}>
-        {WIDTH_LABELS[width]}
-      </span>
-      <Button variant="icon" onClick={onRemove} type="button" aria-label="Remover campo" style={{ padding: 2 }}>
-        <Trash2 size={12} />
-      </Button>
+      {/* Linha principal */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: '4px 0', fontSize: '0.82rem' }}>
+        <span {...attributes} {...listeners} style={{ cursor: 'grab', color: 'var(--text-muted)' }}>
+          <GripVertical size={12} />
+        </span>
+        <span style={{ flex: 1, color: 'var(--text)' }}>{field.label}</span>
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--background)', padding: '2px 8px', borderRadius: 12 }}>
+          {FIELD_TYPE_LABELS[field.field_type]}
+        </span>
+        <span style={{ fontSize: '0.65rem', color: 'var(--violet)', background: 'rgba(139, 92, 246, 0.1)', padding: '2px 6px', borderRadius: 8 }}>
+          {WIDTH_LABELS[field.config?.width ?? 'full']}
+        </span>
+        <Button variant="icon" onClick={() => setExpanded(!expanded)} type="button" aria-label="Editar campo" style={{ padding: 2 }}>
+          <Pencil size={12} />
+        </Button>
+        <Button variant="icon" onClick={onRemove} type="button" aria-label="Remover campo" style={{ padding: 2 }}>
+          <Trash2 size={12} />
+        </Button>
+      </div>
+
+      {/* Painel de edição expandido */}
+      {expanded && (
+        <div style={{ padding: 'var(--space-3)', background: 'var(--card)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-2)', marginLeft: 'var(--space-4)' }}>
+          <div style={{ marginBottom: 'var(--space-3)' }}>
+            <Input 
+              label="Nome do campo" 
+              value={label} 
+              onChange={e => setLabel(e.target.value)} 
+            />
+          </div>
+          
+          {/* Largura */}
+          <div style={{ marginBottom: 'var(--space-3)' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'block', marginBottom: 'var(--space-2)' }}>Largura</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(['full', 'half', 'third'] as const).map(w => (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={() => setWidth(w)}
+                  className={`chip ${width === w ? 'chip-selected' : ''}`}
+                >
+                  {w === 'full' ? '▣ Inteira' : w === 'half' ? '◧ Metade' : '⫿ Terço'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Opções para lista/checkbox */}
+          {(field.field_type === 'list' || field.field_type === 'checkbox') && (
+            <div style={{ marginBottom: 'var(--space-3)' }}>
+              <Input
+                label={field.field_type === 'list' ? 'Opções (separadas por vírgula)' : 'Opções múltiplas (separadas por vírgula)'}
+                value={options}
+                onChange={e => setOptions(e.target.value)}
+                placeholder="Opção 1, Opção 2, Opção 3"
+              />
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button variant="tab" onClick={handleClose} type="button">
+              <Check size={14} /> Fechar
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

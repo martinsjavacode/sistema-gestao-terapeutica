@@ -458,7 +458,7 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
           <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 'var(--space-2)' }}>
             Seções personalizadas
           </span>
-          <div className="form-row" style={{ gap: 'var(--space-2)', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
               <Input
                 value={newCustomLabel}
@@ -549,7 +549,7 @@ function AddFieldInline({ sectionId, onAdd }: { sectionId: string; onAdd: (secti
   return (
     <div style={{ marginTop: 'var(--space-3)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-3)' }}>
       {/* Linha principal: nome + tipo + botão */}
-      <div className="form-row" style={{ gap: 'var(--space-3)', alignItems: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-end' }}>
         <div style={{ flex: 1 }}>
           <Input
             label="Nome do campo"
@@ -634,7 +634,7 @@ function AddFieldInline({ sectionId, onAdd }: { sectionId: string; onAdd: (secti
         )}
 
         {fieldType === 'rating' && (
-          <div className="form-row" style={{ gap: 'var(--space-4)', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
               <Select
                 label="Formato de entrada"
@@ -755,7 +755,7 @@ function SortableSectionItem({ section, sensors, onRemove, onAddField, onAddFiel
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: 'var(--space-2)' }}>
                   Ou organize em cards:
                 </span>
-                <div className="form-row" style={{ gap: 'var(--space-2)', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
                   <div style={{ flex: 1 }}>
                     <Input
                       placeholder="Nome do card (opcional)"
@@ -790,7 +790,7 @@ function SortableSectionItem({ section, sensors, onRemove, onAddField, onAddFiel
               
               {/* Adicionar novo card */}
               <div style={{ marginTop: 'var(--space-3)' }}>
-                <div className="form-row" style={{ gap: 'var(--space-2)', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
                   <div style={{ flex: 1 }}>
                     <Input
                       placeholder="Nome do novo card (opcional)"

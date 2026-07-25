@@ -729,6 +729,35 @@
   gap: 16px;
 }
 
+/* Grid de cards customizados - respeita width configurado */
+.pr-custom-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+}
+
+.pr-custom-card {
+  background: rgba(99, 102, 241, 0.03);
+  border: 1px solid rgba(99, 102, 241, 0.1);
+  border-radius: 12px;
+  padding: 18px 22px;
+}
+
+.pr-custom-card-full { grid-column: span 6; }
+.pr-custom-card-half { grid-column: span 3; }
+.pr-custom-card-third { grid-column: span 2; }
+
+@media (max-width: 600px) {
+  .pr-custom-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  .pr-custom-card-full,
+  .pr-custom-card-half,
+  .pr-custom-card-third {
+    grid-column: span 1;
+  }
+}
+
 .pr-custom-field {
   padding: 16px 20px;
   background: rgba(99, 102, 241, 0.03);

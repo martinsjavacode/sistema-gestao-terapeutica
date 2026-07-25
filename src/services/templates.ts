@@ -12,8 +12,10 @@ export interface TemplateField {
     width?: 'full' | 'half' | 'third'  // largura do campo na seção
     // Text
     placeholder?: string
+    text_type?: 'input' | 'textarea'  // linha única ou múltiplas linhas
     // List: opções pré-definidas para seleção
     options?: string[]
+    list_type?: 'single' | 'multi'    // seleção única ou múltipla
     // Rating
     input_type?: 'input' | 'slider'   // input numérico ou slider
     is_percentage?: boolean            // true = 0-100%, false = nota (0-10 default)
@@ -52,6 +54,18 @@ export interface SessionTemplate {
   active: boolean
   usage_count: number
   created_at: string
+  // Versionamento
+  current_version: number
+  latest_version_id: string | null
+}
+
+export interface TemplateVersion {
+  id: string
+  template_id: string
+  version: number
+  sections: TemplateSection[]
+  published_at: string
+  created_at: string
 }
 
 // ========== Template CRUD ==========
@@ -88,15 +102,62 @@ export async function insertTemplate(template: {
   sections: TemplateSection[]
 }) {
   const tenant_id = await getTenantId()
+  
+  // Inserir template
   const { data, error } = await supabase
     .from('session_templates')
-    .insert({ ...template, tenant_id })
+    .insert({ ...template, tenant_id, current_version: 1 })
     .select()
     .single()
-  return { data: data as SessionTemplate | null, error }
+  
+  if (error || !data) return { data: null, error }
+  
+  // Criar versão 1
+  const { data: version, error: versionError } = await supabase
+    .from('template_versions')
+    .insert({ 
+      template_id: data.id, 
+      version: 1, 
+      sections: template.sections 
+    })
+    .select()
+    .single()
+  
+  if (versionError) {
+    console.error('Erro ao criar versão 1:', versionError)
+  } else if (version) {
+    // Atualizar latest_version_id
+    await supabase
+      .from('session_templates')
+      .update({ latest_version_id: version.id })
+      .eq('id', data.id)
+  }
+  
+  return { data: data as SessionTemplate, error: null }
 }
 
 export async function updateTemplate(id: string, updates: Partial<Pick<SessionTemplate, 'name' | 'description' | 'therapy_type' | 'sections' | 'active'>>) {
+  // Se sections foi alterado, criar nova versão
+  if (updates.sections) {
+    const { data: versionId, error: versionError } = await supabase
+      .rpc('create_template_version', { p_template_id: id, p_sections: updates.sections })
+    
+    if (versionError) return { error: versionError }
+    
+    // Atualizar outros campos (exceto sections, que já foi atualizado pela function)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { sections: _, ...otherUpdates } = updates
+    if (Object.keys(otherUpdates).length > 0) {
+      const { error } = await supabase
+        .from('session_templates')
+        .update(otherUpdates)
+        .eq('id', id)
+      return { error, versionId }
+    }
+    return { error: null, versionId }
+  }
+  
+  // Se não alterou sections, atualizar normalmente
   const { error } = await supabase
     .from('session_templates')
     .update(updates)
@@ -181,24 +242,48 @@ export async function setDefaultTemplate(templateId: string) {
   return { error }
 }
 
-// ========== Link Template with Snapshot ==========
+// ========== Link Template with Version ==========
 
 export async function linkTemplateWithSnapshot(attendanceId: string, templateId: string | null) {
   if (!templateId) {
     const { error } = await supabase
       .from('attendances')
-      .update({ template_id: null, template_snapshot: null })
+      .update({ template_id: null, template_version_id: null, template_snapshot: null })
       .eq('id', attendanceId)
     return { error }
   }
 
-  // Buscar sections da ficha para salvar como snapshot
+  // Buscar template com versão atual
   const { data: template } = await fetchTemplate(templateId)
   if (!template) return { error: new Error('Ficha não encontrada') }
 
   const { error } = await supabase
     .from('attendances')
-    .update({ template_id: templateId, template_snapshot: template.sections })
+    .update({ 
+      template_id: templateId, 
+      template_version_id: template.latest_version_id,
+      template_snapshot: template.sections 
+    })
     .eq('id', attendanceId)
   return { error }
+}
+
+// ========== Fetch Template Versions ==========
+
+export async function fetchTemplateVersions(templateId: string) {
+  const { data, error } = await supabase
+    .from('template_versions')
+    .select('*')
+    .eq('template_id', templateId)
+    .order('version', { ascending: false })
+  return { data: (data ?? []) as TemplateVersion[], error }
+}
+
+export async function fetchTemplateVersion(versionId: string) {
+  const { data, error } = await supabase
+    .from('template_versions')
+    .select('*')
+    .eq('id', versionId)
+    .single()
+  return { data: data as TemplateVersion | null, error }
 }

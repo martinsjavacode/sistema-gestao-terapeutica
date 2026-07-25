@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { fetchAppointments, insertAppointment } from '../../services/appointments'
 import { getTherapyLabel, APPOINTMENT_STATUS_LABELS } from '../../types/database'
 import { getActiveTechniques } from '../../config/therapy-sections'
-import { useTenant } from '../../hooks/useTenant'
+import { useTenant, useRealtimeSubscription } from '../../hooks'
 import type { TherapyType } from '../../types/database'
 import Button from '../ui/Button'
 import Select from '../ui/Select'
@@ -40,6 +40,9 @@ export default function SchedulePage() {
   const [prefillDate, setPrefillDate] = useState('')
   const [prefillTime, setPrefillTime] = useState('')
   const [quickAdd, setQuickAdd] = useState<{ date: string; time: string; x: number; y: number } | null>(null)
+
+  // Escuta mudanças em tempo real na tabela de agendamentos
+  useRealtimeSubscription('appointments', 'appointments')
 
   const handleSlotClick = (day: Date, slotIndex: number, e: React.MouseEvent) => {
     const hours = Math.floor(slotIndex / 2)

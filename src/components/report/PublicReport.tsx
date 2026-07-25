@@ -134,6 +134,16 @@ interface TemplateSection {
   fields?: TemplateField[]
 }
 
+interface TemplateFieldGroup {
+  id: string
+  label: string
+  fields: TemplateField[]
+}
+
+interface TemplateSectionWithGroups extends TemplateSection {
+  groups?: TemplateFieldGroup[]
+}
+
 interface TemplateField {
   id: string
   label: string
@@ -143,6 +153,9 @@ interface TemplateField {
     is_percentage?: boolean
     max_rating?: number
     rating_label?: string
+    text_type?: 'input' | 'textarea'
+    list_type?: 'single' | 'multi'
+    options?: string[]
   }
 }
 
@@ -182,7 +195,7 @@ export default function PublicReport() {
     return Object.values(sectionValue.values).some(fv => {
       if (fv.content?.trim()) return true
       if (fv.items && fv.items.length > 0) return true
-      if (fv.rating != null && fv.rating > 0) return true
+      if (fv.rating != null) return true  // Aceita 0 também
       if (fv.checked != null) return true
       return false
     })
@@ -386,77 +399,254 @@ export default function PublicReport() {
         const sectionValue = custom_section_values?.find(v => v.section_id === section.id)
         if (!sectionValue?.values) return null
 
-        // Função para calcular grid column baseado na largura
-        const getGridColumn = (width?: 'full' | 'half' | 'third') => {
-          switch (width) {
-            case 'third': return 'span 2'
-            case 'half': return 'span 3'
-            case 'full':
-            default: return 'span 6'
-          }
+        // Extrair groups da seção
+        let groups = (section as TemplateSectionWithGroups).groups ?? []
+        
+        // Se não tem groups mas tem values, criar groups virtuais baseados nos IDs dos valores
+        // Isso acontece quando o snapshot é antigo e não tinha a estrutura de groups
+        if (groups.length === 0 && Object.keys(sectionValue.values).length > 0) {
+          // Agrupar valores por prefixo do ID (assumindo que campos do mesmo card compartilham prefixo)
+          // Ou criar um grupo único com todos os campos
+          const fieldIds = Object.keys(sectionValue.values)
+          
+          // Tentar detectar padrão de agrupamento pelo ID
+          const groupMap = new Map<string, { id: string; label: string; field_type: string; config?: Record<string, unknown> }[]>()
+          
+          fieldIds.forEach(fieldId => {
+            // Extrair prefixo do grupo (ex: "group1_field1" -> "group1")
+            const parts = fieldId.split('_')
+            const groupPrefix = parts.length > 1 ? parts.slice(0, -1).join('_') : 'default'
+            
+            if (!groupMap.has(groupPrefix)) {
+              groupMap.set(groupPrefix, [])
+            }
+            
+            const fv = sectionValue.values[fieldId]
+            // Inferir tipo do campo pelo valor
+            let fieldType: 'text' | 'list' | 'rating' | 'checkbox' = 'text'
+            if (fv?.items) fieldType = 'list'
+            else if (fv?.rating != null) fieldType = 'rating'
+            else if (fv?.checked != null) fieldType = 'checkbox'
+            
+            groupMap.get(groupPrefix)!.push({
+              id: fieldId,
+              label: fieldId,
+              field_type: fieldType,
+              config: fieldType === 'rating' ? { is_percentage: true, max_rating: 100 } : undefined
+            })
+          })
+          
+          // Converter map para array de groups
+          groups = Array.from(groupMap.entries()).map(([prefix, fields]) => ({
+            id: prefix,
+            label: '',
+            fields: fields as TemplateField[]
+          }))
         }
+        
+        // Campos legados (sem group) - inclui campos soltos do template
+        const legacyFields = section.fields ?? []
+        
+        // Função para verificar se um campo tem valor
+        const hasFieldValue = (field: TemplateField) => {
+          const fv = sectionValue.values[field.id]
+          if (!fv) return false
+          if (fv.content?.trim()) return true
+          if (fv.items && fv.items.length > 0) return true
+          if (fv.rating != null) return true  // Aceita 0 também
+          if (fv.checked != null) return true
+          return false
+        }
+
+        // Filtrar groups que têm pelo menos um campo com valor
+        const filledGroups = groups.filter(g => g.fields.some(hasFieldValue))
+        const filledLegacyFields = legacyFields.filter(hasFieldValue)
         
         return (
           <CollapsibleSection key={section.id} icon="◈" title={section.label}>
-            <div className="pr-custom-section">
-              {section.fields?.map(field => {
-                const fieldValue = sectionValue.values[field.id]
-                if (!fieldValue) return null
-                
-                // Verificar se tem valor
-                const hasValue = fieldValue.content?.trim() || 
-                  (fieldValue.items && fieldValue.items.length > 0) ||
-                  (fieldValue.rating != null && fieldValue.rating > 0) ||
-                  fieldValue.checked != null
-                
-                if (!hasValue) return null
+            {/* Renderizar cada group como um card */}
+            {filledGroups.length > 0 && (
+              <div className="pr-chakra-grid">
+                {filledGroups.map(group => {
+                  // Encontrar campos com valor no grupo
+                  const fieldsWithValue = group.fields.filter(hasFieldValue)
+                  
+                  // Verificar se tem um campo de lista/texto inline + rating (padrão chakra)
+                  const listOrTextFields = fieldsWithValue.filter(f => 
+                    f.field_type === 'list' || 
+                    (f.field_type === 'text' && f.config?.text_type === 'input')
+                  )
+                  const ratingFields = fieldsWithValue.filter(f => f.field_type === 'rating')
+                  const checkboxFields = fieldsWithValue.filter(f => f.field_type === 'checkbox')
+                  const textareaFields = fieldsWithValue.filter(f => 
+                    f.field_type === 'text' && f.config?.text_type !== 'input'
+                  )
 
-                return (
-                  <div key={field.id} className="pr-custom-field" style={{ gridColumn: getGridColumn(field.config?.width) }}>
-                    <h4 className="pr-custom-field-label">{field.label}</h4>
+                  // Se tem lista/texto + rating, renderizar estilo chakra combinado
+                  if (listOrTextFields.length > 0 && ratingFields.length > 0) {
+                    const mainField = listOrTextFields[0]!
+                    const ratingField = ratingFields[0]!
+                    const mainValue = sectionValue.values[mainField.id]
+                    const ratingValue = sectionValue.values[ratingField.id]
                     
-                    {/* Text field */}
-                    {field.field_type === 'text' && fieldValue.content && (
-                      <p className="pr-custom-field-text" style={{ whiteSpace: 'pre-line' }}>{fieldValue.content}</p>
-                    )}
+                    const pct = (ratingValue?.rating ?? 0) / (ratingField.config?.max_rating ?? 100) * 100
+                    const barColor = pct >= 100 ? '#38bdf8' : '#f97316'
                     
-                    {/* List field */}
-                    {field.field_type === 'list' && fieldValue.items && fieldValue.items.length > 0 && (
-                      <div className="pr-custom-field-list">
-                        {fieldValue.items.map((item, i) => (
-                          <span key={i} className="pr-custom-field-chip">{item}</span>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {/* Rating field */}
-                    {field.field_type === 'rating' && fieldValue.rating != null && (
-                      <div className="pr-custom-field-rating">
-                        <div className="pr-chakra-bar" style={{ maxWidth: '200px' }}>
-                          <div 
-                            className="pr-chakra-bar-fill" 
-                            style={{ 
-                              width: `${(fieldValue.rating / (field.config?.max_rating ?? 100)) * 100}%`,
-                              background: fieldValue.rating >= (field.config?.max_rating ?? 100) ? '#38bdf8' : '#f97316'
-                            }} 
-                          />
+                    // Título do card: valor da lista/texto ou label do grupo
+                    const cardTitle = mainField.field_type === 'list' && mainValue?.items?.length 
+                      ? mainValue.items.join(', ')
+                      : mainValue?.content || group.label || mainField.label
+
+                    return (
+                      <div key={group.id} className="pr-chakra-card">
+                        <div className="pr-chakra-bar-header">
+                          <span className="pr-chakra-name">{cardTitle}</span>
+                          <span className="pr-chakra-pct">
+                            {ratingValue?.rating}{ratingField.config?.rating_label ?? (ratingField.config?.is_percentage ? '%' : '/10')}
+                          </span>
                         </div>
-                        <span className="pr-custom-field-rating-value">
-                          {fieldValue.rating}{field.config?.rating_label ?? (field.config?.is_percentage ? '%' : '/10')}
-                        </span>
+                        <div className="pr-chakra-bar">
+                          <div className="pr-chakra-bar-fill" style={{ width: `${pct}%`, background: barColor }} />
+                        </div>
+                        {/* Mostrar checkboxes adicionais se houver */}
+                        {checkboxFields.length > 0 && (
+                          <div className="pr-chakra-meta">
+                            {checkboxFields.map(cf => {
+                              const cv = sectionValue.values[cf.id]
+                              return (
+                                <span key={cf.id} className="pr-highlight" style={{ color: cv?.checked ? '#38bdf8' : '#f97316' }}>
+                                  {cf.label}: {cv?.checked ? 'Sim' : 'Não'}
+                                </span>
+                              )
+                            })}
+                          </div>
+                        )}
+                        {/* Mostrar textos longos se houver */}
+                        {textareaFields.map(tf => {
+                          const tv = sectionValue.values[tf.id]
+                          return tv?.content ? (
+                            <div key={tf.id} className="pr-chakra-notes">{tv.content}</div>
+                          ) : null
+                        })}
                       </div>
-                    )}
-                    
-                    {/* Checkbox field */}
-                    {field.field_type === 'checkbox' && fieldValue.checked != null && (
-                      <span className="pr-custom-field-checkbox">
-                        {fieldValue.checked ? '✓ Sim' : '✗ Não'}
-                      </span>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+                    )
+                  }
+
+                  // Caso contrário, renderizar campos individualmente dentro do card
+                  return (
+                    <div key={group.id} className="pr-chakra-card">
+                      {group.label && (
+                        <div className="pr-chakra-bar-header" style={{ marginBottom: '12px' }}>
+                          <span className="pr-chakra-name">{group.label}</span>
+                        </div>
+                      )}
+                      {fieldsWithValue.map(field => {
+                        const fv = sectionValue.values[field.id]
+                        
+                        if (field.field_type === 'rating' && fv?.rating != null) {
+                          const pct = (fv.rating / (field.config?.max_rating ?? 100)) * 100
+                          const barColor = pct >= 100 ? '#38bdf8' : '#f97316'
+                          return (
+                            <div key={field.id} style={{ marginBottom: '12px' }}>
+                              <div className="pr-chakra-bar-header">
+                                <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>{field.label}</span>
+                                <span className="pr-chakra-pct">
+                                  {fv.rating}{field.config?.rating_label ?? (field.config?.is_percentage ? '%' : '/10')}
+                                </span>
+                              </div>
+                              <div className="pr-chakra-bar">
+                                <div className="pr-chakra-bar-fill" style={{ width: `${pct}%`, background: barColor }} />
+                              </div>
+                            </div>
+                          )
+                        }
+                        
+                        if (field.field_type === 'checkbox' && fv?.checked != null) {
+                          return (
+                            <div key={field.id} className="pr-chakra-meta">
+                              <span style={{ color: '#94a3b8' }}>{field.label}:</span>
+                              <span className="pr-highlight" style={{ color: fv.checked ? '#38bdf8' : '#f97316' }}>
+                                {fv.checked ? 'Sim' : 'Não'}
+                              </span>
+                            </div>
+                          )
+                        }
+                        
+                        if (field.field_type === 'list' && fv?.items?.length) {
+                          return (
+                            <div key={field.id} style={{ marginBottom: '12px' }}>
+                              <span style={{ fontSize: '0.9rem', color: '#94a3b8', display: 'block', marginBottom: '8px' }}>{field.label}</span>
+                              <div className="pr-custom-field-list">
+                                {fv.items.map((item, i) => (
+                                  <span key={i} className="pr-custom-field-chip">{item}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        }
+                        
+                        if (field.field_type === 'text' && fv?.content) {
+                          const isInline = field.config?.text_type === 'input'
+                          return isInline ? (
+                            <div key={field.id} className="pr-chakra-meta">
+                              <span style={{ color: '#94a3b8' }}>{field.label}:</span>
+                              <span className="pr-highlight">{fv.content}</span>
+                            </div>
+                          ) : (
+                            <div key={field.id} style={{ marginTop: '8px' }}>
+                              <span style={{ fontSize: '0.9rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>{field.label}</span>
+                              <p style={{ color: '#e2e8f0', whiteSpace: 'pre-line', margin: 0 }}>{fv.content}</p>
+                            </div>
+                          )
+                        }
+                        
+                        return null
+                      })}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Campos legados (sem group) */}
+            {filledLegacyFields.length > 0 && (
+              <div className="pr-chakra-grid" style={{ marginTop: filledGroups.length > 0 ? '16px' : 0 }}>
+                {filledLegacyFields.map(field => {
+                  const fv = sectionValue.values[field.id]
+                  
+                  if (field.field_type === 'rating' && fv?.rating != null) {
+                    const pct = (fv.rating / (field.config?.max_rating ?? 100)) * 100
+                    const barColor = pct >= 100 ? '#38bdf8' : '#f97316'
+                    return (
+                      <div key={field.id} className="pr-chakra-card">
+                        <div className="pr-chakra-bar-header">
+                          <span className="pr-chakra-name">{field.label}</span>
+                          <span className="pr-chakra-pct">
+                            {fv.rating}{field.config?.rating_label ?? (field.config?.is_percentage ? '%' : '/10')}
+                          </span>
+                        </div>
+                        <div className="pr-chakra-bar">
+                          <div className="pr-chakra-bar-fill" style={{ width: `${pct}%`, background: barColor }} />
+                        </div>
+                      </div>
+                    )
+                  }
+                  
+                  if (field.field_type === 'text' && fv?.content) {
+                    return (
+                      <div key={field.id} className="pr-chakra-card">
+                        <div className="pr-chakra-bar-header">
+                          <span className="pr-chakra-name">{field.label}</span>
+                        </div>
+                        <p style={{ color: '#94a3b8', whiteSpace: 'pre-line', margin: '8px 0 0' }}>{fv.content}</p>
+                      </div>
+                    )
+                  }
+                  
+                  return null
+                })}
+              </div>
+            )}
           </CollapsibleSection>
         )
       })}

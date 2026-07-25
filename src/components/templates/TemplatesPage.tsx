@@ -201,33 +201,16 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
 
   const addCustomSection = () => {
     if (!newCustomLabel.trim()) return
+    const sectionLabel = newCustomLabel.trim()
     setSections(prev => [...prev, {
       id: crypto.randomUUID(),
       type: 'custom' as const,
       key: null,
-      label: newCustomLabel.trim(),
+      label: sectionLabel,
       order: prev.length + 1,
-      fields: [],
+      groups: [{ id: crypto.randomUUID(), label: undefined, fields: [] }],  // já cria com um card
     }])
     setNewCustomLabel('')
-  }
-
-  const addField = (sectionId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox', config?: TemplateField['config']) => {
-    setSections(prev => prev.map(s => {
-      if (s.id !== sectionId) return s
-      const field: TemplateField = { id: crypto.randomUUID(), label, field_type: fieldType, config }
-      // Se não tem grupos, adiciona ao fields (compatibilidade)
-      if (!s.groups || s.groups.length === 0) {
-        return { ...s, fields: [...(s.fields ?? []), field] }
-      }
-      // Se tem grupos, adiciona ao último grupo
-      const groups = [...s.groups]
-      const lastGroup = groups[groups.length - 1]
-      if (lastGroup) {
-        groups[groups.length - 1] = { ...lastGroup, fields: [...lastGroup.fields, field] }
-      }
-      return { ...s, groups }
-    }))
   }
 
   const addFieldToGroup = (sectionId: string, groupId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox', config?: TemplateField['config']) => {
@@ -269,17 +252,6 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
   const updateField = (sectionId: string, fieldId: string, updates: Partial<TemplateField>) => {
     setSections(prev => prev.map(s => {
       if (s.id !== sectionId) return s
-      // Tenta atualizar em fields
-      if (s.fields?.some(f => f.id === fieldId)) {
-        return { 
-          ...s, 
-          fields: s.fields.map(f => {
-            if (f.id !== fieldId) return f
-            return { ...f, ...updates, config: { ...f.config, ...updates.config } }
-          })
-        }
-      }
-      // Tenta atualizar em groups
       const groups = (s.groups ?? []).map(g => ({
         ...g,
         fields: g.fields.map(f => {
@@ -294,11 +266,6 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
   const removeField = (sectionId: string, fieldId: string) => {
     setSections(prev => prev.map(s => {
       if (s.id !== sectionId) return s
-      // Remove de fields
-      if (s.fields?.some(f => f.id === fieldId)) {
-        return { ...s, fields: s.fields.filter(f => f.id !== fieldId) }
-      }
-      // Remove de groups
       const groups = (s.groups ?? []).map(g => ({
         ...g,
         fields: g.fields.filter(f => f.id !== fieldId)
@@ -319,18 +286,6 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
       const newIndex = prev.findIndex(s => s.id === over.id)
       return arrayMove(prev, oldIndex, newIndex).map((s, i) => ({ ...s, order: i + 1 }))
     })
-  }
-
-  const handleFieldDragEnd = (sectionId: string, event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    setSections(prev => prev.map(s => {
-      if (s.id !== sectionId) return s
-      const fields = s.fields ?? []
-      const oldIndex = fields.findIndex(f => f.id === active.id)
-      const newIndex = fields.findIndex(f => f.id === over.id)
-      return { ...s, fields: arrayMove(fields, oldIndex, newIndex) }
-    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -486,16 +441,13 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
                     <SortableSectionItem
                       key={section.id}
                       section={section}
-                      sensors={sensors}
                       onRemove={() => removeSection(section.id)}
-                      onAddField={addField}
                       onAddFieldToGroup={addFieldToGroup}
                       onAddGroup={addGroup}
                       onUpdateGroup={updateGroup}
                       onRemoveGroup={removeGroup}
                       onUpdateField={updateField}
                       onRemoveField={removeField}
-                      onFieldDragEnd={(event) => handleFieldDragEnd(section.id, event)}
                     />
                   ))}
                 </div>
@@ -675,18 +627,15 @@ function AddFieldInline({ sectionId, onAdd }: { sectionId: string; onAdd: (secti
 
 // ========== Sortable Section Item ==========
 
-function SortableSectionItem({ section, sensors, onRemove, onAddField, onAddFieldToGroup, onAddGroup, onUpdateGroup, onRemoveGroup, onUpdateField, onRemoveField, onFieldDragEnd }: {
+function SortableSectionItem({ section, onRemove, onAddFieldToGroup, onAddGroup, onUpdateGroup, onRemoveGroup, onUpdateField, onRemoveField }: {
   section: TemplateSection
-  sensors: ReturnType<typeof useSensors>
   onRemove: () => void
-  onAddField: (sectionId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox', config?: TemplateField['config']) => void
   onAddFieldToGroup: (sectionId: string, groupId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox', config?: TemplateField['config']) => void
   onAddGroup: (sectionId: string, groupLabel?: string) => void
   onUpdateGroup: (sectionId: string, groupId: string, updates: Partial<TemplateFieldGroup>) => void
   onRemoveGroup: (sectionId: string, groupId: string) => void
   onUpdateField: (sectionId: string, fieldId: string, updates: Partial<TemplateField>) => void
   onRemoveField: (sectionId: string, fieldId: string) => void
-  onFieldDragEnd: (event: DragEndEvent) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id })
   const [newGroupLabel, setNewGroupLabel] = useState('')
@@ -700,10 +649,8 @@ function SortableSectionItem({ section, sensors, onRemove, onAddField, onAddFiel
     overflow: 'hidden' as const,
   }
 
-  const fields = section.fields ?? []
   const groups = section.groups ?? []
-  const hasGroups = groups.length > 0
-  const totalFields = fields.length + groups.reduce((acc, g) => acc + g.fields.length, 0)
+  const totalFields = groups.reduce((acc, g) => acc + g.fields.length, 0)
 
   const handleAddGroup = () => {
     onAddGroup(section.id, newGroupLabel.trim() || undefined)
@@ -720,9 +667,7 @@ function SortableSectionItem({ section, sensors, onRemove, onAddField, onAddFiel
           <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{section.label}</span>
           <span style={{ fontSize: '0.7rem', color: section.type === 'custom' ? 'var(--gold)' : 'var(--text-muted)' }}>
             {section.type === 'custom' 
-              ? hasGroups 
-                ? `${groups.length} card(s), ${totalFields} campo(s)` 
-                : `${fields.length} campo(s)` 
+              ? `${groups.length} card(s), ${totalFields} campo(s)` 
               : 'Seção do sistema'}
           </span>
         </div>
@@ -733,79 +678,36 @@ function SortableSectionItem({ section, sensors, onRemove, onAddField, onAddFiel
 
       {section.type === 'custom' && (
         <div style={{ padding: 'var(--space-3)', background: 'var(--surface)' }}>
-          {/* Se não tem grupos, mostra campos soltos com opção de adicionar */}
-          {!hasGroups && (
-            <>
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onFieldDragEnd}>
-                <SortableContext items={fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
-                  {fields.map(field => (
-                    <SortableFieldItem
-                      key={field.id}
-                      field={field}
-                      onUpdate={(updates) => onUpdateField(section.id, field.id, updates)}
-                      onRemove={() => onRemoveField(section.id, field.id)}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
-              <AddFieldInline sectionId={section.id} onAdd={onAddField} />
-              
-              {/* Opção para converter para grupos */}
-              <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-3)', borderTop: '1px dashed var(--border)' }}>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: 'var(--space-2)' }}>
-                  Ou organize em cards:
-                </span>
-                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
-                  <div style={{ flex: 1 }}>
-                    <Input
-                      placeholder="Nome do card (opcional)"
-                      value={newGroupLabel}
-                      onChange={e => setNewGroupLabel(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddGroup() } }}
-                    />
-                  </div>
-                  <Button variant="tab" onClick={handleAddGroup} type="button">
-                    <Plus size={14} /> Card
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Se tem grupos, mostra cards */}
-          {hasGroups && (
-            <>
-              {groups.map(group => (
-                <GroupCard
-                  key={group.id}
-                  group={group}
-                  sectionId={section.id}
-                  onAddField={(label, fieldType, config) => onAddFieldToGroup(section.id, group.id, label, fieldType, config)}
-                  onUpdateField={(fieldId, updates) => onUpdateField(section.id, fieldId, updates)}
-                  onRemoveField={(fieldId) => onRemoveField(section.id, fieldId)}
-                  onUpdateGroup={(updates) => onUpdateGroup(section.id, group.id, updates)}
-                  onRemoveGroup={() => onRemoveGroup(section.id, group.id)}
+          {/* Cards da seção */}
+          {groups.map(group => (
+            <GroupCard
+              key={group.id}
+              group={group}
+              sectionId={section.id}
+              onAddField={(label, fieldType, config) => onAddFieldToGroup(section.id, group.id, label, fieldType, config)}
+              onUpdateField={(fieldId, updates) => onUpdateField(section.id, fieldId, updates)}
+              onRemoveField={(fieldId) => onRemoveField(section.id, fieldId)}
+              onUpdateGroup={(updates) => onUpdateGroup(section.id, group.id, updates)}
+              onRemoveGroup={() => onRemoveGroup(section.id, group.id)}
+            />
+          ))}
+          
+          {/* Adicionar novo card */}
+          <div style={{ marginTop: 'var(--space-3)' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1 }}>
+                <Input
+                  placeholder="Nome do novo card (opcional)"
+                  value={newGroupLabel}
+                  onChange={e => setNewGroupLabel(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddGroup() } }}
                 />
-              ))}
-              
-              {/* Adicionar novo card */}
-              <div style={{ marginTop: 'var(--space-3)' }}>
-                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
-                  <div style={{ flex: 1 }}>
-                    <Input
-                      placeholder="Nome do novo card (opcional)"
-                      value={newGroupLabel}
-                      onChange={e => setNewGroupLabel(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddGroup() } }}
-                    />
-                  </div>
-                  <Button variant="tab" onClick={handleAddGroup} type="button">
-                    <Plus size={14} /> Card
-                  </Button>
-                </div>
               </div>
-            </>
-          )}
+              <Button variant="tab" onClick={handleAddGroup} type="button">
+                <Plus size={14} /> Card
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

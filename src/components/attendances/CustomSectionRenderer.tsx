@@ -12,12 +12,10 @@ interface Props {
 }
 
 export default function CustomSectionRenderer({ section, sectionValue, onSave }: Props) {
-  const fields = section.fields ?? []
   const groups = section.groups ?? []
   const currentValues = sectionValue?.values ?? {}
-  const hasGroups = groups.length > 0
 
-  if (fields.length === 0 && groups.length === 0) {
+  if (groups.length === 0) {
     return <p className="text-muted text-center" style={{ fontSize: '0.82rem' }}>Nenhum campo configurado nesta seção.</p>
   }
 
@@ -36,70 +34,22 @@ export default function CustomSectionRenderer({ section, sectionValue, onSave }:
     }
   }
 
-  // Se tem grupos, renderiza cards agrupados
-  if (hasGroups) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        {groups.map(group => (
-          <GroupFieldsCard
-            key={group.id}
-            group={group}
-            values={currentValues}
-            onSave={handleFieldSave}
-            getWidthClass={getWidthClass}
-          />
-        ))}
-      </div>
-    )
-  }
-
-  // Campos soltos - cada um em seu próprio card
   return (
-    <div className="custom-fields-grid">
-      {fields.map(field => (
-        <div key={field.id} className={getWidthClass(field.config?.width)}>
-          <FieldCard
-            field={field}
-            value={currentValues[field.id]}
-            onSave={val => handleFieldSave(field.id, val)}
-            hideTitle={fields.length === 1 || field.label === section.label}
-          />
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {groups.map(group => (
+        <GroupFieldsCard
+          key={group.id}
+          group={group}
+          values={currentValues}
+          onSave={handleFieldSave}
+          getWidthClass={getWidthClass}
+        />
       ))}
     </div>
   )
 }
 
 // ========== Field Card (wrapper com estilo consistente) ==========
-
-function FieldCard({ field, value, onSave, hideTitle }: {
-  field: TemplateField
-  value: { content?: string; items?: string[]; rating?: number; checked?: boolean } | undefined
-  onSave: (val: { content?: string; items?: string[]; rating?: number; checked?: boolean }) => void
-  hideTitle?: boolean
-}) {
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
-
-  const handleSave = useCallback((val: { content?: string; items?: string[]; rating?: number; checked?: boolean }) => {
-    setSaveStatus('saving')
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    timeoutRef.current = setTimeout(() => {
-      onSave(val)
-      setSaveStatus('saved')
-    }, 1500)
-  }, [onSave])
-
-  return (
-    <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: hideTitle ? 0 : 'var(--space-3)' }}>
-        {!hideTitle && <h3 style={{ fontSize: '0.95rem', color: 'var(--violet-light)' }}>{field.label}</h3>}
-        <SaveStatus status={saveStatus} />
-      </div>
-      <FieldRenderer field={field} value={value} onSave={handleSave} />
-    </div>
-  )
-}
 
 // ========== Field Renderer (dispatches by type) ==========
 

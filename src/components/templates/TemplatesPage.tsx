@@ -8,15 +8,12 @@ import EmptyState from '../ui/EmptyState'
 import Select from '../ui/Select'
 import { confirm } from '../../lib/confirm'
 import { toast } from '../../lib/toast'
-import { Plus, Copy, Pencil, Trash2, GripVertical, BookOpen, Hash, Check, Star } from 'lucide-react'
+import { Plus, Copy, Pencil, Trash2, BookOpen, Hash, Check, Star, ChevronUp, ChevronDown } from 'lucide-react'
 import { getTherapyLabel } from '../../types/database'
 import type { TherapyType } from '../../types/database'
 import { getActiveTechniques, ALL_SECTIONS } from '../../config/therapy-sections'
 import type { SectionKey } from '../../config/therapy-sections'
 import { useTenant } from '../../hooks/useTenant'
-import { DndContext, closestCenter, type DragEndEvent, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 
 export default function TemplatesPage() {
   const qc = useQueryClient()
@@ -178,12 +175,18 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
   const [newCustomLabel, setNewCustomLabel] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
-
   const selectedBuiltinKeys = new Set(sections.filter(s => s.type === 'builtin').map(s => s.key))
+
+  const moveSection = (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1
+    if (newIndex < 0 || newIndex >= sections.length) return
+    setSections(prev => {
+      const arr = [...prev]
+      const [item] = arr.splice(index, 1)
+      if (item) arr.splice(newIndex, 0, item)
+      return arr.map((s, i) => ({ ...s, order: i + 1 }))
+    })
+  }
 
   const toggleBuiltin = (key: SectionKey) => {
     if (selectedBuiltinKeys.has(key)) {
@@ -276,16 +279,6 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
 
   const removeSection = (id: string) => {
     setSections(prev => prev.filter(s => s.id !== id).map((s, i) => ({ ...s, order: i + 1 })))
-  }
-
-  const handleSectionDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    setSections(prev => {
-      const oldIndex = prev.findIndex(s => s.id === active.id)
-      const newIndex = prev.findIndex(s => s.id === over.id)
-      return arrayMove(prev, oldIndex, newIndex).map((s, i) => ({ ...s, order: i + 1 }))
-    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -428,31 +421,31 @@ function TemplateForm({ template, onClose, onSaved }: { template: SessionTemplat
           </div>
         </div>
 
-        {/* Drag and drop editor de seções */}
+        {/* Editor de seções com setas */}
         {sections.length > 0 && (
           <div>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: 'var(--space-3)' }}>
               Ordem das seções ({sections.length})
             </span>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
-              <SortableContext items={sections.map(s => s.id)} strategy={verticalListSortingStrategy}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                  {sections.map(section => (
-                    <SortableSectionItem
-                      key={section.id}
-                      section={section}
-                      onRemove={() => removeSection(section.id)}
-                      onAddFieldToGroup={addFieldToGroup}
-                      onAddGroup={addGroup}
-                      onUpdateGroup={updateGroup}
-                      onRemoveGroup={removeGroup}
-                      onUpdateField={updateField}
-                      onRemoveField={removeField}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+              {sections.map((section, index) => (
+                <SectionItem
+                  key={section.id}
+                  section={section}
+                  index={index}
+                  total={sections.length}
+                  onMoveUp={() => moveSection(index, 'up')}
+                  onMoveDown={() => moveSection(index, 'down')}
+                  onRemove={() => removeSection(section.id)}
+                  onAddFieldToGroup={addFieldToGroup}
+                  onAddGroup={addGroup}
+                  onUpdateGroup={updateGroup}
+                  onRemoveGroup={removeGroup}
+                  onUpdateField={updateField}
+                  onRemoveField={removeField}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -625,10 +618,14 @@ function AddFieldInline({ sectionId, onAdd }: { sectionId: string; onAdd: (secti
   )
 }
 
-// ========== Sortable Section Item ==========
+// ========== Section Item (com setas para ordenar) ==========
 
-function SortableSectionItem({ section, onRemove, onAddFieldToGroup, onAddGroup, onUpdateGroup, onRemoveGroup, onUpdateField, onRemoveField }: {
+function SectionItem({ section, index, total, onMoveUp, onMoveDown, onRemove, onAddFieldToGroup, onAddGroup, onUpdateGroup, onRemoveGroup, onUpdateField, onRemoveField }: {
   section: TemplateSection
+  index: number
+  total: number
+  onMoveUp: () => void
+  onMoveDown: () => void
   onRemove: () => void
   onAddFieldToGroup: (sectionId: string, groupId: string, label: string, fieldType: 'text' | 'list' | 'rating' | 'checkbox', config?: TemplateField['config']) => void
   onAddGroup: (sectionId: string, groupLabel?: string) => void
@@ -637,17 +634,7 @@ function SortableSectionItem({ section, onRemove, onAddFieldToGroup, onAddGroup,
   onUpdateField: (sectionId: string, fieldId: string, updates: Partial<TemplateField>) => void
   onRemoveField: (sectionId: string, fieldId: string) => void
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id })
   const [newGroupLabel, setNewGroupLabel] = useState('')
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--radius-sm)',
-    overflow: 'hidden' as const,
-  }
 
   const groups = section.groups ?? []
   const totalFields = groups.reduce((acc, g) => acc + g.fields.length, 0)
@@ -658,10 +645,30 @@ function SortableSectionItem({ section, onRemove, onAddFieldToGroup, onAddGroup,
   }
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
       <div className="template-step-form" style={{ borderBottom: section.type === 'custom' && totalFields > 0 ? '1px solid var(--border)' : 'none' }}>
-        <div className="template-step-grip" {...attributes} {...listeners} style={{ cursor: 'grab' }}>
-          <GripVertical size={14} />
+        {/* Setas de ordenação */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <Button
+            variant="icon"
+            onClick={onMoveUp}
+            disabled={index === 0}
+            type="button"
+            aria-label="Mover para cima"
+            style={{ padding: '2px', opacity: index === 0 ? 0.3 : 1 }}
+          >
+            <ChevronUp size={14} />
+          </Button>
+          <Button
+            variant="icon"
+            onClick={onMoveDown}
+            disabled={index === total - 1}
+            type="button"
+            aria-label="Mover para baixo"
+            style={{ padding: '2px', opacity: index === total - 1 ? 0.3 : 1 }}
+          >
+            <ChevronDown size={14} />
+          </Button>
         </div>
         <div className="template-step-fields" style={{ flex: 1 }}>
           <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{section.label}</span>
@@ -777,7 +784,7 @@ function GroupCard({ group, sectionId, onAddField, onUpdateField, onRemoveField,
       {/* Campos do card */}
       <div style={{ padding: 'var(--space-3)' }}>
         {group.fields.map(field => (
-          <SortableFieldItem
+          <FieldItem
             key={field.id}
             field={field}
             onUpdate={(updates) => onUpdateField(field.id, updates)}
@@ -793,7 +800,7 @@ function GroupCard({ group, sectionId, onAddField, onUpdateField, onRemoveField,
   )
 }
 
-// ========== Sortable Field Item ==========
+// ========== Field Item (item de campo editável) ==========
 
 const WIDTH_LABELS: Record<string, string> = {
   full: '100%',
@@ -801,18 +808,11 @@ const WIDTH_LABELS: Record<string, string> = {
   third: '33%',
 }
 
-function SortableFieldItem({ field, onUpdate, onRemove }: { field: TemplateField; onUpdate: (updates: Partial<TemplateField>) => void; onRemove: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id })
+function FieldItem({ field, onUpdate, onRemove }: { field: TemplateField; onUpdate: (updates: Partial<TemplateField>) => void; onRemove: () => void }) {
   const [expanded, setExpanded] = useState(false)
   const [label, setLabel] = useState(field.label)
   const [width, setWidth] = useState<'full' | 'half' | 'third'>(field.config?.width ?? 'full')
   const [options, setOptions] = useState(field.config?.options?.join(', ') ?? field.config?.checkbox_options?.join(', ') ?? '')
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  }
 
   const handleClose = () => {
     // Aplica as mudanças ao fechar
@@ -830,12 +830,9 @@ function SortableFieldItem({ field, onUpdate, onRemove }: { field: TemplateField
   }
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div>
       {/* Linha principal */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: '4px 0', fontSize: '0.82rem' }}>
-        <span {...attributes} {...listeners} style={{ cursor: 'grab', color: 'var(--text-muted)' }}>
-          <GripVertical size={12} />
-        </span>
         <span style={{ flex: 1, color: 'var(--text)' }}>{field.label}</span>
         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--background)', padding: '2px 8px', borderRadius: 12 }}>
           {FIELD_TYPE_LABELS[field.field_type]}

@@ -35,4 +35,22 @@ function stubUnusedSupabaseModules(): Plugin {
 export default defineConfig({
   plugins: [stubUnusedSupabaseModules(), react()],
   base: '/sistema-gestao-terapeutica/',
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // React core — ~130KB, cache longa vida
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) return 'react'
+          // Supabase — ~120KB
+          if (id.includes('@supabase/')) return 'supabase'
+          // TanStack Query — ~40KB
+          if (id.includes('@tanstack/')) return 'tanstack'
+          // React Router — ~43KB
+          if (id.includes('react-router')) return 'router'
+          // Lucide icons — ~22KB
+          if (id.includes('lucide-react')) return 'lucide'
+        },
+      },
+    },
+  },
 })

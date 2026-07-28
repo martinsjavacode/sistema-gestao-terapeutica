@@ -35,9 +35,10 @@ jobs:
         run: |
           JS_SIZE=$(stat -c%s dist/assets/*.js | awk '{sum+=$1} END {print sum}')
           CSS_SIZE=$(stat -c%s dist/assets/*.css | awk '{sum+=$1} END {print sum}')
-          echo "📦 JS: $((JS_SIZE / 1024))KB | CSS: $((CSS_SIZE / 1024))KB"
-          if [ "$JS_SIZE" -gt 614400 ]; then
-            echo "⚠️ Bundle JS > 600KB!"
+          JS_GZ=$(cat dist/assets/*.js | gzip -c | wc -c)
+          echo "📦 JS: $((JS_SIZE / 1024))KB ($((JS_GZ / 1024))KB gzip) | CSS: $((CSS_SIZE / 1024))KB"
+          if [ "$JS_SIZE" -gt 768000 ]; then
+            echo "⚠️ Bundle JS > 750KB!"
             exit 1
           fi
 

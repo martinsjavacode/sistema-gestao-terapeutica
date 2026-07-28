@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { maskDate } from '../../utils/masks'
 
 interface Props {
   value: string // ISO format yyyy-mm-dd
@@ -16,17 +17,20 @@ function isoToBr(iso: string): string {
 function brToIso(br: string): string {
   const clean = br.replace(/\D/g, '')
   if (clean.length !== 8) return ''
-  const d = clean.slice(0, 2)
-  const m = clean.slice(2, 4)
-  const y = clean.slice(4, 8)
-  return `${y}-${m}-${d}`
-}
+  const d = Number(clean.slice(0, 2))
+  const m = Number(clean.slice(2, 4))
+  const y = Number(clean.slice(4, 8))
 
-function maskDate(value: string): string {
-  const clean = value.replace(/\D/g, '').slice(0, 8)
-  if (clean.length <= 2) return clean
-  if (clean.length <= 4) return `${clean.slice(0, 2)}/${clean.slice(2)}`
-  return `${clean.slice(0, 2)}/${clean.slice(2, 4)}/${clean.slice(4)}`
+  // Validação básica de ranges
+  if (m < 1 || m > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) return ''
+
+  // Validar dia máximo do mês
+  const maxDays = new Date(y, m, 0).getDate()
+  if (d > maxDays) return ''
+
+  const mm = String(m).padStart(2, '0')
+  const dd = String(d).padStart(2, '0')
+  return `${y}-${mm}-${dd}`
 }
 
 export default function DateInput({ value, onChange, label, required }: Props) {

@@ -19,7 +19,7 @@
 }
 
 /* Card hover lift */
-.card, .stat-card, .protocol-card, .snippet-card {
+.card, .stat-card, .template-card, .snippet-card {
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
 }
 

@@ -68,7 +68,6 @@ export default function TreatmentTab({ attendanceId }: { attendanceId: string })
         onChange={handleChange}
         placeholder="Recomendações para o cliente... (digite / para snippets)"
         rows={8}
-        category="recomendacoes"
         onSaveSnippet={handleSaveSnippet}
       />
     </div>

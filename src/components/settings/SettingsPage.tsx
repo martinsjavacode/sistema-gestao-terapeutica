@@ -2,12 +2,15 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useTenant } from '../../hooks'
+import { fetchTenantTechniques, fetchActiveTechniques, swapTechnique } from '../../services/techniques'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 import Select from '../ui/Select'
 import SnippetsManager from '../ui/SnippetsManager'
 import { toast } from '../../lib/toast'
-import { Plus, UserPlus, User, Building2, Save, Bookmark } from 'lucide-react'
+import { confirm } from '../../lib/confirm'
+import { Plus, UserPlus, User, Building2, Save, Bookmark, Sparkles, RefreshCw, Lock, CalendarClock } from 'lucide-react'
+import AvailabilitySettings from './AvailabilitySettings'
 
 interface UserRow {
   id: string
@@ -23,7 +26,7 @@ interface RoleRow {
   description: string | null
 }
 
-type SettingsTab = 'account' | 'clinic' | 'snippets'
+type SettingsTab = 'account' | 'clinic' | 'booking' | 'snippets'
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<SettingsTab>('clinic')
@@ -48,6 +51,12 @@ export default function SettingsPage() {
           <Building2 size={14} /> Consultório
         </button>
         <button
+          className={`tab-nav-btn ${tab === 'booking' ? 'active' : ''}`}
+          onClick={() => setTab('booking')}
+        >
+          <CalendarClock size={14} /> Agenda Online
+        </button>
+        <button
           className={`tab-nav-btn ${tab === 'snippets' ? 'active' : ''}`}
           onClick={() => setTab('snippets')}
         >
@@ -57,6 +66,7 @@ export default function SettingsPage() {
 
       {tab === 'account' && <AccountTab />}
       {tab === 'clinic' && <ClinicTab />}
+      {tab === 'booking' && <AvailabilitySettings />}
       {tab === 'snippets' && <SnippetsManager />}
     </div>
   )
@@ -178,6 +188,7 @@ function ClinicTab() {
   return (
     <>
       <ClinicInfoSection />
+      <TechniquesSection />
       <TeamSection />
     </>
   )
@@ -332,6 +343,202 @@ function ClinicInfoSection() {
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+// ============================================================
+// Seção: Técnicas Ativas
+// ============================================================
+
+function TechniquesSection() {
+  const { tenant, plan, refresh } = useTenant()
+  const qc = useQueryClient()
+  const [swapping, setSwapping] = useState(false)
+  const [selectedNewTechnique, setSelectedNewTechnique] = useState('')
+  const [swapTarget, setSwapTarget] = useState<string | null>(null)
+
+  const { data: tenantTechniques = [] } = useQuery({
+    queryKey: ['tenant-techniques-settings'],
+    queryFn: async () => { const { data } = await fetchTenantTechniques(); return data },
+  })
+
+  const { data: allTechniques = [] } = useQuery({
+    queryKey: ['all-techniques-catalog'],
+    queryFn: async () => { const { data } = await fetchActiveTechniques(); return data },
+  })
+
+  const swapMut = useMutation({
+    mutationFn: async ({ oldId, newId }: { oldId: string; newId: string }) => {
+      const { error } = await swapTechnique(oldId, newId)
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tenant-techniques-settings'] })
+      refresh()
+      toast('Técnica trocada com sucesso!')
+      setSwapping(false)
+      setSwapTarget(null)
+      setSelectedNewTechnique('')
+    },
+    onError: (err: Error) => toast(err.message, 'error'),
+  })
+
+  const handleSwap = async (oldTechniqueId: string) => {
+    if (!selectedNewTechnique) { toast('Selecione a nova técnica', 'error'); return }
+    const confirmed = await confirm(`Trocar técnica? Esta ação só pode ser feita 1 vez.`)
+    if (confirmed) {
+      swapMut.mutate({ oldId: oldTechniqueId, newId: selectedNewTechnique })
+    }
+  }
+
+  const isFree = tenant?.plan_id === 'free'
+  const isEnterprise = tenant?.plan_id === 'enterprise'
+  const maxTechniques = plan?.max_techniques ?? 1
+  const currentCount = tenantTechniques.length
+
+  // Técnicas disponíveis para troca (que o tenant ainda não tem)
+  const availableForSwap = allTechniques.filter(
+    t => !tenantTechniques.some(tt => tt.technique_id === t.id)
+  )
+
+  const getSwapStatus = (tt: { swapped_at: string | null; activated_at: string; is_addon: boolean }) => {
+    if (tt.is_addon) return null
+    if (tt.swapped_at) return { canSwap: false, message: `Trocada em ${new Date(tt.swapped_at).toLocaleDateString('pt-BR')}` }
+    const activatedDate = new Date(tt.activated_at)
+    const eligibleDate = new Date(activatedDate.getTime() + 30 * 24 * 60 * 60 * 1000)
+    const now = new Date()
+    if (now < eligibleDate) {
+      return { canSwap: false, message: `Troca disponível em ${eligibleDate.toLocaleDateString('pt-BR')}` }
+    }
+    return { canSwap: true, message: '1 troca disponível' }
+  }
+
+  return (
+    <div className="card" style={{ marginTop: 'var(--space-4)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+        <h2 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <Sparkles size={18} /> Técnicas
+        </h2>
+        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+          {isEnterprise ? 'Todas inclusas' : `${currentCount}/${maxTechniques === -1 ? '∞' : maxTechniques} no plano`}
+        </span>
+      </div>
+
+      {/* Lista de técnicas ativas */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+        {tenantTechniques.map(tt => {
+          const swapStatus = isFree ? getSwapStatus(tt) : null
+
+          return (
+            <div
+              key={tt.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: 'var(--space-3) var(--space-4)',
+                background: 'var(--surface)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div>
+                <span style={{ fontWeight: 600 }}>{tt.technique.name}</span>
+                {tt.is_addon && (
+                  <span className="badge badge-info" style={{ marginLeft: 'var(--space-2)', fontSize: '0.65rem' }}>Addon</span>
+                )}
+                {tt.technique.description && (
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                    {tt.technique.description}
+                  </p>
+                )}
+                {swapStatus && (
+                  <p style={{ fontSize: '0.72rem', color: swapStatus.canSwap ? 'var(--primary)' : 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                    {swapStatus.canSwap ? `✓ ${swapStatus.message}` : `🕐 ${swapStatus.message}`}
+                  </p>
+                )}
+              </div>
+
+              {/* Botão trocar (apenas Free, 1 troca, após carência) */}
+              {isFree && swapStatus?.canSwap && availableForSwap.length > 0 && (
+                <Button
+                  variant="tab"
+                  onClick={() => { setSwapTarget(tt.technique_id); setSwapping(true) }}
+                  style={{ fontSize: '0.78rem' }}
+                >
+                  <RefreshCw size={12} /> Trocar
+                </Button>
+              )}
+
+              {/* Info para quem já trocou */}
+              {isFree && tt.swapped_at && (
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Lock size={10} /> Troca utilizada
+                </span>
+              )}
+            </div>
+          )
+        })}
+
+        {tenantTechniques.length === 0 && (
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', padding: 'var(--space-4)' }}>
+            Nenhuma técnica ativa. Entre em contato com o suporte.
+          </p>
+        )}
+      </div>
+
+      {/* Info de upgrade */}
+      {isFree && !isEnterprise && (
+        <div style={{
+          marginTop: 'var(--space-4)',
+          padding: 'var(--space-3) var(--space-4)',
+          background: 'var(--surface)',
+          borderRadius: 'var(--radius-sm)',
+          border: '1px dashed var(--border)',
+          fontSize: '0.8rem',
+          color: 'var(--text-muted)',
+        }}>
+          💡 Quer mais técnicas? Faça upgrade para o plano <strong>Profissional</strong> (4 técnicas inclusas) ou adicione técnicas avulsas por R$ {((plan?.addon_price_cents ?? 1590) / 100).toFixed(2).replace('.', ',')}/mês.
+        </div>
+      )}
+
+      {/* Modal de troca */}
+      {swapping && swapTarget && (
+        <div className="modal-overlay" onClick={() => { setSwapping(false); setSwapTarget(null) }} role="dialog" aria-modal="true" aria-label="Trocar técnica">
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2>Trocar Técnica</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
+              Você pode trocar sua técnica <strong>1 única vez</strong>. Após a troca, não será possível reverter.
+            </p>
+
+            <div style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-3)', background: 'var(--surface)', borderRadius: 'var(--radius-sm)' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Técnica atual</span>
+              <span style={{ fontWeight: 600 }}>
+                {tenantTechniques.find(tt => tt.technique_id === swapTarget)?.technique.name}
+              </span>
+            </div>
+
+            <Select
+              label="Nova técnica"
+              value={selectedNewTechnique}
+              onChange={setSelectedNewTechnique}
+              placeholder="Selecione a técnica desejada"
+              options={availableForSwap.map(t => ({ value: t.id, label: t.name }))}
+            />
+
+            <div className="form-actions" style={{ marginTop: 'var(--space-4)' }}>
+              <Button variant="tab" onClick={() => { setSwapping(false); setSwapTarget(null) }}>Cancelar</Button>
+              <Button
+                onClick={() => handleSwap(swapTarget)}
+                disabled={!selectedNewTechnique || swapMut.isPending}
+              >
+                <RefreshCw size={14} /> {swapMut.isPending ? 'Trocando...' : 'Confirmar troca'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

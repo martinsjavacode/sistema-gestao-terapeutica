@@ -4,7 +4,8 @@
 
 -- Criar bucket público para logos
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES ('logos', 'logos', true, 2097152, ARRAY['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']);
+VALUES ('logos', 'logos', true, 2097152, ARRAY['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'])
+ON CONFLICT (id) DO NOTHING;
 
 -- RLS: qualquer um pode ler (público)
 CREATE POLICY "Public read logos" ON storage.objects

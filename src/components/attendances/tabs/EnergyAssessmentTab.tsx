@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchEnergyAssessments, upsertEnergyAssessment } from '../../../services/attendances'
 import { toast } from '../../../lib/toast'
+import Input from '../../ui/Input'
 import SaveStatus from '../../ui/SaveStatus'
+import TextAreaWithSnippets from '../../ui/TextAreaWithSnippets'
 import type { EnergyFieldType } from '../../../types/database'
 
 const FIELDS: { type: EnergyFieldType; label: string }[] = [
@@ -29,14 +31,11 @@ export default function EnergyAssessmentTab({ attendanceId }: { attendanceId: st
   }
 
   return (
-    <div>
-      <h2 style={{ fontSize: '1.1rem', marginBottom: 'var(--space-4)' }}>Avaliação Energética</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        {FIELDS.map(f => {
-          const a = getAssessment(f.type)
-          return <FieldCard key={f.type} label={f.label} initial={a} onSave={(p, n) => save(f.type, p, n)} />
-        })}
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {FIELDS.map(f => {
+        const a = getAssessment(f.type)
+        return <FieldCard key={f.type} label={f.label} initial={a} onSave={(p, n) => save(f.type, p, n)} />
+      })}
     </div>
   )
 }
@@ -63,13 +62,20 @@ function FieldCard({ label, initial, onSave }: { label: string; initial?: { perc
         <h3 style={{ fontSize: '0.95rem', color: 'var(--violet-light)' }}>{label}</h3>
         <SaveStatus status={saveStatus} />
       </div>
-      <label className="form-label" style={{ margin: 0, marginBottom: 'var(--space-3)', maxWidth: '140px' }}>
-        Percentual (%)
-        <input type="number" min="0" max="100" step="0.1" value={percentage} onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setPercentage(v); change() }} />
-      </label>
+      <div style={{ marginBottom: 'var(--space-3)', maxWidth: '140px' }}>
+        <Input
+          label="Percentual (%)"
+          type="number"
+          min={0}
+          max={100}
+          step={0.1}
+          value={percentage}
+          onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setPercentage(v); change() }}
+        />
+      </div>
       <label className="form-label" style={{ margin: 0 }}>
         Observações
-        <textarea value={notes} onChange={e => { setNotes(e.target.value); change() }} rows={2} placeholder="Observações sobre este campo..." />
+        <TextAreaWithSnippets value={notes} onChange={v => { setNotes(v); change() }} rows={2} placeholder="Observações sobre este campo..." allowSave={false} />
       </label>
     </div>
   )

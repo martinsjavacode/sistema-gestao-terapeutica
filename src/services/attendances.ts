@@ -26,6 +26,22 @@ export async function fetchAttendance(id: string) {
 export async function insertAttendance(row: Pick<Attendance, 'client_id' | 'date' | 'time' | 'therapy_type' | 'objective' | 'bovis_frequency' | 'notes'>) {
   const tenant_id = await getTenantId()
   const { data, error } = await supabase.from('attendances').insert({ ...row, tenant_id }).select().single()
+
+  // Criar appointment vinculado para exibir no calendário
+  if (data && !error) {
+    const scheduled_at = `${data.date}T${data.time || '09:00'}:00`
+    await supabase.from('appointments').insert({
+      tenant_id,
+      client_id: data.client_id,
+      scheduled_at,
+      duration_minutes: 60,
+      therapy_type: data.therapy_type,
+      status: 'confirmed',
+      attendance_id: data.id,
+      notes: data.objective,
+    })
+  }
+
   return { data: data as Attendance | null, error }
 }
 

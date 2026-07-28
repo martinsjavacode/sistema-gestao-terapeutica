@@ -5,6 +5,7 @@ import { toast } from '../../../lib/toast'
 import SaveStatus from '../../ui/SaveStatus'
 import Select from '../../ui/Select'
 import MultiSelect from '../../ui/MultiSelect'
+import TextAreaWithSnippets from '../../ui/TextAreaWithSnippets'
 
 const SIZES = [
   { value: 'expandido', label: 'Expandido — Energia irradiante, extroversão, estado elevado de consciência' },
@@ -90,8 +91,7 @@ export default function AuraFieldTab({ attendanceId }: { attendanceId: string })
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-        <h2 style={{ fontSize: '1.1rem' }}>Campo Áurico</h2>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-4)' }}>
         <SaveStatus status={saveStatus} />
       </div>
 
@@ -120,7 +120,7 @@ export default function AuraFieldTab({ attendanceId }: { attendanceId: string })
       {/* Observações */}
       <label className="form-label">
         Observações
-        <textarea value={notes} onChange={e => { setNotes(e.target.value); change() }} rows={3} placeholder="Observações sobre o campo áurico..." />
+        <TextAreaWithSnippets value={notes} onChange={v => { setNotes(v); change() }} rows={3} placeholder="Observações sobre o campo áurico..." allowSave={false} />
       </label>
     </div>
   )

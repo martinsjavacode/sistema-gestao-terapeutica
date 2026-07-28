@@ -1,12 +1,12 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import { fetchProtocols, fetchProtocol, insertProtocol, updateProtocol, deleteProtocol, duplicateProtocol } from '../../services/protocols'
+import { fetchTemplates, fetchTemplate, insertTemplate, updateTemplate, deleteTemplate, duplicateTemplate } from '../../services/templates'
 import { supabase } from '../../lib/supabase'
 
-describe('protocols service', () => {
+describe('templates service', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  describe('fetchProtocols', () => {
-    it('fetches active protocols ordered by usage', async () => {
+  describe('fetchTemplates', () => {
+    it('fetches active templates ordered by usage', async () => {
       const orderNameMock = vi.fn().mockResolvedValue({ data: [{ id: '1', name: 'Limpeza Chakras' }], error: null })
       const orderUsageMock = vi.fn().mockReturnValue({ order: orderNameMock })
       const eqMock = vi.fn().mockReturnValue({ order: orderUsageMock })
@@ -14,8 +14,8 @@ describe('protocols service', () => {
         select: vi.fn().mockReturnValue({ eq: eqMock }),
       } as never)
 
-      const { data } = await fetchProtocols()
-      expect(supabase.from).toHaveBeenCalledWith('protocols')
+      const { data } = await fetchTemplates()
+      expect(supabase.from).toHaveBeenCalledWith('session_templates')
       expect(eqMock).toHaveBeenCalledWith('active', true)
       expect(data).toHaveLength(1)
     })
@@ -29,87 +29,111 @@ describe('protocols service', () => {
         select: vi.fn().mockReturnValue({ eq: eqActiveMock }),
       } as never)
 
-      await fetchProtocols('radiestesia')
-      expect(supabase.from).toHaveBeenCalledWith('protocols')
+      await fetchTemplates('radiestesia')
+      expect(supabase.from).toHaveBeenCalledWith('session_templates')
     })
   })
 
-  describe('fetchProtocol', () => {
-    it('fetches single protocol by id', async () => {
+  describe('fetchTemplate', () => {
+    it('fetches single template by id', async () => {
       const singleMock = vi.fn().mockResolvedValue({ data: { id: '1', name: 'Test' }, error: null })
       const eqMock = vi.fn().mockReturnValue({ single: singleMock })
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnValue({ eq: eqMock }),
       } as never)
 
-      const { data } = await fetchProtocol('1')
+      const { data } = await fetchTemplate('1')
       expect(eqMock).toHaveBeenCalledWith('id', '1')
       expect(data?.name).toBe('Test')
     })
   })
 
-  describe('insertProtocol', () => {
-    it('inserts protocol with steps', async () => {
-      const singleMock = vi.fn().mockResolvedValue({ data: { id: 'new', name: 'Novo' }, error: null })
-      const selectMock = vi.fn().mockReturnValue({ single: singleMock })
-      const insertMock = vi.fn().mockReturnValue({ select: selectMock })
-      vi.mocked(supabase.from).mockReturnValue({ insert: insertMock } as never)
+  describe('insertTemplate', () => {
+    it('inserts template with sections', async () => {
+      const singleInsertMock = vi.fn().mockResolvedValue({ data: { id: 'new', name: 'Novo' }, error: null })
+      const selectInsertMock = vi.fn().mockReturnValue({ single: singleInsertMock })
+      const insertMock = vi.fn().mockReturnValue({ select: selectInsertMock })
 
-      const steps = [{ id: 's1', title: 'Etapa 1', description: '', order: 1 }]
-      const { data } = await insertProtocol({ name: 'Novo', therapy_type: 'radiestesia', steps })
-      expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'Novo', steps }))
+      // saveNewVersion faz select na tabela template_versions
+      const singleVersionMock = vi.fn().mockResolvedValue({ data: null, error: null })
+      const limitMock = vi.fn().mockReturnValue({ single: singleVersionMock })
+      const orderVersionMock = vi.fn().mockReturnValue({ limit: limitMock })
+      const eqVersionMock = vi.fn().mockReturnValue({ order: orderVersionMock })
+      const selectVersionMock = vi.fn().mockReturnValue({ eq: eqVersionMock })
+
+      let callCount = 0
+      vi.mocked(supabase.from).mockImplementation(() => {
+        callCount++
+        // 1ª call: insert em session_templates
+        if (callCount === 1) return { insert: insertMock } as never
+        // 2ª call: select em template_versions (busca próximo número de versão)
+        if (callCount === 2) return { select: selectVersionMock } as never
+        // demais: insert de versão e seções — retorna ok
+        return { insert: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { id: 'v1' }, error: null }) }) }), update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }) } as never
+      })
+
+      const sections = [{ id: 's1', template_id: '', type: 'builtin' as const, builtin_key: 'assessment', label: 'Avaliação Energética', display_order: 1, groups: [] }]
+      const { data } = await insertTemplate({ name: 'Novo', therapy_type: 'radiestesia', sections })
+      expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'Novo' }))
       expect(data?.name).toBe('Novo')
     })
   })
 
-  describe('updateProtocol', () => {
+  describe('updateTemplate', () => {
     it('updates by id', async () => {
       const eqMock = vi.fn().mockResolvedValue({ error: null })
       const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
       vi.mocked(supabase.from).mockReturnValue({ update: updateMock } as never)
 
-      const { error } = await updateProtocol('1', { name: 'Renomeado' })
+      const { error } = await updateTemplate('1', { name: 'Renomeado' })
       expect(updateMock).toHaveBeenCalledWith({ name: 'Renomeado' })
       expect(eqMock).toHaveBeenCalledWith('id', '1')
       expect(error).toBeNull()
     })
   })
 
-  describe('deleteProtocol', () => {
+  describe('deleteTemplate', () => {
     it('soft deletes by setting active to false', async () => {
       const eqMock = vi.fn().mockResolvedValue({ error: null })
       const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
       vi.mocked(supabase.from).mockReturnValue({ update: updateMock } as never)
 
-      const { error } = await deleteProtocol('1')
+      const { error } = await deleteTemplate('1')
       expect(updateMock).toHaveBeenCalledWith({ active: false })
       expect(eqMock).toHaveBeenCalledWith('id', '1')
       expect(error).toBeNull()
     })
   })
 
-  describe('duplicateProtocol', () => {
+  describe('duplicateTemplate', () => {
     it('fetches original and inserts copy', async () => {
-      // Mock fetchProtocol
       const singleFetchMock = vi.fn().mockResolvedValue({
-        data: { id: '1', name: 'Original', description: 'Desc', therapy_type: 'radiestesia', steps: [] },
+        data: { id: '1', name: 'Original', description: 'Desc', therapy_type: 'radiestesia', sections: [] },
         error: null,
       })
       const eqFetchMock = vi.fn().mockReturnValue({ single: singleFetchMock })
 
-      // Mock insertProtocol
       const singleInsertMock = vi.fn().mockResolvedValue({ data: { id: '2', name: 'Original (cópia)' }, error: null })
       const selectInsertMock = vi.fn().mockReturnValue({ single: singleInsertMock })
       const insertMock = vi.fn().mockReturnValue({ select: selectInsertMock })
+
+      // saveNewVersion: select em template_versions
+      const singleVersionMock = vi.fn().mockResolvedValue({ data: null, error: null })
+      const limitMock = vi.fn().mockReturnValue({ single: singleVersionMock })
+      const orderVersionMock = vi.fn().mockReturnValue({ limit: limitMock })
+      const eqVersionMock = vi.fn().mockReturnValue({ order: orderVersionMock })
+      const selectVersionMock = vi.fn().mockReturnValue({ eq: eqVersionMock })
 
       let callCount = 0
       vi.mocked(supabase.from).mockImplementation(() => {
         callCount++
         if (callCount === 1) return { select: vi.fn().mockReturnValue({ eq: eqFetchMock }) } as never
-        return { insert: insertMock } as never
+        if (callCount === 2) return { insert: insertMock } as never
+        if (callCount === 3) return { select: selectVersionMock } as never
+        return { insert: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { id: 'v1' }, error: null }) }) }), update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }) } as never
       })
 
-      const { data } = await duplicateProtocol('1')
+      const { data } = await duplicateTemplate('1')
       expect(data?.name).toBe('Original (cópia)')
       expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'Original (cópia)' }))
     })
@@ -121,7 +145,7 @@ describe('protocols service', () => {
         select: vi.fn().mockReturnValue({ eq: eqFetchMock }),
       } as never)
 
-      const { data, error } = await duplicateProtocol('nonexistent')
+      const { data, error } = await duplicateTemplate('nonexistent')
       expect(data).toBeNull()
       expect(error).not.toBeNull()
     })

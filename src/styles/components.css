@@ -375,6 +375,7 @@ tbody tr:hover { background: var(--surface-hover); }
 }
 .accordion-item.expanded {
   border-color: rgba(139, 92, 246, 0.3);
+  overflow: visible;
 }
 
 .accordion-header {
@@ -441,8 +442,7 @@ tbody tr:hover { background: var(--surface-hover); }
 }
 
 .accordion-panel {
-  overflow: hidden;
-  transition: max-height 0.3s ease;
+  overflow: visible;
 }
 .accordion-panel[hidden] {
   display: none;
@@ -2101,6 +2101,7 @@ tbody tr:hover { background: var(--surface-hover); }
 .attendance-footer-actions {
   display: flex;
   justify-content: center;
+  gap: var(--space-4);
   margin-top: var(--space-5);
   padding-top: var(--space-4);
   border-top: 1px solid var(--border);
@@ -2593,33 +2594,33 @@ tbody tr:hover { background: var(--surface-hover); }
 }
 
 
-/* ========== Protocols ========== */
-.protocols-grid {
+/* ========== Templates ========== */
+.templates-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--space-4);
 }
 
-.protocol-card {
+.template-card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--space-5);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-.protocol-card:hover {
+.template-card:hover {
   border-color: rgba(139, 92, 246, 0.3);
   box-shadow: var(--shadow-glow);
 }
 
-.protocol-card-header {
+.template-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-3);
 }
 
-.protocol-card-icon {
+.template-card-icon {
   width: 36px;
   height: 36px;
   border-radius: var(--radius-sm);
@@ -2630,24 +2631,24 @@ tbody tr:hover { background: var(--surface-hover); }
   justify-content: center;
 }
 
-.protocol-card-actions {
+.template-card-actions {
   display: flex;
   gap: var(--space-1);
   opacity: 0;
   transition: opacity 0.15s;
 }
-.protocol-card:hover .protocol-card-actions {
+.template-card:hover .template-card-actions {
   opacity: 1;
 }
 
-.protocol-card-name {
+.template-card-name {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text);
   margin-bottom: var(--space-2);
 }
 
-.protocol-card-desc {
+.template-card-desc {
   font-size: 0.82rem;
   color: var(--text-muted);
   line-height: 1.5;
@@ -2658,14 +2659,14 @@ tbody tr:hover { background: var(--surface-hover); }
   overflow: hidden;
 }
 
-.protocol-card-steps {
+.template-card-steps {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
   margin-bottom: var(--space-4);
 }
 
-.protocol-step-pill {
+.template-step-pill {
   display: inline-block;
   padding: 3px 10px;
   background: var(--surface);
@@ -2674,19 +2675,19 @@ tbody tr:hover { background: var(--surface-hover); }
   color: var(--text-muted);
 }
 
-.protocol-step-more {
+.template-step-more {
   font-size: 0.72rem;
   color: var(--violet-light);
   padding: 3px 0;
 }
 
-.protocol-card-footer {
+.template-card-footer {
   display: flex;
   align-items: center;
   gap: var(--space-3);
 }
 
-.protocol-card-usage {
+.template-card-usage {
   font-size: 0.7rem;
   color: var(--text-muted);
   display: flex;
@@ -2694,8 +2695,8 @@ tbody tr:hover { background: var(--surface-hover); }
   gap: 2px;
 }
 
-/* Protocol Step Form (in modal) */
-.protocol-step-form {
+/* Template Step Form (in modal) */
+.template-step-form {
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
@@ -2705,7 +2706,7 @@ tbody tr:hover { background: var(--surface-hover); }
   border-radius: var(--radius-sm);
 }
 
-.protocol-step-grip {
+.template-step-grip {
   display: flex;
   align-items: center;
   gap: var(--space-1);
@@ -2714,21 +2715,21 @@ tbody tr:hover { background: var(--surface-hover); }
   flex-shrink: 0;
 }
 
-.protocol-step-number {
+.template-step-number {
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--violet-light);
   min-width: 16px;
 }
 
-.protocol-step-fields {
+.template-step-fields {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.protocol-step-input {
+.template-step-input {
   background: var(--card);
   border: 1px solid var(--border);
   color: var(--text);
@@ -2738,11 +2739,11 @@ tbody tr:hover { background: var(--surface-hover); }
   font-family: inherit;
   transition: border-color 0.15s;
 }
-.protocol-step-input:focus {
+.template-step-input:focus {
   border-color: var(--violet);
   outline: none;
 }
-.protocol-step-input--desc {
+.template-step-input--desc {
   font-size: 0.8rem;
   color: var(--text-muted);
 }

@@ -1,12 +1,12 @@
-import type { InputHTMLAttributes } from 'react'
+import type { InputHTMLAttributes, ReactNode } from 'react'
 
 interface Props extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string
+  label?: ReactNode
   error?: string
 }
 
 export default function Input({ label, error, id, ...props }: Props) {
-  const inputId = id || label?.toLowerCase().replace(/\s+/g, '-')
+  const inputId = id || (typeof label === 'string' ? label.toLowerCase().replace(/\s+/g, '-') : undefined)
   return (
     <label className="form-label" htmlFor={inputId}>
       {label}

@@ -46,6 +46,13 @@ describe('Sparkline', () => {
     expect(path?.getAttribute('stroke')).toBe('red')
   })
 
+  it('renders dots for all points when showDots is true', () => {
+    const { container } = render(<Sparkline values={[10, 30, 50, 70]} showDots />)
+    const circles = container.querySelectorAll('circle')
+    // showDots adds one circle per point + last point circle
+    expect(circles.length).toBeGreaterThanOrEqual(4)
+  })
+
   it('filters null values correctly', () => {
     const { container } = render(<Sparkline values={[null, 20, null, 60, 80]} />)
     const svg = container.querySelector('svg')

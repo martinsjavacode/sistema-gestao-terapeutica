@@ -55,6 +55,26 @@ describe('SessionComparison', () => {
     expect(bars[1]).toHaveStyle({ width: '75%' })
   })
 
+  it('renders em dash when first is null but last has value', () => {
+    const fields = [
+      { label: 'Mental', color: '#38bdf8', first: 40, last: 75 },
+      { label: 'Emocional', color: '#f472b6', first: null, last: 60 },
+    ]
+    render(<SessionComparison fields={fields} firstDate="01/01" lastDate="15/07" />)
+    expect(screen.getByText('40%')).toBeInTheDocument()
+    expect(screen.getByText('—%')).toBeInTheDocument()
+  })
+
+  it('renders em dash when last is null but first has value', () => {
+    const fields = [
+      { label: 'Mental', color: '#38bdf8', first: 40, last: 75 },
+      { label: 'Emocional', color: '#f472b6', first: 55, last: null },
+    ]
+    render(<SessionComparison fields={fields} firstDate="01/01" lastDate="15/07" />)
+    expect(screen.getByText('55%')).toBeInTheDocument()
+    expect(screen.getByText('—%')).toBeInTheDocument()
+  })
+
   it('includes trend indicators', () => {
     const { container } = render(<SessionComparison fields={defaultFields} firstDate="01/01" lastDate="15/07" />)
     const trends = container.querySelectorAll('.trend-indicator')

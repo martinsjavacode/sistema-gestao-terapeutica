@@ -4,8 +4,10 @@ import { fetchChakras, upsertChakra } from '../../../services/attendances'
 import { toast } from '../../../lib/toast'
 import { CHAKRA_ORDER, CHAKRA_LABELS } from '../../../types/database'
 import type { ChakraName, ChakraState, ChakraActivity } from '../../../types/database'
+import Input from '../../ui/Input'
 import Select from '../../ui/Select'
 import SaveStatus from '../../ui/SaveStatus'
+import TextAreaWithSnippets from '../../ui/TextAreaWithSnippets'
 
 const ACTIVITIES: { value: ChakraActivity; label: string }[] = [
   { value: 'hipoativo', label: 'Hipoativo' },
@@ -30,14 +32,11 @@ export default function ChakrasTab({ attendanceId }: { attendanceId: string }) {
   }
 
   return (
-    <div>
-      <h2 style={{ fontSize: '1.1rem', marginBottom: 'var(--space-4)' }}>Chakras</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        {CHAKRA_ORDER.map(name => {
-          const c = getChakra(name)
-          return <ChakraCard key={name} name={name} initial={c} onSave={(a, p, n) => save(name, a, p, n)} />
-        })}
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {CHAKRA_ORDER.map(name => {
+        const c = getChakra(name)
+        return <ChakraCard key={name} name={name} initial={c} onSave={(a, p, n) => save(name, a, p, n)} />
+      })}
     </div>
   )
 }
@@ -72,14 +71,19 @@ function ChakraCard({ name, initial, onSave }: { name: ChakraName; initial?: { a
           onChange={v => { setActivity(v as ChakraActivity); change() }}
           options={ACTIVITIES}
         />
-        <label className="form-label">
-          Percentual (%)
-          <input type="number" min="0" max="100" step="0.1" value={percentage} onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setPercentage(v); change() }} />
-        </label>
+        <Input
+          label="Percentual (%)"
+          type="number"
+          min={0}
+          max={100}
+          step={0.1}
+          value={percentage}
+          onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setPercentage(v); change() }}
+        />
       </div>
       <label className="form-label" style={{ marginTop: 'var(--space-3)' }}>
         Observações
-        <textarea value={notes} onChange={e => { setNotes(e.target.value); change() }} rows={2} placeholder="Observações sobre este chakra..." />
+        <TextAreaWithSnippets value={notes} onChange={v => { setNotes(v); change() }} rows={2} placeholder="Observações sobre este chakra..." allowSave={false} />
       </label>
     </div>
   )

@@ -50,10 +50,27 @@ describe('templates service', () => {
 
   describe('insertTemplate', () => {
     it('inserts template with sections', async () => {
-      const singleMock = vi.fn().mockResolvedValue({ data: { id: 'new', name: 'Novo' }, error: null })
-      const selectMock = vi.fn().mockReturnValue({ single: singleMock })
-      const insertMock = vi.fn().mockReturnValue({ select: selectMock })
-      vi.mocked(supabase.from).mockReturnValue({ insert: insertMock } as never)
+      const singleInsertMock = vi.fn().mockResolvedValue({ data: { id: 'new', name: 'Novo' }, error: null })
+      const selectInsertMock = vi.fn().mockReturnValue({ single: singleInsertMock })
+      const insertMock = vi.fn().mockReturnValue({ select: selectInsertMock })
+
+      // saveNewVersion faz select na tabela template_versions
+      const singleVersionMock = vi.fn().mockResolvedValue({ data: null, error: null })
+      const limitMock = vi.fn().mockReturnValue({ single: singleVersionMock })
+      const orderVersionMock = vi.fn().mockReturnValue({ limit: limitMock })
+      const eqVersionMock = vi.fn().mockReturnValue({ order: orderVersionMock })
+      const selectVersionMock = vi.fn().mockReturnValue({ eq: eqVersionMock })
+
+      let callCount = 0
+      vi.mocked(supabase.from).mockImplementation(() => {
+        callCount++
+        // 1ª call: insert em session_templates
+        if (callCount === 1) return { insert: insertMock } as never
+        // 2ª call: select em template_versions (busca próximo número de versão)
+        if (callCount === 2) return { select: selectVersionMock } as never
+        // demais: insert de versão e seções — retorna ok
+        return { insert: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { id: 'v1' }, error: null }) }) }), update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }) } as never
+      })
 
       const sections = [{ id: 's1', template_id: '', type: 'builtin' as const, builtin_key: 'assessment', label: 'Avaliação Energética', display_order: 1, groups: [] }]
       const { data } = await insertTemplate({ name: 'Novo', therapy_type: 'radiestesia', sections })
@@ -90,23 +107,30 @@ describe('templates service', () => {
 
   describe('duplicateTemplate', () => {
     it('fetches original and inserts copy', async () => {
-      // Mock fetchTemplate
       const singleFetchMock = vi.fn().mockResolvedValue({
         data: { id: '1', name: 'Original', description: 'Desc', therapy_type: 'radiestesia', sections: [] },
         error: null,
       })
       const eqFetchMock = vi.fn().mockReturnValue({ single: singleFetchMock })
 
-      // Mock insertTemplate
       const singleInsertMock = vi.fn().mockResolvedValue({ data: { id: '2', name: 'Original (cópia)' }, error: null })
       const selectInsertMock = vi.fn().mockReturnValue({ single: singleInsertMock })
       const insertMock = vi.fn().mockReturnValue({ select: selectInsertMock })
+
+      // saveNewVersion: select em template_versions
+      const singleVersionMock = vi.fn().mockResolvedValue({ data: null, error: null })
+      const limitMock = vi.fn().mockReturnValue({ single: singleVersionMock })
+      const orderVersionMock = vi.fn().mockReturnValue({ limit: limitMock })
+      const eqVersionMock = vi.fn().mockReturnValue({ order: orderVersionMock })
+      const selectVersionMock = vi.fn().mockReturnValue({ eq: eqVersionMock })
 
       let callCount = 0
       vi.mocked(supabase.from).mockImplementation(() => {
         callCount++
         if (callCount === 1) return { select: vi.fn().mockReturnValue({ eq: eqFetchMock }) } as never
-        return { insert: insertMock } as never
+        if (callCount === 2) return { insert: insertMock } as never
+        if (callCount === 3) return { select: selectVersionMock } as never
+        return { insert: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { id: 'v1' }, error: null }) }) }), update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }) } as never
       })
 
       const { data } = await duplicateTemplate('1')

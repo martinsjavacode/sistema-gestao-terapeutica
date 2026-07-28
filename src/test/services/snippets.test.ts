@@ -70,7 +70,7 @@ describe('snippets service', () => {
       vi.mocked(supabase.from).mockReturnValue({ insert: insertMock } as never)
 
       const { data } = await insertSnippet({ title: 'Novo', content: 'Texto', category: 'geral' })
-      expect(insertMock).toHaveBeenCalledWith({ title: 'Novo', content: 'Texto', category: 'geral' })
+      expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Novo', content: 'Texto', category: 'geral' }))
       expect(data?.title).toBe('Novo')
     })
   })

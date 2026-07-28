@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase'
+import { supabase, getTenantId } from '../lib/supabase'
 
 export type SnippetCategory = 'bloqueios' | 'tecnicas' | 'recomendacoes' | 'emocoes' | 'crencas' | 'divorcios' | 'geral'
 
@@ -54,9 +54,10 @@ export async function searchSnippets(term: string, category?: SnippetCategory) {
 }
 
 export async function insertSnippet(snippet: { category: SnippetCategory; title: string; content: string }) {
+  const tenant_id = await getTenantId()
   const { data, error } = await supabase
     .from('snippets')
-    .insert(snippet)
+    .insert({ ...snippet, tenant_id })
     .select()
     .single()
   return { data: data as Snippet | null, error }

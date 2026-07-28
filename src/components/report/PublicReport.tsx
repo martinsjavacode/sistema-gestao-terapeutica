@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { CHAKRA_LABELS, LIFE_AREA_LABELS, THERAPY_LABELS } from '../../types/database'
+import { CHAKRA_LABELS, LIFE_AREA_LABELS, getTherapyLabel } from '../../types/database'
 import type { ChakraName, LifeAreaType, TherapyType } from '../../types/database'
 import './PublicReport.css'
 
@@ -111,7 +111,9 @@ interface ReportData {
     youtube_url: string | null
     report_content: string | null
     client_name: string
+    template_sections: TemplateSection[] | null
   }
+  template_sections: TemplateSection[] | null
   assessments: { field_type: string; has_imbalance: boolean; percentage: number | null; notes: string | null }[]
   chakras: { name: ChakraName; state: string; activity: string; percentage: number | null; notes: string | null }[]
   aura: { state: string | null; size: string | null; predominant_color: string | null; excess_color: string | null; missing_color: string | null; state_percentage: number | null; size_percentage: number | null; excess_color_percentage: number | null; missing_color_percentage: number | null; notes: string | null } | null
@@ -121,6 +123,51 @@ interface ReportData {
   blockages: { type: string; origin: string | null; intensity: string | null; notes: string | null }[]
   divorces: { what: string; reason: string | null; percentage: number | null; result: string | null; notes: string | null }[]
   treatment: { techniques: string | null; charts: string | null; recommendations: string | null; frequencies: string | null; exercises: string | null } | null
+  custom_field_values: {
+    id: string
+    version_section_id: string
+    version_field_id: string
+    field_type: string
+    parent_id: string | null
+    instance_index: number | null
+    value_text: string | null
+    value_number: number | null
+    value_boolean: boolean | null
+    value_date: string | null
+  }[]
+}
+
+interface TemplateSection {
+  id: string
+  type: 'builtin' | 'custom'
+  builtin_key: string | null
+  label: string
+  display_order: number
+  groups: TemplateFieldGroup[]
+}
+
+interface TemplateFieldGroup {
+  id: string
+  label?: string
+  display_order: number
+  fields: TemplateField[]
+}
+
+interface TemplateField {
+  id: string
+  label: string
+  field_type: string
+  display_order: number
+  width: string
+  text_type?: 'input' | 'textarea'
+  list_type?: 'single' | 'multi'
+  rating_min?: number
+  rating_max?: number
+  rating_unit?: string
+  date_format?: 'date' | 'datetime'
+  parent_field_id?: string | null
+  options?: { id: string; label: string; display_order: number }[]
+  subfields?: TemplateField[]
 }
 
 export default function PublicReport() {
@@ -148,8 +195,80 @@ export default function PublicReport() {
   if (error) return <div className="report-error"><p>🔮</p><h2>Relatório não disponível</h2><p>{error}</p></div>
   if (!data) return null
 
-  const { attendance, tenant, assessments, chakras, aura, life_areas, emotions, beliefs, divorces, treatment } = data
+  const { attendance, tenant, assessments, chakras, aura, life_areas, emotions, beliefs, divorces, treatment, custom_field_values } = data
   const fieldLabels: Record<string, string> = { mental: 'Mental', emocional: 'Emocional', espiritual: 'Espiritual', fisico: 'Físico' }
+
+  // ========== Helpers EAV ==========
+
+  type EavRow = typeof custom_field_values[number]
+
+  // Monta subfields aninhados a partir da lista plana (a RPC retorna tudo flat
+  // com parent_field_id — precisamos remontar a árvore para o EavFieldRenderer)
+  function buildFieldTree(fields: TemplateField[]): TemplateField[] {
+    const byId: Record<string, TemplateField> = {}
+    for (const f of fields) byId[f.id] = { ...f, subfields: [] }
+    const roots: TemplateField[] = []
+    for (const f of fields) {
+      if (f.parent_field_id && byId[f.parent_field_id]) {
+        byId[f.parent_field_id]!.subfields!.push(byId[f.id]!)
+      } else {
+        roots.push(byId[f.id]!)
+      }
+    }
+    return roots
+  }
+
+  const getRootEav = (fieldId: string): EavRow | undefined =>
+    custom_field_values.find(v => v.version_field_id === fieldId && v.parent_id === null && v.instance_index === null)
+
+  const getListEav = (fieldId: string, parentId: string | null = null): EavRow[] =>
+    custom_field_values
+      .filter(v => v.version_field_id === fieldId && v.parent_id === parentId && v.instance_index !== null)
+      .sort((a, b) => (a.instance_index ?? 0) - (b.instance_index ?? 0))
+
+  const getSubEav = (parentId: string, fieldId: string): EavRow | undefined =>
+    custom_field_values.find(v => v.parent_id === parentId && v.version_field_id === fieldId)
+
+  const getRepeatableInstances = (fieldId: string): EavRow[] =>
+    custom_field_values
+      .filter(v => v.version_field_id === fieldId && v.parent_id === null && v.instance_index !== null)
+      .sort((a, b) => (a.instance_index ?? 0) - (b.instance_index ?? 0))
+
+  const hasEavValue = (field: TemplateField, parentId: string | null = null): boolean => {
+    const fieldId = field.id
+    const type = field.field_type
+
+    // composite: tem valor se o registro container existir E algum filho tiver valor
+    if (type === 'composite') {
+      const container = parentId ? getSubEav(parentId, fieldId) : getRootEav(fieldId)
+      if (!container) return false
+      return (field.subfields ?? []).some(sub => hasEavValue(sub, container.id))
+    }
+
+    // repeatable: tem valor se existir ao menos uma instância
+    if (type === 'repeatable') {
+      return getRepeatableInstances(fieldId).length > 0
+    }
+
+    // list
+    if (type === 'list') {
+      return getListEav(fieldId, parentId).length > 0
+    }
+
+    // campos simples
+    const row = parentId ? getSubEav(parentId, fieldId) : getRootEav(fieldId)
+    if (!row) return false
+    if (row.value_text?.trim()) return true
+    if (row.value_number != null) return true
+    if (row.value_boolean != null) return true
+    if (row.value_date) return true
+    return false
+  }
+
+  // Seções custom com ao menos 1 valor
+  const customSections = (data.template_sections ?? [])
+    .filter(s => s.type === 'custom')
+    .filter(s => custom_field_values.some(v => v.version_section_id === s.id))
 
   return (
     <div className="public-report">
@@ -168,7 +287,7 @@ export default function PublicReport() {
           <h1 className="pr-client-name">{attendance.client_name}</h1>
           <div style={{ display: 'flex', gap: '16px', marginTop: '16px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>📅 {new Date(attendance.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>✨ {THERAPY_LABELS[attendance.therapy_type]}</span>
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>✨ {getTherapyLabel(attendance.therapy_type)}</span>
             {attendance.objective && <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>🎯 {attendance.objective}</span>}
           </div>
         </div>
@@ -344,6 +463,99 @@ export default function PublicReport() {
         </CollapsibleSection>
       )}
 
+      {/* Seções Customizadas */}
+      {customSections.map((section: TemplateSection) => {
+        const groups = section.groups ?? []
+
+        // Cada grupo gera: um card por composite/repeatable + um card por grupo
+        // com os campos simples (se houver). Igual ao padrão dos chakras.
+        const cards: React.ReactNode[] = []
+
+        groups.forEach(group => {
+          const rootFields = buildFieldTree(group.fields)
+          const fieldsWithValue = rootFields.filter(f => hasEavValue(f, null))
+          if (fieldsWithValue.length === 0) return
+
+          const simpleFields    = fieldsWithValue.filter(f => f.field_type !== 'composite' && f.field_type !== 'repeatable')
+          const structuredFields = fieldsWithValue.filter(f => f.field_type === 'composite' || f.field_type === 'repeatable')
+
+          // Card por composite / repeatable (igual ao padrão de chakra)
+          structuredFields.forEach(field => {
+            const compositeRow = getRootEav(field.id)
+            const subfields = field.subfields ?? []
+
+            if (field.field_type === 'composite') {
+              if (!compositeRow) return
+              const filledSubs = subfields.filter(s => hasEavValue(s, compositeRow.id))
+              if (filledSubs.length === 0) return
+              cards.push(
+                <div key={field.id} className="pr-chakra-card">
+                  <div className="pr-chakra-bar-header" style={{ marginBottom: '12px' }}>
+                    <span className="pr-chakra-name">{field.label}</span>
+                  </div>
+                  {filledSubs.map(sub => (
+                    <EavFieldRenderer
+                      key={sub.id} field={sub} parentId={compositeRow.id}
+                      getRootEav={getRootEav} getListEav={getListEav} getSubEav={getSubEav}
+                    />
+                  ))}
+                </div>
+              )
+            }
+
+            if (field.field_type === 'repeatable') {
+              const instances = getRepeatableInstances(field.id)
+              if (instances.length === 0) return
+              instances.forEach((inst, idx) => {
+                const filledSubs = subfields.filter(s => hasEavValue(s, inst.id))
+                if (filledSubs.length === 0) return
+                cards.push(
+                  <div key={`${field.id}-${inst.id}`} className="pr-chakra-card">
+                    <div className="pr-chakra-bar-header" style={{ marginBottom: '12px' }}>
+                      <span className="pr-chakra-name">{field.label}</span>
+                      <span className="pr-chakra-pct" style={{ fontSize: '0.72rem' }}>#{idx + 1}</span>
+                    </div>
+                    {filledSubs.map(sub => (
+                      <EavFieldRenderer
+                        key={sub.id} field={sub} parentId={inst.id}
+                        getRootEav={getRootEav} getListEav={getListEav} getSubEav={getSubEav}
+                      />
+                    ))}
+                  </div>
+                )
+              })
+            }
+          })
+
+          // Card com campos simples do grupo (se houver)
+          if (simpleFields.length > 0) {
+            cards.push(
+              <div key={group.id} className="pr-chakra-card">
+                {group.label && (
+                  <div className="pr-chakra-bar-header" style={{ marginBottom: '12px' }}>
+                    <span className="pr-chakra-name">{group.label}</span>
+                  </div>
+                )}
+                {simpleFields.map(field => (
+                  <EavFieldRenderer
+                    key={field.id} field={field} parentId={null}
+                    getRootEav={getRootEav} getListEav={getListEav} getSubEav={getSubEav}
+                  />
+                ))}
+              </div>
+            )
+          }
+        })
+
+        if (cards.length === 0) return null
+
+        return (
+          <CollapsibleSection key={section.id} icon="◈" title={section.label}>
+            <div className="pr-chakra-grid">{cards}</div>
+          </CollapsibleSection>
+        )
+      })}
+
       {/* Recomendações */}
       {treatment?.recommendations && (
         <CollapsibleSection icon="✧" title="Recomendações">
@@ -363,6 +575,106 @@ export default function PublicReport() {
       </footer>
     </div>
   )
+}
+
+// ========== EavFieldRenderer — renderiza um campo do EAV no relatório ==========
+
+type EavRow = {
+  id: string; section_id?: string; version_section_id?: string
+  field_id?: string; version_field_id?: string
+  field_type: string
+  parent_id: string | null; instance_index: number | null
+  value_text: string | null; value_number: number | null
+  value_boolean: boolean | null; value_date: string | null
+}
+
+function EavFieldRenderer({
+  field, parentId, getRootEav, getListEav, getSubEav,
+}: {
+  field: TemplateField
+  parentId: string | null
+  getRootEav: (fieldId: string) => EavRow | undefined
+  getListEav: (fieldId: string, parentId?: string | null) => EavRow[]
+  getSubEav: (parentId: string, fieldId: string) => EavRow | undefined
+}) {
+  const row = parentId ? getSubEav(parentId, field.id) : getRootEav(field.id)
+  const unit = field.rating_unit ?? ''
+  const max = field.rating_max ?? 100
+
+  if (field.field_type === 'text') {
+    const text = row?.value_text
+    if (!text?.trim()) return null
+    const isInline = field.text_type === 'input'
+    return isInline ? (
+      <div className="pr-chakra-meta">
+        <span style={{ color: '#94a3b8' }}>{field.label}:</span>
+        <span className="pr-highlight">{text}</span>
+      </div>
+    ) : (
+      <div style={{ marginTop: '8px' }}>
+        <span style={{ fontSize: '0.9rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>{field.label}</span>
+        <p style={{ color: '#e2e8f0', whiteSpace: 'pre-line', margin: 0 }}>{text}</p>
+      </div>
+    )
+  }
+
+  if (field.field_type === 'rating') {
+    if (row?.value_number == null) return null
+    const pct = (row.value_number / max) * 100
+    const barColor = pct >= 100 ? '#38bdf8' : '#f97316'
+    return (
+      <div style={{ marginBottom: '12px' }}>
+        <div className="pr-chakra-bar-header">
+          <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>{field.label}</span>
+          <span className="pr-chakra-pct">{row.value_number}{unit}</span>
+        </div>
+        <div className="pr-chakra-bar">
+          <div className="pr-chakra-bar-fill" style={{ width: `${Math.min(pct, 100)}%`, background: barColor }} />
+        </div>
+      </div>
+    )
+  }
+
+  if (field.field_type === 'checkbox') {
+    if (row?.value_boolean == null) return null
+    return (
+      <div className="pr-chakra-meta">
+        <span style={{ color: '#94a3b8' }}>{field.label}:</span>
+        <span className="pr-highlight" style={{ color: row.value_boolean ? '#38bdf8' : '#f97316' }}>
+          {row.value_boolean ? 'Sim' : 'Não'}
+        </span>
+      </div>
+    )
+  }
+
+  if (field.field_type === 'date') {
+    if (!row?.value_date) return null
+    return (
+      <div className="pr-chakra-meta">
+        <span style={{ color: '#94a3b8' }}>{field.label}:</span>
+        <span className="pr-highlight">
+          {new Date(row.value_date + 'T12:00:00').toLocaleDateString('pt-BR')}
+        </span>
+      </div>
+    )
+  }
+
+  if (field.field_type === 'list') {
+    const items = getListEav(field.id, parentId)
+    if (items.length === 0) return null
+    return (
+      <div style={{ marginBottom: '12px' }}>
+        <span style={{ fontSize: '0.9rem', color: '#94a3b8', display: 'block', marginBottom: '8px' }}>{field.label}</span>
+        <div className="pr-custom-field-list">
+          {items.map((item, i) => (
+            <span key={i} className="pr-custom-field-chip">{item.value_text}</span>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  return null
 }
 
 // ========== Aura Section com descrições ==========

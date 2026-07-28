@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import { fetchSnippets, searchSnippets, insertSnippet, updateSnippet, deleteSnippet } from '../../services/snippets'
+import { fetchSnippets, searchSnippets, insertSnippet, updateSnippet, deleteSnippet, incrementSnippetUsage } from '../../services/snippets'
 import { supabase } from '../../lib/supabase'
 
 describe('snippets service', () => {
@@ -70,7 +70,7 @@ describe('snippets service', () => {
       vi.mocked(supabase.from).mockReturnValue({ insert: insertMock } as never)
 
       const { data } = await insertSnippet({ title: 'Novo', content: 'Texto', category: 'geral' })
-      expect(insertMock).toHaveBeenCalledWith({ title: 'Novo', content: 'Texto', category: 'geral' })
+      expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Novo', content: 'Texto', category: 'geral' }))
       expect(data?.title).toBe('Novo')
     })
   })
@@ -98,6 +98,28 @@ describe('snippets service', () => {
       expect(supabase.from).toHaveBeenCalledWith('snippets')
       expect(eqMock).toHaveBeenCalledWith('id', '1')
       expect(error).toBeNull()
+    })
+  })
+
+  describe('incrementSnippetUsage', () => {
+    it('calls rpc when available', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValue({ error: null } as never)
+      await incrementSnippetUsage('1')
+      expect(supabase.rpc).toHaveBeenCalledWith('increment_snippet_usage', { snippet_id: '1' })
+    })
+
+    it('falls back to manual update when rpc fails', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValue({ error: new Error('rpc not found') } as never)
+
+      const eqUpdateMock = vi.fn().mockResolvedValue({ error: null })
+      const updateMock = vi.fn().mockReturnValue({ eq: eqUpdateMock })
+      const singleMock = vi.fn().mockResolvedValue({ data: { usage_count: 5 }, error: null })
+      const eqSelectMock = vi.fn().mockReturnValue({ single: singleMock })
+      const selectMock = vi.fn().mockReturnValue({ eq: eqSelectMock })
+      vi.mocked(supabase.from).mockReturnValue({ select: selectMock, update: updateMock } as never)
+
+      await incrementSnippetUsage('1')
+      expect(updateMock).toHaveBeenCalledWith({ usage_count: 6 })
     })
   })
 })

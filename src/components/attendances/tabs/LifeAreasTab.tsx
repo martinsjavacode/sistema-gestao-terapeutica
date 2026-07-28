@@ -4,7 +4,9 @@ import { fetchLifeAreas, upsertLifeArea } from '../../../services/attendances'
 import { toast } from '../../../lib/toast'
 import { LIFE_AREA_LABELS } from '../../../types/database'
 import type { LifeAreaType } from '../../../types/database'
+import Input from '../../ui/Input'
 import SaveStatus from '../../ui/SaveStatus'
+import TextAreaWithSnippets from '../../ui/TextAreaWithSnippets'
 
 const AREAS: LifeAreaType[] = ['financeiro', 'profissional', 'amoroso', 'familiar', 'missao']
 
@@ -24,14 +26,11 @@ export default function LifeAreasTab({ attendanceId }: { attendanceId: string })
   }
 
   return (
-    <div>
-      <h2 style={{ fontSize: '1.1rem', marginBottom: 'var(--space-4)' }}>Áreas da Vida</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        {AREAS.map(area => {
-          const a = getArea(area)
-          return <AreaCard key={area} area={area} initial={a} onSave={(p, n) => save(area, p, n)} />
-        })}
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {AREAS.map(area => {
+        const a = getArea(area)
+        return <AreaCard key={area} area={area} initial={a} onSave={(p, n) => save(area, p, n)} />
+      })}
     </div>
   )
 }
@@ -59,14 +58,19 @@ function AreaCard({ area, initial, onSave }: { area: LifeAreaType; initial?: { p
         <SaveStatus status={saveStatus} />
       </div>
       <div className="form-row">
-        <label className="form-label">
-          Percentual (%)
-          <input type="number" min="0" max="100" step="0.1" value={percentage} onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setPercentage(v); change() }} />
-        </label>
+        <Input
+          label="Percentual (%)"
+          type="number"
+          min={0}
+          max={100}
+          step={0.1}
+          value={percentage}
+          onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setPercentage(v); change() }}
+        />
       </div>
       <label className="form-label" style={{ marginTop: 'var(--space-3)' }}>
         Observações
-        <textarea value={notes} onChange={e => { setNotes(e.target.value); change() }} rows={2} placeholder="Observações sobre esta área..." />
+        <TextAreaWithSnippets value={notes} onChange={v => { setNotes(v); change() }} rows={2} placeholder="Observações sobre esta área..." allowSave={false} />
       </label>
     </div>
   )

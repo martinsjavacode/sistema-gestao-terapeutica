@@ -3,20 +3,33 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchAttendances, insertAttendance, deleteAttendance } from '../../services/attendances'
 import Button from '../ui/Button'
+import Input from '../ui/Input'
 import Select from '../ui/Select'
 import { TableSkeleton } from '../ui/Skeleton'
 import { confirm } from '../../lib/confirm'
 import { toast } from '../../lib/toast'
 import { Plus, Trash2, FileText, Search } from 'lucide-react'
 import type { TherapyType } from '../../types/database'
-import { THERAPY_LABELS } from '../../types/database'
-import { ACTIVE_THERAPIES } from '../../config/therapy-sections'
+import { getTherapyLabel } from '../../types/database'
+import { getActiveTechniques, getSectionsForTherapy } from '../../config/therapy-sections'
+import type { TechniqueWithSections } from '../../services/techniques'
+import { useTenant } from '../../hooks/useTenant'
 import AttendanceDetail from './AttendanceDetail'
+
+function getAttendanceStatus(a: { completed_sections: string[] | null; therapy_type: TherapyType }, techniques: TechniqueWithSections[]) {
+  const completed = a.completed_sections ?? []
+  if (completed.length === 0) return { label: 'Rascunho', className: 'badge badge-warning' }
+  const totalSections = getSectionsForTherapy(a.therapy_type, techniques).length
+  if (completed.length >= totalSections) return { label: 'Completo', className: 'badge badge-success' }
+  return { label: 'Em andamento', className: 'badge badge-info' }
+}
 
 export default function AttendancePage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { techniques } = useTenant()
+  const activeTechniques = getActiveTechniques(techniques)
   const clientFilter = searchParams.get('client')
   const attendanceId = searchParams.get('id')
   const [adding, setAdding] = useState(searchParams.get('new') === '1')
@@ -26,13 +39,13 @@ export default function AttendancePage() {
   const [newObjective, setNewObjective] = useState('')
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
 
-  // Templates de sessão
+  // Templates de sessão (filtrados pelas técnicas ativas do tenant)
   const SESSION_TEMPLATES = [
     { id: 'first', label: '🌟 Primeira consulta', objective: 'Avaliação energética inicial completa', therapy: 'radiestesia' as TherapyType },
     { id: 'return', label: '🔄 Retorno', objective: 'Acompanhamento e reavaliação', therapy: 'radiestesia' as TherapyType },
     { id: 'cut', label: '✂️ Corte energético', objective: 'Remoção de crenças e vínculos energéticos', therapy: 'corte_energetico' as TherapyType },
     { id: 'emergency', label: '🆘 Emergencial', objective: 'Atendimento emergencial — queixa aguda', therapy: 'radiestesia' as TherapyType },
-  ]
+  ].filter(t => activeTechniques.some(at => at.id === t.therapy))
 
   const applyTemplate = (templateId: string) => {
     const template = SESSION_TEMPLATES.find(t => t.id === templateId)
@@ -79,20 +92,7 @@ export default function AttendancePage() {
   }, [newClientId, newTherapy, newObjective, createMut])
 
   if (attendanceId) {
-    const handleDuplicate = async () => {
-      const current = attendances.find(a => a.id === attendanceId)
-      if (!current) return
-      createMut.mutate({
-        client_id: current.client_id,
-        date: new Date().toISOString().slice(0, 10),
-        time: new Date().toTimeString().slice(0, 5),
-        therapy_type: current.therapy_type,
-        objective: current.objective ? `[Continuação] ${current.objective}` : null,
-        bovis_frequency: null,
-        notes: null,
-      })
-    }
-    return <AttendanceDetail attendanceId={attendanceId} onDuplicate={handleDuplicate} />
+    return <AttendanceDetail attendanceId={attendanceId} />
   }
 
   if (isLoading) return <TableSkeleton />
@@ -103,7 +103,7 @@ export default function AttendancePage() {
     return (
       a.clients?.name?.toLowerCase().includes(term) ||
       a.objective?.toLowerCase().includes(term) ||
-      THERAPY_LABELS[a.therapy_type].toLowerCase().includes(term) ||
+      getTherapyLabel(a.therapy_type, techniques).toLowerCase().includes(term) ||
       new Date(a.date + 'T12:00:00').toLocaleDateString('pt-BR').includes(term)
     )
   })
@@ -117,13 +117,12 @@ export default function AttendancePage() {
 
       <div className="filters">
         <div style={{ position: 'relative', flex: 1, maxWidth: '360px' }}>
-          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input
+          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', zIndex: 1 }} />
+          <Input
             type="search"
             placeholder="Buscar por cliente, terapia ou data..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="search-input"
             style={{ paddingLeft: '36px', maxWidth: '100%' }}
           />
         </div>
@@ -150,7 +149,11 @@ export default function AttendancePage() {
               </div>
             </div>
             <div className="attendance-row-right">
-              <span className="badge badge-info">{THERAPY_LABELS[a.therapy_type]}</span>
+              {(() => {
+                const status = getAttendanceStatus(a, techniques)
+                return <span className={status.className}>{status.label}</span>
+              })()}
+              <span className="badge badge-info">{getTherapyLabel(a.therapy_type, techniques)}</span>
               <div className="actions" onClick={e => e.stopPropagation()}>
                 <Button variant="icon" onClick={() => navigate(`/attendances?id=${a.id}`)} aria-label="Abrir"><FileText size={14} /></Button>
                 {(!a.completed_sections || a.completed_sections.length === 0) && (
@@ -179,34 +182,36 @@ export default function AttendancePage() {
               </span>
               <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                 {SESSION_TEMPLATES.map(t => (
-                  <button
+                  <Button
                     key={t.id}
-                    className={`tab-nav-btn ${selectedTemplate === t.id ? 'active' : ''}`}
+                    variant={selectedTemplate === t.id ? 'primary' : 'tab'}
                     onClick={() => applyTemplate(t.id)}
                     style={{ fontSize: '0.78rem', padding: '6px 12px' }}
                   >
                     {t.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
 
             <div className="form-grid">
-              <label className="form-label">
+              <div className="form-label">
                 Cliente
                 <ClientSelect value={newClientId} onChange={setNewClientId} />
-              </label>
+              </div>
               <Select
                 label="Tipo de terapia"
                 value={newTherapy}
                 onChange={v => setNewTherapy(v as TherapyType)}
-                options={ACTIVE_THERAPIES.map(k => ({ value: k, label: THERAPY_LABELS[k] }))}
+                options={activeTechniques.map(t => ({ value: t.id, label: t.name }))}
               />
             </div>
-            <label className="form-label" style={{ marginTop: 'var(--space-4)' }}>
-              Objetivo da sessão
-              <textarea value={newObjective} onChange={e => setNewObjective(e.target.value)} placeholder="Descreva o objetivo..." />
-            </label>
+            <div style={{ marginTop: 'var(--space-4)' }}>
+              <label className="form-label">
+                Objetivo da sessão
+                <textarea value={newObjective} onChange={e => setNewObjective(e.target.value)} placeholder="Descreva o objetivo..." />
+              </label>
+            </div>
             <div className="form-actions">
               <Button variant="tab" onClick={() => setAdding(false)}>Cancelar</Button>
               <Button onClick={handleCreate} disabled={!newClientId}>Criar</Button>

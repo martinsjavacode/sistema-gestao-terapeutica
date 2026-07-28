@@ -27,9 +27,9 @@ describe('Breadcrumbs', () => {
     expect(screen.getByText('Atendimentos')).toBeInTheDocument()
   })
 
-  it('renders breadcrumb for /protocols', () => {
-    renderWithRouter('/protocols')
-    expect(screen.getByText('Protocolos')).toBeInTheDocument()
+  it('renders breadcrumb for /templates', () => {
+    renderWithRouter('/templates')
+    expect(screen.getByText('Fichas')).toBeInTheDocument()
   })
 
   it('renders home icon link', () => {

@@ -12,7 +12,7 @@ const STEPS: OnboardingStep[] = [
   { title: 'Dashboard', description: 'Visão geral do seu consultório com métricas, ações pendentes e últimos atendimentos.', icon: '📊' },
   { title: 'Clientes', description: 'Cadastre seus clientes e acompanhe a evolução energética de cada um.', icon: '👥' },
   { title: 'Atendimentos', description: 'Registre sessões com avaliação de chakras, campo áurico, crenças e muito mais.', icon: '📋' },
-  { title: 'Protocolos', description: 'Crie templates de tratamento reutilizáveis para padronizar seus atendimentos.', icon: '📖' },
+  { title: 'Fichas', description: 'Crie fichas personalizáveis para cada tipo de atendimento com as seções que você precisa.', icon: '📖' },
   { title: 'Snippets', description: 'Salve trechos de texto frequentes e insira rapidamente com o atalho /.', icon: '⚡' },
   { title: 'Atalhos', description: 'Use Ctrl+N para novo atendimento, Ctrl+K para busca, e ? para ajuda.', icon: '⌨️' },
 ]

@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { fetchAttendances, fetchEnergyAssessments, fetchChakras, fetchEmotions, fetchLimitingBeliefs, fetchBlockages, fetchEnergyDivorces } from '../../services/attendances'
-import { THERAPY_LABELS, CHAKRA_LABELS } from '../../types/database'
+import { getTherapyLabel, CHAKRA_LABELS } from '../../types/database'
 import type { TherapyType, ChakraName, EnergyFieldType } from '../../types/database'
-import { ACTIVE_THERAPIES } from '../../config/therapy-sections'
+import { getActiveTechniques } from '../../config/therapy-sections'
+import { useTenant } from '../../hooks/useTenant'
 import { RadarChart, SessionComparison } from '../charts'
 import { FileText, TrendingUp } from 'lucide-react'
 
@@ -34,6 +35,8 @@ const CHAKRA_COLORS: Record<ChakraName, string> = {
 
 export default function ClientHistory({ clientId }: Props) {
   const navigate = useNavigate()
+  const { techniques } = useTenant()
+  const activeTechniques = getActiveTechniques(techniques)
   const [filterTherapy, setFilterTherapy] = useState<TherapyType | 'all'>('all')
   const [showChart, setShowChart] = useState(true)
 
@@ -60,16 +63,16 @@ export default function ClientHistory({ clientId }: Props) {
         >
           Todos ({attendances.length})
         </button>
-        {ACTIVE_THERAPIES.map(t => {
-          const count = attendances.filter(a => a.therapy_type === t).length
+        {activeTechniques.map(t => {
+          const count = attendances.filter(a => a.therapy_type === t.id).length
           if (count === 0) return null
           return (
             <button
-              key={t}
-              className={`tab-nav-btn ${filterTherapy === t ? 'active' : ''}`}
-              onClick={() => setFilterTherapy(t)}
+              key={t.id}
+              className={`tab-nav-btn ${filterTherapy === t.id ? 'active' : ''}`}
+              onClick={() => setFilterTherapy(t.id as TherapyType)}
             >
-              {THERAPY_LABELS[t]} ({count})
+              {t.name} ({count})
             </button>
           )
         })}
@@ -336,7 +339,7 @@ function HistoryItem({ attendanceId, date, time, therapyType, objective, onClick
             {dateStr}
             {timeStr && <span style={{ marginLeft: 'var(--space-2)' }}>{timeStr}</span>}
           </span>
-          <span className="badge badge-info">{THERAPY_LABELS[therapyType]}</span>
+          <span className="badge badge-info">{getTherapyLabel(therapyType)}</span>
         </div>
         {objective && (
           <p className="timeline-objective">{objective}</p>

@@ -104,5 +104,18 @@ describe('clients service', () => {
       expect(ilikeMock).toHaveBeenCalledWith('name', '%mar%')
       expect(data).toHaveLength(1)
     })
+
+    it('returns empty array when data is null', async () => {
+      const limitMock = vi.fn().mockResolvedValue({ data: null, error: null })
+      const orderMock = vi.fn().mockReturnValue({ limit: limitMock })
+      const ilikeMock = vi.fn().mockReturnValue({ order: orderMock })
+      const eqMock = vi.fn().mockReturnValue({ ilike: ilikeMock })
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({ eq: eqMock }),
+      } as never)
+
+      const { data } = await searchClients('xyz')
+      expect(data).toEqual([])
+    })
   })
 })

@@ -42,7 +42,7 @@ export interface Attendance {
   report_content: string | null
   report_pdf_url: string | null
   template_id: string | null
-  template_snapshot: unknown[] | null  // TemplateSection[] snapshot salvo na criação
+  template_version_id: string | null
   created_at: string
   client?: Client
 }

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchEnergyAssessments, fetchChakras, fetchAuraField, fetchLifeAreas, fetchEmotions, fetchLimitingBeliefs, fetchBlockages, fetchEnergyDivorces, fetchTreatment, updateAttendance, fetchAttendance } from '../../../services/attendances'
-import { fetchCustomSectionValues, type TemplateSection } from '../../../services/templates'
+import { fetchFieldValues, fetchTemplateVersion, type CustomFieldValue } from '../../../services/templates'
 import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
 import Button from '../../ui/Button'
@@ -50,12 +50,24 @@ export default function ReportTab({ attendanceId }: { attendanceId: string }) {
   })
 
   const { data: customValues = [] } = useQuery({
-    queryKey: ['custom-section-values', attendanceId],
-    queryFn: async () => { const { data } = await fetchCustomSectionValues(attendanceId); return data },
+    queryKey: ['custom-field-values', attendanceId],
+    queryFn: async () => { const { data } = await fetchFieldValues(attendanceId); return data as CustomFieldValue[] },
   })
 
-  const customSections = ((attendance?.template_snapshot ?? []) as TemplateSection[]).filter(s => s.type === 'custom')
-  const filledCustomSections = customSections.filter(cs => customValues.some(v => v.section_id === cs.id && v.values && Object.keys(v.values).length > 0))
+  const { data: versionSections } = useQuery({
+    queryKey: ['template-version-sections', attendance?.template_version_id],
+    queryFn: async () => {
+      if (!attendance?.template_version_id) return null
+      const { data } = await fetchTemplateVersion(attendance.template_version_id)
+      return (data?.sections ?? null)
+    },
+    enabled: !!attendance?.template_version_id,
+  })
+
+  const customSections = (versionSections ?? []).filter(s => s.type === 'custom')
+  const filledCustomSections = customSections.filter(cs =>
+    customValues.some((v: CustomFieldValue) => v.version_section_id === cs.id)
+  )
 
   const hasData = assessments.length > 0 || chakras.length > 0 || (aura && (aura.state || aura.predominant_color)) || lifeAreas.length > 0 || emotions.length > 0 || beliefs.length > 0 || blockages.length > 0 || divorces.length > 0 || (treatment && (treatment.techniques || treatment.recommendations)) || filledCustomSections.length > 0
 

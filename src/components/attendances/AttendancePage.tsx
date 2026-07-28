@@ -92,20 +92,7 @@ export default function AttendancePage() {
   }, [newClientId, newTherapy, newObjective, createMut])
 
   if (attendanceId) {
-    const handleDuplicate = async () => {
-      const current = attendances.find(a => a.id === attendanceId)
-      if (!current) return
-      createMut.mutate({
-        client_id: current.client_id,
-        date: new Date().toISOString().slice(0, 10),
-        time: new Date().toTimeString().slice(0, 5),
-        therapy_type: current.therapy_type,
-        objective: current.objective ? `[Continuação] ${current.objective}` : null,
-        bovis_frequency: null,
-        notes: null,
-      })
-    }
-    return <AttendanceDetail attendanceId={attendanceId} onDuplicate={handleDuplicate} />
+    return <AttendanceDetail attendanceId={attendanceId} />
   }
 
   if (isLoading) return <TableSkeleton />

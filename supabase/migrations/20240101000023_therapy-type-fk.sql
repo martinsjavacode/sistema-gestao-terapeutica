@@ -21,13 +21,6 @@ INSERT INTO therapy_techniques (id, name, description, active)
 VALUES ('outro', 'Outro', 'Outras modalidades terapêuticas', true)
 ON CONFLICT (id) DO NOTHING;
 
--- 4. Fazer o mesmo para a tabela protocols que também usa therapy_type text
--- (já era text, apenas garantir FK)
-ALTER TABLE protocols
-  ADD CONSTRAINT fk_protocols_therapy_type
-  FOREIGN KEY (therapy_type) REFERENCES therapy_techniques(id)
-  ON DELETE RESTRICT;
-
 -- 5. Converter appointments.therapy_type se existir
 DO $$
 BEGIN

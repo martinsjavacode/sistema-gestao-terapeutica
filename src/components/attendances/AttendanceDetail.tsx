@@ -2,12 +2,12 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { fetchAttendance, updateAttendance, fetchEnergyAssessments, fetchChakras, fetchAuraField, fetchLifeAreas, fetchEmotions, fetchLimitingBeliefs, fetchEnergyDivorces, fetchTreatment } from '../../services/attendances'
-import { fetchTemplates, linkTemplateWithSnapshot, fetchCustomSectionValues, upsertCustomSectionValue, incrementTemplateUsage, type TemplateSection } from '../../services/templates'
+import { fetchTemplates, linkTemplateWithSnapshot, fetchFieldValues, fetchTemplateVersion, incrementTemplateUsage, type VersionSection, type CustomFieldValue } from '../../services/templates'
 import { TableSkeleton } from '../ui/Skeleton'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 import Select from '../ui/Select'
-import { ArrowLeft, ChevronRight, ChevronDown, Check, Youtube, StickyNote, Copy, CheckCircle2, FileCheck, BookOpen } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ChevronDown, Check, Youtube, StickyNote, CheckCircle2, FileCheck, BookOpen } from 'lucide-react'
 import { getTherapyLabel } from '../../types/database'
 import { getSectionsForTherapy } from '../../config/therapy-sections'
 import type { SectionKey } from '../../config/therapy-sections'
@@ -27,10 +27,9 @@ import { confirm } from '../../lib/confirm'
 
 interface Props {
   attendanceId: string
-  onDuplicate?: () => void
 }
 
-export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
+export default function AttendanceDetail({ attendanceId }: Props) {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { techniques } = useTenant()
@@ -80,10 +79,21 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
     enabled: !!attendance,
   })
 
-  const { data: customValues = [] } = useQuery({
-    queryKey: ['custom-section-values', attendanceId],
+  // Sections da versão vinculada ao atendimento
+  const { data: versionSections } = useQuery({
+    queryKey: ['template-version-sections', attendance?.template_version_id],
     queryFn: async () => {
-      const { data } = await fetchCustomSectionValues(attendanceId)
+      if (!attendance?.template_version_id) return null
+      const { data } = await fetchTemplateVersion(attendance.template_version_id)
+      return (data?.sections ?? null) as VersionSection[] | null
+    },
+    enabled: !!attendance?.template_version_id,
+  })
+
+  const { data: customValues = [] } = useQuery({
+    queryKey: ['custom-field-values', attendanceId],
+    queryFn: async () => {
+      const { data } = await fetchFieldValues(attendanceId)
       return data
     },
   })
@@ -95,12 +105,11 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['attendance', attendanceId] })
-      qc.invalidateQueries({ queryKey: ['custom-section-values', attendanceId] })
+      qc.invalidateQueries({ queryKey: ['custom-field-values', attendanceId] })
     },
   })
 
   const handleChangeTemplate = useCallback(async (templateId: string | null) => {
-    // Se já tem dados preenchidos, confirmar
     const hasData = customValues.length > 0
     if (hasData && attendance?.template_id) {
       const ok = await confirm({
@@ -113,16 +122,6 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
     }
     changeTemplateMut.mutate(templateId)
   }, [customValues, attendance?.template_id, changeTemplateMut])
-
-  const saveCustomSectionMut = useMutation({
-    mutationFn: async ({ sectionId, values }: { sectionId: string; values: Record<string, { content?: string; items?: string[]; rating?: number; checked?: boolean }> }) => {
-      if (!attendance?.template_id) return
-      await upsertCustomSectionValue(attendanceId, attendance.template_id, sectionId, values)
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['custom-section-values', attendanceId] })
-    },
-  })
 
   const markSectionComplete = useCallback(async (key: SectionKey) => {
     const current = attendance?.completed_sections ?? []
@@ -224,37 +223,30 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
   if (isLoading) return <TableSkeleton />
   if (!attendance) return <p>Atendimento não encontrado.</p>
 
-  const snapshotSections = (attendance.template_snapshot as TemplateSection[] | null) ?? null
-  
-  // Seções ordenadas pelo campo order do template
-  const allSections: TemplateSection[] = snapshotSections
-    ? [...snapshotSections].sort((a, b) => a.order - b.order)
+  const snapshotSections = versionSections ?? null
+
+  // Seções ordenadas por display_order
+  const allSections: VersionSection[] = snapshotSections
+    ? [...snapshotSections].sort((a, b) => a.display_order - b.display_order)
     : getSectionsForTherapy(attendance.therapy_type, techniques).map((s, i) => ({
         id: s.key,
+        version_id: '',
         type: 'builtin' as const,
-        key: s.key,
+        builtin_key: s.key,
         label: s.label,
-        order: i,
+        display_order: i,
+        groups: [],
       }))
-  
-  // Para compatibilidade com filledSections (seções builtin)
+
   const builtinSections = allSections.filter(s => s.type === 'builtin')
-  const customSections = allSections.filter(s => s.type === 'custom')
-  
-  const filledCount = builtinSections.filter(s => filledSections[s.key as SectionKey]).length
+  const customSections  = allSections.filter(s => s.type === 'custom')
+
+  const filledCount = builtinSections.filter(s => filledSections[s.builtin_key as SectionKey]).length
   const totalSections = allSections.length
-  const customFilledCount = customSections.filter(cs => {
-    const val = customValues.find(v => v.section_id === cs.id)
-    if (!val || !val.values) return false
-    // Section is filled if at least one field has data
-    return Object.values(val.values).some(fv => {
-      if (fv.content?.trim()) return true
-      if (fv.items && fv.items.length > 0) return true
-      if (fv.rating != null && fv.rating > 0) return true
-      if (fv.checked != null) return true
-      return false
-    })
-  }).length
+  const customFilledCount = customSections.filter(cs =>
+    customValues.some(v => v.version_section_id === cs.id)
+  ).length
+
   const progressPercent = Math.round(((filledCount + customFilledCount) / totalSections) * 100)
 
   const getStatusBadge = () => {
@@ -265,18 +257,9 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
 
   const status = getStatusBadge()
 
-  // Helper para verificar se seção custom está preenchida
-  const isCustomSectionFilled = (sectionId: string) => {
-    const sectionValue = customValues.find(v => v.section_id === sectionId)
-    if (!sectionValue?.values) return false
-    return Object.values(sectionValue.values).some(fv => {
-      if (fv.content?.trim()) return true
-      if (fv.items && fv.items.length > 0) return true
-      if (fv.rating != null && fv.rating > 0) return true
-      if (fv.checked != null) return true
-      return false
-    })
-  }
+  // Helper: seção custom preenchida = tem ao menos 1 registro EAV
+  const isCustomSectionFilled = (sectionId: string) =>
+    customValues.some(v => v.version_section_id === sectionId)
 
   return (
     <div className="attendance-detail-layout">
@@ -292,7 +275,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
         <nav className="minimap-nav">
           {allSections.map(section => {
             if (section.type === 'builtin') {
-              const sectionKey = section.key as SectionKey
+              const sectionKey = section.builtin_key as SectionKey
               const isFilled = filledSections[sectionKey]
               return (
                 <button
@@ -356,11 +339,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
               </p>
             </div>
           </div>
-          {onDuplicate && (
-            <Button variant="tab" onClick={onDuplicate} title="Duplicar último atendimento">
-              <Copy size={14} /> Duplicar
-            </Button>
-          )}
+
         </div>
 
         {/* Barra de progresso mobile */}
@@ -396,7 +375,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
         <div className="accordion">
           {allSections.map(section => {
             if (section.type === 'builtin') {
-              const sectionKey = section.key as SectionKey
+              const sectionKey = section.builtin_key as SectionKey
               const isExpanded = expandedSections.has(sectionKey)
               const isFilled = filledSections[sectionKey]
 
@@ -454,18 +433,9 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
               )
             } else {
               // Custom section
-              const sectionValue = customValues.find(v => v.section_id === section.id)
+              const sectionFieldValues = customValues.filter(v => v.version_section_id === section.id)
               const isExpanded = expandedCustomSections.has(section.id)
-              const isFilled = (() => {
-                if (!sectionValue?.values) return false
-                return Object.values(sectionValue.values).some(fv => {
-                  if (fv.content?.trim()) return true
-                  if (fv.items && fv.items.length > 0) return true
-                  if (fv.rating != null && fv.rating > 0) return true
-                  if (fv.checked != null) return true
-                  return false
-                })
-              })()
+              const isFilled = isCustomSectionFilled(section.id)
 
               return (
                 <div
@@ -504,8 +474,17 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
                     <div className="accordion-content">
                       <CustomSectionRenderer
                         section={section}
-                        sectionValue={sectionValue}
-                        onSave={(values) => saveCustomSectionMut.mutate({ sectionId: section.id, values })}
+                        attendanceId={attendanceId}
+                        sectionValues={sectionFieldValues}
+                        onValuesChange={(updated: CustomFieldValue[]) => {
+                          qc.setQueryData(
+                            ['custom-field-values', attendanceId],
+                            (prev: CustomFieldValue[] = []) => [
+                              ...prev.filter(v => v.version_section_id !== section.id),
+                              ...updated,
+                            ]
+                          )
+                        }}
                       />
                     </div>
                   </div>
@@ -538,7 +517,7 @@ export default function AttendanceDetail({ attendanceId, onDuplicate }: Props) {
       {/* Modal de Resumo */}
       {showSummary && (
         <AttendanceSummaryModal
-          sections={builtinSections.map(s => ({ key: s.key as SectionKey, label: s.label }))}
+          sections={builtinSections.map(s => ({ key: s.builtin_key as SectionKey, label: s.label }))}
           filledSections={filledSections}
           sectionSummaries={sectionSummaries}
           clientName={attendance.clients?.name ?? ''}

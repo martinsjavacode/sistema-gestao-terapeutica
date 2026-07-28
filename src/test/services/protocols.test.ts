@@ -55,9 +55,9 @@ describe('templates service', () => {
       const insertMock = vi.fn().mockReturnValue({ select: selectMock })
       vi.mocked(supabase.from).mockReturnValue({ insert: insertMock } as never)
 
-      const sections = [{ id: 's1', type: 'builtin' as const, key: 'assessment', label: 'Avaliação Energética', order: 1 }]
+      const sections = [{ id: 's1', template_id: '', type: 'builtin' as const, builtin_key: 'assessment', label: 'Avaliação Energética', display_order: 1, groups: [] }]
       const { data } = await insertTemplate({ name: 'Novo', therapy_type: 'radiestesia', sections })
-      expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'Novo', sections }))
+      expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'Novo' }))
       expect(data?.name).toBe('Novo')
     })
   })

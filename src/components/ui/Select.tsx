@@ -35,14 +35,17 @@ export default function Select({ label, value, options, onChange, placeholder = 
 
   // Calcular posição do menu quando abrir
   useEffect(() => {
-    if (open && triggerRef.current) {
+    if (!open || !triggerRef.current) return
+    const raf = requestAnimationFrame(() => {
+      if (!triggerRef.current) return
       const rect = triggerRef.current.getBoundingClientRect()
       setMenuPosition({
-        top: rect.bottom + 6,
+        top: rect.bottom + 6,   // fixed: relativo ao viewport
         left: rect.left,
         width: rect.width,
       })
-    }
+    })
+    return () => cancelAnimationFrame(raf)
   }, [open])
 
   // Fechar ao clicar fora
@@ -57,10 +60,12 @@ export default function Select({ label, value, options, onChange, placeholder = 
     return () => document.removeEventListener('mousedown', handleClick)
   }, [close])
 
-  // Fechar ao rolar a página/modal
+  // Fechar ao rolar fora do menu (não fecha ao rolar dentro do modal)
   useEffect(() => {
     if (!open) return
-    function handleScroll() {
+    function handleScroll(e: Event) {
+      // Não fecha se o scroll foi dentro do próprio menu
+      if (listRef.current && listRef.current.contains(e.target as Node)) return
       close()
     }
     window.addEventListener('scroll', handleScroll, true)
